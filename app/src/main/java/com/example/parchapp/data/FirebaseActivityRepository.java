@@ -6,17 +6,14 @@ import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.MainThread;
 import com.google.firebase.functions.FirebaseFunctions;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Activities are created/read and reminders configured through authenticated backend callables. */
-public final class FirebaseActivityRepository implements ActivityRepository {
+/** Activity creation/details/reminders are handled through authenticated backend callables. */
+public final class FirebaseActivityRepository implements ActivityActionsRepository {
     private final FirebaseFunctions functions;
-    private final TravelTimeCache travelCache = new TravelTimeCache();
 
     public FirebaseActivityRepository(FirebaseFunctions functions) {
         this.functions = functions;
@@ -55,27 +52,6 @@ public final class FirebaseActivityRepository implements ActivityRepository {
     }
 
     @Override
-    public void getActivities(String userId, Callback<List<PlannedActivity>> callback) {
-        functions.getHttpsCallable("getActivities").call(Collections.emptyMap())
-                .addOnSuccessListener(result -> {
-                    Object raw = map(result.getData()).get("activities");
-                    List<PlannedActivity> activities = new ArrayList<>();
-                    if (raw instanceof List) {
-                        for (Object value : (List<?>) raw) {
-                            Map<?, ?> item = map(value);
-                            activities.add(new PlannedActivity(string(item.get("id")),
-                                    string(item.get("groupId")), string(item.get("title")),
-                                    string(item.get("category")), string(item.get("date")),
-                                    string(item.get("time")), string(item.get("location")),
-                                    string(item.get("status")), 0L));
-                        }
-                    }
-                    MainThread.post(() -> callback.onSuccess(activities));
-                })
-                .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
-    }
-
-    @Override
     public void getActivityDetails(String activityId, Callback<ActivityDetails> callback) {
         Map<String, Object> input = new HashMap<>();
         input.put("activityId", activityId);
@@ -103,16 +79,6 @@ public final class FirebaseActivityRepository implements ActivityRepository {
         functions.getHttpsCallable("setActivityReminder").call(input)
                 .addOnSuccessListener(result -> MainThread.post(() -> callback.onSuccess(null)))
                 .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
-    }
-
-    @Override
-    public Integer getCachedTravelMinutes(String activityId) {
-        return travelCache.get(activityId);
-    }
-
-    @Override
-    public void cacheTravelMinutes(String activityId, int minutes) {
-        travelCache.put(activityId, minutes);
     }
 
     private static Map<?, ?> map(Object value) {

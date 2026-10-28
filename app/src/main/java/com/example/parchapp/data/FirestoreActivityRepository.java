@@ -1,6 +1,5 @@
 package com.example.parchapp.data;
 
-import com.example.parchapp.domain.model.ActivityDetails;
 import com.example.parchapp.domain.model.PlannedActivity;
 import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.MainThread;
@@ -16,20 +15,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-/* F6: reads the activities of my groups for the Today's Plans section. Saving an activity is the Activity Created feature, so createActivity is not part of this branch. */
-class FirestoreActivityRepository implements ActivityRepository {
+/* F6: reads the activities of my groups for the Today's Plans section. */
+class FirestoreActivityRepository implements ActivityPlanRepository {
     // f7: kept in memory, one entry per activity
     private final TravelTimeCache travelCache = new TravelTimeCache();
     private final FirebaseFirestore db;
 
     FirestoreActivityRepository(FirebaseFirestore db) {
         this.db = db;
-    }
-
-    @Override
-    public void createActivity(PlannedActivity activity, Callback<PlannedActivity> callback) {
-        MainThread.post(() -> callback.onError(new UnsupportedOperationException(
-                "Activity publishing is not part of this branch")));
     }
 
     // first my groups, then one query per group, because the rules only let me read activities of groups i belong to
@@ -92,20 +85,6 @@ class FirestoreActivityRepository implements ActivityRepository {
             return ((Number) value).longValue();
         }
         return 0L;
-    }
-
-    @Override
-    public void getActivityDetails(String activityId, Callback<ActivityDetails> callback) {
-        // details come from the cloud function, see FirebaseActivityRepository
-        MainThread.post(() -> callback.onError(new UnsupportedOperationException(
-                "Activity details need the activity backend")));
-    }
-
-    @Override
-    public void setActivityReminder(String activityId, int minutesBefore, Callback<Void> callback) {
-        // reminders are saved by the cloud function, see FirebaseActivityRepository
-        MainThread.post(() -> callback.onError(new UnsupportedOperationException(
-                "Activity reminders need the activity backend")));
     }
 
     @Override

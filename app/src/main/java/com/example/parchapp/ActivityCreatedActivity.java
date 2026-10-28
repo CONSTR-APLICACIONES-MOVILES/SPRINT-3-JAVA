@@ -7,11 +7,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatButton;
 
 import com.example.parchapp.analytics.AnalyticsEvents;
 import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.data.FirebaseRecommendationDecisionRepository;
 import com.example.parchapp.data.Repositories;
+import com.example.parchapp.domain.model.ActivityDetails;
 import com.example.parchapp.util.Callback;
 import com.google.firebase.functions.FirebaseFunctions;
 
@@ -30,15 +32,6 @@ public class ActivityCreatedActivity extends AppCompatActivity {
     public static final String EXTRA_SELECTED_END_TIME = "extra_selected_end_time";
     public static final String EXTRA_SLOT_POSITION = "extra_slot_position";
     public static final String EXTRA_GROUP_SIZE = "extra_group_size";
-import androidx.appcompat.widget.AppCompatButton;
-
-import com.example.parchapp.data.ActivityRepository;
-import com.example.parchapp.data.Repositories;
-import com.example.parchapp.domain.model.ActivityDetails;
-import com.example.parchapp.util.Callback;
-
-public class ActivityCreatedActivity extends AppCompatActivity {
-    public static final String EXTRA_ACTIVITY_ID = "extra_activity_id";
 
     private ActivityDetails activity;
     private AppCompatButton reminderButton;
