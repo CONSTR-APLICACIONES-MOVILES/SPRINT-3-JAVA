@@ -10,6 +10,10 @@ public final class UserSession {
         currentUser = user;
     }
 
+    public static void clear() {
+        currentUser = null;
+    }
+
     public static UserProfile getCurrentUser() {
         return currentUser;
     }

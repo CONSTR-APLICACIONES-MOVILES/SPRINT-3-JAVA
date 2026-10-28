@@ -1,5 +1,6 @@
 package com.example.parchapp;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -16,7 +17,7 @@ public class ProfileActivity extends AppCompatActivity {
         findViewById(R.id.profile_back_button).setOnClickListener(v -> finish());
         findViewById(R.id.profile_edit_button).setEnabled(false);
         findViewById(R.id.profile_status_button).setEnabled(false);
-        findViewById(R.id.profile_logout_button).setEnabled(false);
+        findViewById(R.id.profile_logout_button).setOnClickListener(v -> logout());
         renderViewOnlyProfile();
     }
 
@@ -34,6 +35,15 @@ public class ProfileActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.profile_academic_card)).setText("Academic information");
         ((TextView) findViewById(R.id.profile_groups_card)).setText("Groups");
         ((TextView) findViewById(R.id.profile_calendar_card)).setText("Calendar and privacy");
+    }
+
+    private void logout() {
+        Repositories.auth().signOut();
+        UserSession.clear();
+        Intent signIn = new Intent(this, MainActivity.class);
+        signIn.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(signIn);
+        finishAffinity();
     }
 
 }
