@@ -143,4 +143,6 @@
     <string name="loading_groups">Loading your groups…</string>
     <string name="compare_group_label">Group</string>
     <string name="no_groups_to_compare">Join or create a group to compare availability.</string>
+    <string name="signing_in">Signing in…</string>
+    <string name="creating_account">Creating account…</string>
 </resources>
