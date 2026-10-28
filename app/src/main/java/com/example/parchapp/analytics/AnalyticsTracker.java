@@ -23,9 +23,14 @@ import java.util.Map;
 public final class AnalyticsTracker {
     static final int BATCH_SIZE = 10;
 
+    public interface ConnectivityListener {
+        void onConnectivityChanged(boolean online);
+    }
+
     private static volatile AnalyticsTracker instance;
 
     private final EventQueue queue = new EventQueue();
+    private final List<ConnectivityListener> connectivityListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
     private AnalyticsSink sink;
     private ConnectivityMonitor connectivity;
     private String pendingUserId;
@@ -55,8 +60,32 @@ public final class AnalyticsTracker {
             sink.setUserId(pendingUserId);
             pendingUserId = null;
         }
-        connectivity = new ConnectivityMonitor(application, this::flush);
+        connectivity = new ConnectivityMonitor(application);
+        connectivity.addListener(online -> {
+            if (online) {
+                flush();
+            }
+            for (ConnectivityListener listener : connectivityListeners) {
+                listener.onConnectivityChanged(online);
+            }
+        });
         application.registerActivityLifecycleCallbacks(new BackgroundFlusher());
+    }
+
+    public boolean isOnline() {
+        ConnectivityMonitor current = connectivity;
+        return current != null && current.isOnline();
+    }
+
+    public void addConnectivityListener(ConnectivityListener listener) {
+        if (!connectivityListeners.contains(listener)) {
+            connectivityListeners.add(listener);
+            listener.onConnectivityChanged(isOnline());
+        }
+    }
+
+    public void removeConnectivityListener(ConnectivityListener listener) {
+        connectivityListeners.remove(listener);
     }
 
     public void track(String name) {
