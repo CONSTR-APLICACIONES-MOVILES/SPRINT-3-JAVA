@@ -1,5 +1,7 @@
 package com.example.parchapp.data;
 
+import androidx.annotation.Nullable;
+
 import com.example.parchapp.domain.model.PlannedActivity;
 import com.example.parchapp.domain.model.ActivityDetails;
 import com.example.parchapp.util.Callback;
@@ -16,4 +18,9 @@ public interface ActivityRepository {
     void getActivityDetails(String activityId, Callback<ActivityDetails> callback);
 
     void setActivityReminder(String activityId, int minutesBefore, Callback<Void> callback);
+    /* F7: travel minutes to this activity measured in the last 15 minutes, or null. */
+    @Nullable
+    Integer getCachedTravelMinutes(String activityId);
+
+    void cacheTravelMinutes(String activityId, int minutes);
 }

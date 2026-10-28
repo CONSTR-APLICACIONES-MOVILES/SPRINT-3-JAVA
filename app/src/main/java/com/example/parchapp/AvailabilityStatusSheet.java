@@ -11,10 +11,13 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+
 import com.example.parchapp.data.Repositories;
+import com.example.parchapp.domain.StatusService;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 
-public class AvailabilityStatusSheet extends BottomSheetDialogFragment {
+public class AvailabilityStatusSheet extends BottomSheetDialogFragment implements StatusService.Listener {
 
     private View selectedStatusRow;
     private ImageView selectedStatusCheck;
@@ -22,6 +25,8 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment {
 
     private TextView selectedDurationChip;
     private String selectedDurationName = "For 1 hour";
+    private StatusService statusService;
+    private TextView motionDetectionMessage;
 
     @Nullable
     @Override
@@ -32,6 +37,8 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        statusService = Repositories.status();
+        motionDetectionMessage = view.findViewById(R.id.motion_detection_message);
 
         view.findViewById(R.id.sheet_close_btn).setOnClickListener(v -> dismiss());
 
@@ -40,9 +47,7 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment {
         setupStatusRow(view, R.id.status_focus, R.id.check_focus, "Deep Focus");
         setupStatusRow(view, R.id.status_busy, R.id.check_busy, "Busy / Personal");
         setupStatusRow(view, R.id.status_transit, R.id.check_transit, "Commute / In Transit");
-
-        selectedStatusRow = view.findViewById(R.id.status_transit);
-        selectedStatusCheck = view.findViewById(R.id.check_transit);
+        selectSavedStatus(view, statusService.getAvailability());
 
         TextView[] durationChips = {
                 view.findViewById(R.id.duration_1h),
@@ -70,26 +75,82 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment {
         });
     }
 
+    @Override
+    public void onStart() {
+        super.onStart();
+        if (statusService == null) return;
+        statusService.addListener(this);
+        boolean started = statusService.startMotionDetection();
+        motionDetectionMessage.setText(!statusService.isMotionDetectionAvailable()
+                ? "Movement suggestions are unavailable: this device has no accelerometer."
+                : started ? "Movement detection is active while this sheet is open."
+                : "Could not start movement detection on this device.");
+    }
+
+    @Override
+    public void onStop() {
+        if (statusService != null) {
+            statusService.removeListener(this);
+            statusService.stopMotionDetection();
+        }
+        super.onStop();
+    }
+
+    @Override
+    public void onStatusChanged(StatusService status) { }
+
+    @Override
+    public void onCommuteSuggested(StatusService status) {
+        if (!isAdded() || getView() == null) return;
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Movement detected")
+                .setMessage("Would you like to set your status to Commute / In Transit?")
+                .setNegativeButton("Not now", null)
+                .setPositiveButton("Set status", (dialog, which) -> {
+                    selectStatus(getView(), R.id.status_transit, R.id.check_transit,
+                            "Commute / In Transit");
+                    selectedDurationName = "For 1 hour";
+                    status.setAvailability(selectedStatusName, selectedDurationName);
+                    Toast.makeText(requireContext(), "Commute status saved", Toast.LENGTH_SHORT).show();
+                })
+                .show();
+    }
+
+    private void selectSavedStatus(View root, String savedStatus) {
+        int rowId = R.id.status_available;
+        int checkId = R.id.check_available;
+        String name = "Available now";
+        if ("In Class".equals(savedStatus) || "inClass".equals(savedStatus)) {
+            rowId = R.id.status_class; checkId = R.id.check_class; name = "In Class";
+        } else if ("Deep Focus".equals(savedStatus) || "focused".equals(savedStatus)) {
+            rowId = R.id.status_focus; checkId = R.id.check_focus; name = "Deep Focus";
+        } else if ("Busy / Personal".equals(savedStatus) || "busy".equals(savedStatus)) {
+            rowId = R.id.status_busy; checkId = R.id.check_busy; name = "Busy / Personal";
+        } else if ("Commute / In Transit".equals(savedStatus) || "inTransit".equals(savedStatus)) {
+            rowId = R.id.status_transit; checkId = R.id.check_transit; name = "Commute / In Transit";
+        }
+        selectStatus(root, rowId, checkId, name);
+    }
+
+    private void selectStatus(View root, int rowId, int checkId, String name) {
+        if (selectedStatusRow != null) {
+            selectedStatusRow.setBackgroundResource(R.drawable.bg_option_row_unselected);
+            selectedStatusCheck.setVisibility(View.GONE);
+        }
+        View row = root.findViewById(rowId);
+        ImageView check = root.findViewById(checkId);
+        row.setBackgroundResource(R.drawable.bg_option_row_selected);
+        check.setVisibility(View.VISIBLE);
+        selectedStatusRow = row;
+        selectedStatusCheck = check;
+        selectedStatusName = name;
+    }
+
     private void setupStatusRow(View root, int rowId, int checkId, String statusName) {
         View row = root.findViewById(rowId);
         ImageView check = root.findViewById(checkId);
         row.setOnClickListener(v -> {
-            if (selectedStatusRow != null) {
-                selectedStatusRow.setBackgroundResource(R.drawable.bg_option_row_unselected);
-                selectedStatusCheck.setVisibility(View.GONE);
-                FrameLayout previousFrame = (FrameLayout) selectedStatusCheck.getParent();
-                previousFrame.getChildAt(0).setBackgroundTintList(
-                        android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#F1F5F9")));
-            }
-            row.setBackgroundResource(R.drawable.bg_option_row_selected);
-            check.setVisibility(View.VISIBLE);
-            FrameLayout frame = (FrameLayout) check.getParent();
-            frame.getChildAt(0).setBackgroundTintList(
-                    androidx.core.content.ContextCompat.getColorStateList(requireContext(), R.color.brand_primary));
-
-            selectedStatusRow = row;
-            selectedStatusCheck = check;
-            selectedStatusName = statusName;
+            selectStatus(root, rowId, checkId, statusName);
         });
     }
 
