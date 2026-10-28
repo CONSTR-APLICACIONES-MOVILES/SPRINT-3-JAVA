@@ -17,6 +17,8 @@ import java.util.Map;
 
 /* F6: reads the activities of my groups for the Today's Plans section. Saving an activity is the Activity Created feature, so createActivity is not part of this branch. */
 class FirestoreActivityRepository implements ActivityRepository {
+    // f7: kept in memory, one entry per activity
+    private final TravelTimeCache travelCache = new TravelTimeCache();
     private final FirebaseFirestore db;
 
     FirestoreActivityRepository(FirebaseFirestore db) {
@@ -89,5 +91,15 @@ class FirestoreActivityRepository implements ActivityRepository {
             return ((Number) value).longValue();
         }
         return 0L;
+    }
+
+    @Override
+    public Integer getCachedTravelMinutes(String activityId) {
+        return travelCache.get(activityId);
+    }
+
+    @Override
+    public void cacheTravelMinutes(String activityId, int minutes) {
+        travelCache.put(activityId, minutes);
     }
 }
