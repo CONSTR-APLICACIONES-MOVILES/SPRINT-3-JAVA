@@ -1,6 +1,7 @@
 package com.example.parchapp.data;
 
 import com.example.parchapp.domain.model.PlannedActivity;
+import com.example.parchapp.domain.model.ActivityDetails;
 import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.MainThread;
 
@@ -17,6 +18,13 @@ class DisabledActivityRepository implements ActivityRepository {
     @Override public void getActivities(String userId, Callback<List<PlannedActivity>> callback) {
         MainThread.post(() -> callback.onSuccess(Collections.emptyList()));
     }
+    @Override public void getActivityDetails(String activityId, Callback<ActivityDetails> callback) {
+        MainThread.post(() -> callback.onError(new UnsupportedOperationException(
+                "Activity backend is not enabled in this base branch")));
+    }
+    @Override public void setActivityReminder(String activityId, int minutesBefore, Callback<Void> callback) {
+        MainThread.post(() -> callback.onError(new UnsupportedOperationException(
+                "Activity reminders are not enabled in this base branch")));
 
     @Override
     public Integer getCachedTravelMinutes(String activityId) {

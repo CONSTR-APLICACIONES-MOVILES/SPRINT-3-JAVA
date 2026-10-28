@@ -17,16 +17,26 @@ public class PlannedActivity {
     private final long createdAt;
     private final int groupSizeAtCreation;
     private final boolean comparisonUsed;
+    private final String startTime;
+    private final String endTime;
     private final String locationAreaId;
 
     public PlannedActivity(String id, String groupId, String title, String category, String date,
                            String time, String location, String status, long createdAt) {
-        this(id, groupId, title, category, date, time, location, status, createdAt, 0, false);
+        this(id, groupId, title, category, date, time, location, status, createdAt, 0, false, null, null);
     }
 
     public PlannedActivity(String id, String groupId, String title, String category, String date,
                            String time, String location, String status, long createdAt,
                            int groupSizeAtCreation, boolean comparisonUsed) {
+        this(id, groupId, title, category, date, time, location, status, createdAt,
+                groupSizeAtCreation, comparisonUsed, null, null);
+    }
+
+    public PlannedActivity(String id, String groupId, String title, String category, String date,
+                           String time, String location, String status, long createdAt,
+                           int groupSizeAtCreation, boolean comparisonUsed,
+                           String startTime, String endTime) {
         this(id, groupId, title, category, date, time, location, status, createdAt, groupSizeAtCreation,
                 comparisonUsed, UNKNOWN_AREA);
     }
@@ -46,17 +56,24 @@ public class PlannedActivity {
         this.createdAt = createdAt;
         this.groupSizeAtCreation = groupSizeAtCreation;
         this.comparisonUsed = comparisonUsed;
+        this.startTime = startTime;
+        this.endTime = endTime;
         this.locationAreaId = locationAreaId == null || locationAreaId.isEmpty() ? UNKNOWN_AREA : locationAreaId;
     }
 
     public PlannedActivity withId(String newId) {
         return new PlannedActivity(newId, groupId, title, category, date, time, location, status,
-                createdAt, groupSizeAtCreation, comparisonUsed);
+                createdAt, groupSizeAtCreation, comparisonUsed, startTime, endTime);
     }
 
     public PlannedActivity withPlanningContext(int groupSize, boolean usedComparison) {
         return new PlannedActivity(id, groupId, title, category, date, time, location, status,
-                createdAt, groupSize, usedComparison);
+                createdAt, groupSize, usedComparison, startTime, endTime);
+    }
+
+    public PlannedActivity withSchedule(String start, String end) {
+        return new PlannedActivity(id, groupId, title, category, date, time, location, status,
+                createdAt, groupSizeAtCreation, comparisonUsed, start, end);
     }
 
     public String getId() {
@@ -103,6 +120,9 @@ public class PlannedActivity {
         return comparisonUsed;
     }
 
+    public String getStartTime() { return startTime; }
+
+    public String getEndTime() { return endTime; }
     public String getLocationAreaId() {
         return locationAreaId;
     }

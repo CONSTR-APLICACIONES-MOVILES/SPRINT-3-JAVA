@@ -4,6 +4,10 @@ import android.content.Context;
 
 import com.example.parchapp.BuildConfig;
 import com.example.parchapp.domain.StatusService;
+import com.example.parchapp.BuildConfig;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.functions.FirebaseFunctions;
+/* Sprint 3 base composition: keeps the view contracts while Sprint 2 features are reintroduced on feature branches. */
 import com.example.parchapp.util.MainThread;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
@@ -30,6 +34,18 @@ public final class Repositories {
         if (groups != null) {
             return;
         }
+        firebaseAvailable = !FirebaseApp.getApps(context).isEmpty();
+        groups = new EmptyGroupRepository();
+        if (firebaseAvailable) {
+            FirebaseFunctions functions = FirebaseFunctions.getInstance("us-central1");
+            if (BuildConfig.USE_FIREBASE_EMULATORS) {
+                functions.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 5001);
+            }
+            activities = new FirebaseActivityRepository(functions);
+        } else {
+            activities = new DisabledActivityRepository();
+        }
+        auth = new DisabledAuthRepository();
         // debug has no google-services.json, so we start firebase by hand against the emulators
         if (BuildConfig.USE_FIREBASE_EMULATORS && FirebaseApp.getApps(context).isEmpty()) {
             FirebaseOptions options = new FirebaseOptions.Builder()
@@ -84,6 +100,7 @@ public final class Repositories {
     }
 
     public static boolean isFirebaseAnalyticsAvailable() {
+        return firebaseAvailable;
         return firebaseAvailable && !BuildConfig.USE_FIREBASE_EMULATORS;
     }
 
