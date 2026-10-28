@@ -6,6 +6,7 @@ import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -38,9 +39,15 @@ public class MainActivity extends AppCompatActivity {
         // the google flow registers an activity result launcher, so it has to be created here in onCreate
         googleSignIn = new GoogleSignInFlow(this, new OpenDashboardCallback());
 
-        // the "Continue as" card is its own feature, here it stays hidden
-        findViewById(R.id.restored_session_card).setVisibility(View.GONE);
-        continueButton.setEnabled(false);
+// f5: firebase keeps the session, so getCurrentUser gives us the user that signed in before
+        UserProfile restored = auth.getSignedInUser();
+        if (restored != null) {
+            showRestoredSession(restored, continueButton);
+        } else {
+// f5: without a saved session the card stays hidden and the user uses the form
+            findViewById(R.id.restored_session_card).setVisibility(View.GONE);
+            continueButton.setEnabled(false);
+        }
 
         findViewById(R.id.google_button).setOnClickListener(v -> googleSignIn.start());
         signInButton.setOnClickListener(v -> signIn());
@@ -115,6 +122,19 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
         return true;
+    }
+
+// f5: fills the continue as card with the data of the saved user and opens the dashboard with one tap
+    private void showRestoredSession(UserProfile user, Button continueButton) {
+        findViewById(R.id.restored_session_card).setVisibility(View.VISIBLE);
+        ((TextView) findViewById(R.id.restored_user_initials)).setText(user.getInitials());
+        ((TextView) findViewById(R.id.restored_user_name)).setText(user.getFirstName());
+        ((TextView) findViewById(R.id.restored_user_email)).setText(user.getEmail());
+// f5: we do not have the career of the user, so we hide that line
+        findViewById(R.id.restored_user_detail).setVisibility(View.GONE);
+        continueButton.setText("Continue as " + user.getFirstName());
+        continueButton.setEnabled(true);
+        continueButton.setOnClickListener(v -> openDashboard(user));
     }
 
     private void openDashboard(UserProfile user) {

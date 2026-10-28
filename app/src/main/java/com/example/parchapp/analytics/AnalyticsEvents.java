@@ -33,8 +33,6 @@ public final class AnalyticsEvents {
     public static final String PARAM_RECOMMENDATION_ID = "recommendation_id";
     public static final String PARAM_SLOT_POSITION = "slot_position";
     public static final String PARAM_MODIFIED = "modified";
-// f2: place of the slot in the list, 0 is the best slot
-    public static final String PARAM_SLOT_POSITION = "slot_position";
     public static final String PARAM_CREATION_SESSION_ID = "creation_session_id";
     public static final String PARAM_RESULT = "result";
     public static final String PARAM_ERROR_CODE = "error_code";
