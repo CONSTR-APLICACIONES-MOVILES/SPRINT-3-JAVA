@@ -49,7 +49,8 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         findViewById(R.id.copy_link_button).setEnabled(false);
         findViewById(R.id.btn_edit_free_until).setOnClickListener(v -> openQuickStatusSheet());
         findViewById(R.id.btn_edit_next_activity).setOnClickListener(v -> openQuickStatusSheet());
-        findViewById(R.id.compare_button).setEnabled(false);
+        // f4: the compare button opens the best-slot recommender for my first group
+        findViewById(R.id.compare_button).setOnClickListener(v -> openCompareAvailability());
         findViewById(R.id.calendar_button).setOnClickListener(v -> {
             startActivity(new Intent(this, ScheduleActivity.class));
         });
@@ -268,6 +269,15 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
             }
             toast("Group is no longer available");
         }, loadedGroups).show(getSupportFragmentManager(), "all_groups");
+    }
+
+    private void openCompareAvailability() {
+        if (loadedGroups.isEmpty()) {
+            toast("No group is available");
+            return;
+        }
+        CompareAvailabilitySheet.newInstance(loadedGroups.get(0).getId())
+                .show(getSupportFragmentManager(), "compare_availability");
     }
 
     private void openPlanDetails() {
