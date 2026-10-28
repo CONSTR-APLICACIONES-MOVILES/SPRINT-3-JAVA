@@ -9,6 +9,7 @@ import android.location.Location;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
+import com.example.parchapp.BuildConfig;
 import com.example.parchapp.domain.PlanContext;
 import com.example.parchapp.domain.model.CampusPlace;
 import com.example.parchapp.domain.model.PlannedActivity;
@@ -50,6 +51,10 @@ public class TravelTimeService {
 
     /* F7: source shown when the minutes come from the ActivityRepository cache. */
     static final String CACHED_SOURCE = "saved travel time";
+// f7: source shown when the minutes come from google maps
+    static final String MAPS_SOURCE = "Google Maps";
+// f7: one client for the whole app, so all the screens share the same background thread
+    private static final DistanceMatrixClient MAPS = new DistanceMatrixClient(BuildConfig.MAPS_API_KEY);
 
     private final Context context;
 
@@ -98,7 +103,31 @@ public class TravelTimeService {
         });
     }
 
+// f7: first we ask google maps, if it fails or takes more than 8 seconds we use the walking estimate
     private void measure(PlannedActivity activity, CampusPlace place, Location from, Listener listener) {
+        if (!MAPS.isConfigured()) {
+            useWalkingEstimate(activity, place, from, listener);
+            return;
+        }
+        MAPS.getTravelMinutes(from.getLatitude(), from.getLongitude(), place.getLat(), place.getLng(),
+                new Callback<Integer>() {
+                    @Override
+                    public void onSuccess(Integer minutes) {
+                        if (activity.getId() != null) {
+                            Repositories.activities().cacheTravelMinutes(activity.getId(), minutes);
+                        }
+                        listener.onTravel(result(activity, minutes, MAPS_SOURCE, place));
+                    }
+
+// f7: fallback, the card still shows a time and the user can continue
+                    @Override
+                    public void onError(Exception error) {
+                        useWalkingEstimate(activity, place, from, listener);
+                    }
+                });
+    }
+
+    private void useWalkingEstimate(PlannedActivity activity, CampusPlace place, Location from, Listener listener) {
         int walking = PlanContext.walkingMinutes(from.getLatitude(), from.getLongitude(),
                 place.getLat(), place.getLng());
         if (activity.getId() != null) {
