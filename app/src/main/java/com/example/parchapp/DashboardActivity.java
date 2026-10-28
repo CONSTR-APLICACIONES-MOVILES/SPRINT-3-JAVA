@@ -30,6 +30,9 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
     private static final int LOCATION_REQUEST = 41;
 
     private TextView displayFreeUntil;
+    // f6: one retry when a new account has no groups yet
+    private static final long GROUPS_RETRY_MS = 4000;
+    private boolean retriedGroups;
     private TextView displayNextActivity;
     private final OfflineBannerController offlineBanner = new OfflineBannerController();
     // f6: what the dashboard read from firestore, the cards are drawn from these lists
@@ -57,7 +60,10 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         findViewById(R.id.header_user_initials).setOnClickListener(v ->
                 startActivity(new Intent(this, ProfileActivity.class)));
 
-        findViewById(R.id.copy_link_button).setEnabled(false);
+        // invite links are not built yet: the box says so and the button looks disabled
+        View copyLink = findViewById(R.id.copy_link_button);
+        copyLink.setEnabled(false);
+        copyLink.setAlpha(0.5f);
         findViewById(R.id.btn_edit_free_until).setOnClickListener(v -> openQuickStatusSheet());
         findViewById(R.id.btn_edit_next_activity).setOnClickListener(v -> openQuickStatusSheet());
         // f1: tapping the status opens Set Availability Status, saving there updates this card right away
@@ -89,6 +95,7 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         // the cards stay hidden until firestore answers, so we never show made up data
         hideGroupCards();
         findViewById(R.id.plan_card_study).setVisibility(View.GONE);
+        findViewById(R.id.plans_empty).setVisibility(View.GONE);
         loadGroups();
         loadActivities();
         StatusService status = Repositories.status();
@@ -114,7 +121,9 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
                 status.isFromMotion() ? "◎ Motion sensor" : "● Live Sync");
         ((TextView) findViewById(R.id.status_header_chip)).setText(
                 free ? "● FREE" : "● " + availability.toUpperCase(Locale.ROOT));
-        displayFreeUntil.setText(status.getFreeUntil());
+        // a new user has no quick status yet, so the box invites to set it instead of staying blank
+        String freeUntil = status.getFreeUntil();
+        displayFreeUntil.setText(freeUntil.isEmpty() ? getString(R.string.free_until_not_set) : freeUntil);
         // the next activity comes from my plans when there is one, the quick status is the fallback
         if (latestActivity == null) {
             displayNextActivity.setText(status.getNextActivity());
@@ -149,12 +158,24 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
                 loadedGroups.clear();
                 loadedGroups.addAll(groups);
                 bindGroups();
+                // a brand new account is added to the demo groups by the backend a moment after sign up, so we look again once
+                if (groups.isEmpty() && !retriedGroups) {
+                    retriedGroups = true;
+                    findViewById(R.id.groups_empty_dash).postDelayed(() -> {
+                        if (!isFinishing() && !isDestroyed()) {
+                            loadGroups();
+                            loadActivities();
+                        }
+                    }, GROUPS_RETRY_MS);
+                }
             }
 
             @Override
             public void onError(Exception error) {
                 hideGroupCards();
-                toast("Could not load your groups");
+                TextView empty = findViewById(R.id.groups_empty_dash);
+                empty.setText(R.string.groups_load_error);
+                empty.setVisibility(View.VISIBLE);
             }
         });
     }
@@ -179,6 +200,7 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
             @Override
             public void onError(Exception error) {
                 findViewById(R.id.plan_card_study).setVisibility(View.GONE);
+                findViewById(R.id.plans_empty).setVisibility(View.GONE);
                 ((TextView) findViewById(R.id.active_plans_text)).setText("Could not load your plans");
             }
         });
@@ -196,6 +218,7 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         PlannedActivity shown = next != null ? next : loadedActivities.isEmpty() ? null : loadedActivities.get(0);
         displayNextActivity.setText(next != null ? next.getTitle() : "No upcoming plans");
         latestActivity = shown;
+        findViewById(R.id.plans_empty).setVisibility(shown == null ? View.VISIBLE : View.GONE);
         if (shown == null) {
             findViewById(R.id.plan_card_study).setVisibility(View.GONE);
             return;
@@ -286,6 +309,9 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
                 R.id.group_card_eng_icon, R.id.group_card_eng);
         bindGroupCard(1, R.id.group_card_roomies_title, R.id.group_card_roomies_subtitle,
                 R.id.group_card_roomies_icon, R.id.roomies_group_card);
+        TextView empty = findViewById(R.id.groups_empty_dash);
+        empty.setText(R.string.no_groups_dashboard);
+        empty.setVisibility(loadedGroups.isEmpty() ? View.VISIBLE : View.GONE);
         TextView viewAll = findViewById(R.id.view_all_groups_button);
 // the count comes from the real groups, not a fixed number
         viewAll.setText(getString(R.string.view_all_groups, loadedGroups.size()));
@@ -306,7 +332,8 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         card.setVisibility(View.VISIBLE);
         card.setEnabled(true);
         ((TextView) findViewById(titleId)).setText(group.getName());
-        ((TextView) findViewById(subtitleId)).setText(group.getSize() + " members");
+        int size = group.getSize();
+        ((TextView) findViewById(subtitleId)).setText(size == 1 ? "1 member" : size + " members");
         ((TextView) findViewById(iconId)).setText(group.getIcon());
     }
 
@@ -315,6 +342,7 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         findViewById(R.id.roomies_group_card).setVisibility(View.GONE);
         findViewById(R.id.plan_card_rsvp).setVisibility(View.GONE);
         findViewById(R.id.view_all_groups_button).setVisibility(View.GONE);
+        findViewById(R.id.groups_empty_dash).setVisibility(View.GONE);
     }
 
     private void openGroupByIndex(int index) {
@@ -361,6 +389,6 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         ((TextView) findViewById(R.id.header_user_initials)).setText(initials);
         ((TextView) findViewById(R.id.greeting_text)).setText(name.isEmpty() ? "Home" : "Hello, " + name + "!");
         ((TextView) findViewById(R.id.active_plans_text)).setText(user == null ? "" : "Loading your plans…");
-        ((TextView) findViewById(R.id.invite_link_text)).setText("");
+        ((TextView) findViewById(R.id.invite_link_text)).setText(R.string.invite_link_soon);
     }
 }
