@@ -85,8 +85,16 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         String suggestedDate = args.getString(ARG_SLOT_DATE);
         String suggestedTime = args.getString(ARG_SLOT_TIME);
         if (suggestedDate != null) date.setText(suggestedDate);
-        if (suggestedTime != null && !suggestedTime.contains("–") && !suggestedTime.contains("-")) {
-            time.setText(suggestedTime);
+        // a slot from Compare Availability comes as a range ("5:30 PM – 11:00 PM"): we use its start, in the HH:mm the form expects
+        int slotStart = com.example.parchapp.domain.PlanContext.startMinute(suggestedTime);
+        if (slotStart >= 0) {
+            time.setText(String.format(Locale.US, "%02d:%02d", slotStart / 60, slotStart % 60));
+            // the slots are for today, so the date starts on today too
+            if (suggestedDate == null) {
+                SimpleDateFormat day = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+                day.setTimeZone(TimeZone.getTimeZone("America/Bogota"));
+                date.setText(day.format(new java.util.Date()));
+            }
         }
         date.setFocusable(false);
         date.setOnClickListener(v -> pickDate(date));
