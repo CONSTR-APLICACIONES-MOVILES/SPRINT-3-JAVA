@@ -22,14 +22,14 @@ import com.google.android.gms.tasks.CancellationTokenSource;
 import java.util.Calendar;
 import java.util.List;
 
-/* F3: travel time from the user's location to the place of a plan, for the Today's Plans card. The place and its coordinates come from campusAreas and the plan time from the activity document. For now it is a walking estimate; the Google Maps time (F7, DistanceMatrixClient) plugs in at measure(). */
+/* Travel-time estimate from the user's location to a plan's campus place. This branch uses a walking estimate. */
 public class TravelTimeService {
 
     public enum Problem {NO_PERMISSION, NO_LOCATION, NO_PLACE, PLACES_UNAVAILABLE}
 
     public static final class Result {
         public final int minutes;
-        /* "Google Maps", the cache, or null for the walking estimate. */
+        /* Cache label, or null when this result is the fresh walking estimate. */
         @Nullable
         public final String source;
         public final CampusPlace place;

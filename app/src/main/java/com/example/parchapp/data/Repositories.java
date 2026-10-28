@@ -4,19 +4,16 @@ import android.content.Context;
 
 import com.example.parchapp.BuildConfig;
 import com.example.parchapp.domain.StatusService;
-import com.example.parchapp.BuildConfig;
-import com.google.firebase.FirebaseApp;
-import com.google.firebase.functions.FirebaseFunctions;
-/* Sprint 3 base composition: keeps the view contracts while Sprint 2 features are reintroduced on feature branches. */
 import com.example.parchapp.util.MainThread;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreSettings;
+import com.google.firebase.functions.FirebaseFunctions;
 import com.google.firebase.firestore.PersistentCacheSettings;
 
-/* Sprint 3 composition: creates the repositories once and hands them to the controllers. Each feature branch swaps its placeholder for the real backend one. */
+/** App-wide data adapters: Firestore serves group-plan reads; callables handle activity actions/details. */
 public final class Repositories {
     private static boolean firebaseAvailable;
     private static GroupRepository groups;
@@ -34,18 +31,6 @@ public final class Repositories {
         if (groups != null) {
             return;
         }
-        firebaseAvailable = !FirebaseApp.getApps(context).isEmpty();
-        groups = new EmptyGroupRepository();
-        if (firebaseAvailable) {
-            FirebaseFunctions functions = FirebaseFunctions.getInstance("us-central1");
-            if (BuildConfig.USE_FIREBASE_EMULATORS) {
-                functions.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 5001);
-            }
-            activities = new FirebaseActivityRepository(functions);
-        } else {
-            activities = new DisabledActivityRepository();
-        }
-        auth = new DisabledAuthRepository();
         // debug has no google-services.json, so we start firebase by hand against the emulators
         if (BuildConfig.USE_FIREBASE_EMULATORS && FirebaseApp.getApps(context).isEmpty()) {
             FirebaseOptions options = new FirebaseOptions.Builder()
@@ -58,6 +43,10 @@ public final class Repositories {
         }
         firebaseAvailable = !FirebaseApp.getApps(context).isEmpty();
         if (firebaseAvailable) {
+            FirebaseFunctions functions = FirebaseFunctions.getInstance("us-central1");
+            if (BuildConfig.USE_FIREBASE_EMULATORS) {
+                functions.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 5001);
+            }
             FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
             if (BuildConfig.USE_FIREBASE_EMULATORS) {
                 firebaseAuth.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 9099);
@@ -71,13 +60,10 @@ public final class Repositories {
             db.setFirestoreSettings(new FirebaseFirestoreSettings.Builder()
                     .setLocalCacheSettings(PersistentCacheSettings.newBuilder().build())
                     .build());
-// f6: the group repository needs the functions client to create groups in the backend
-            FirebaseFunctions groupFunctions = FirebaseFunctions.getInstance("us-central1");
-            if (BuildConfig.USE_FIREBASE_EMULATORS) {
-                groupFunctions.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 5001);
-            }
-            groups = new FirestoreGroupRepository(db, groupFunctions);
-            activities = new FirestoreActivityRepository(db);
+            groups = new FirestoreGroupRepository(db);
+            activities = new CompositeActivityRepository(
+                    new FirestoreActivityRepository(db),
+                    new FirebaseActivityRepository(functions));
             insights = new FirestoreInsightsRepository(db);
             places = new FirestoreCampusPlaceRepository(db);
         } else {
