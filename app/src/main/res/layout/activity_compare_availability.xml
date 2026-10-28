@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Full screen Compare Availability: pick a group, a ranking and one of all the common free slots. Uses the same ids as sheet_compare_availability so CompareAvailabilityController drives both. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/brand_background"
+    android:orientation="vertical">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="58dp"
+        android:background="@color/brand_background"
+        android:gravity="center_vertical"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp">
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/compare_back_button"
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:background="@drawable/bg_light_blue"
+            android:drawableStart="@drawable/ic_arrow_back"
+            android:drawablePadding="4dp"
+            android:drawableTint="@color/brand_primary"
+            android:gravity="center"
+            android:paddingStart="10dp"
+            android:paddingEnd="14dp"
+            android:text="@string/go_back_short"
+            android:textAllCaps="false"
+            android:textColor="@color/brand_primary"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@string/compare_availability_title"
+            android:textColor="@color/brand_dark"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <!-- keeps the title centered against the back button -->
+        <View
+            android:layout_width="64dp"
+            android:layout_height="1dp" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="16dp">
+
+            <!-- Group: the user's groups, the selected one is compared -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_dashboard_card"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+                    <TextView android:layout_width="36dp" android:layout_height="36dp" android:background="@drawable/bg_icon_badge" android:gravity="center" android:text="⚡" android:textColor="@color/brand_primary" android:textSize="16sp" />
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/group_availability_matrix" android:textColor="@color/brand_dark" android:textSize="15sp" android:textStyle="bold" />
+                        <TextView android:id="@+id/compare_group_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/loading_groups" android:textColor="@color/brand_slate" android:textSize="11sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="@string/compare_group_label" android:textAllCaps="true" android:textColor="@color/brand_slate" android:textSize="10sp" android:textStyle="bold" />
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:scrollbars="none">
+                    <LinearLayout
+                        android:id="@+id/compare_group_chips"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal" />
+                </HorizontalScrollView>
+
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="@string/rank_slots_by" android:textAllCaps="true" android:textColor="@color/brand_slate" android:textSize="10sp" android:textStyle="bold" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:orientation="horizontal">
+                    <TextView android:id="@+id/chip_rank_overlap" android:layout_width="0dp" android:layout_height="38dp" android:layout_marginEnd="4dp" android:layout_weight="1" android:background="@drawable/bg_chip_selected" android:gravity="center" android:text="@string/rank_overlap" android:textColor="@color/brand_primary" android:textSize="12sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/chip_rank_preference" android:layout_width="0dp" android:layout_height="38dp" android:layout_marginStart="2dp" android:layout_marginEnd="2dp" android:layout_weight="1" android:background="@drawable/bg_chip_unselected" android:gravity="center" android:text="@string/rank_preference" android:textColor="@color/brand_dark" android:textSize="12sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/chip_rank_soonest" android:layout_width="0dp" android:layout_height="38dp" android:layout_marginStart="4dp" android:layout_weight="1" android:background="@drawable/bg_chip_unselected" android:gravity="center" android:text="@string/rank_soonest" android:textColor="@color/brand_dark" android:textSize="12sp" android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Slots -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="@string/available_common_slots" android:textColor="@color/brand_dark" android:textSize="16sp" android:textStyle="bold" />
+
+            <TextView android:id="@+id/slots_status_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="center" android:padding="14dp" android:text="@string/calculating_slots" android:textColor="@color/brand_slate" android:textSize="12sp" />
+
+            <LinearLayout android:id="@+id/best_slot_card" android:clickable="true" android:focusable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/bg_green_chip" android:orientation="vertical" android:padding="16dp" android:visibility="gone">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+                    <TextView android:id="@+id/best_slot_label" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/best_mutual_match" android:textAllCaps="true" android:textColor="@color/brand_success_dark" android:textSize="11sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/best_slot_badge" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@android:color/white" android:paddingStart="8dp" android:paddingTop="3dp" android:paddingEnd="8dp" android:paddingBottom="3dp" android:textColor="@color/brand_success_dark" android:textSize="10sp" android:textStyle="bold" />
+                </LinearLayout>
+                <TextView android:id="@+id/best_slot_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:textColor="@color/brand_success_dark" android:textSize="18sp" android:textStyle="bold" />
+                <TextView android:id="@+id/best_slot_note" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textColor="@color/brand_success_dark" android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/alternative_slots" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Fixed at the bottom so the action is always reachable on long lists -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/white"
+        android:elevation="8dp"
+        android:padding="16dp">
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_schedule_in_slot"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:background="@drawable/bg_primary_pill"
+            android:enabled="false"
+            android:text="@string/schedule_plan_in_slot"
+            android:textAllCaps="false"
+            android:textColor="@android:color/white"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</LinearLayout>
