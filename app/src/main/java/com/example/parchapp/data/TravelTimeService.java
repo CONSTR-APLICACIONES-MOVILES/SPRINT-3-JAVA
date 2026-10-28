@@ -22,14 +22,14 @@ import com.google.android.gms.tasks.CancellationTokenSource;
 import java.util.Calendar;
 import java.util.List;
 
-/* Travel-time estimate from the user's location to a plan's campus place. This branch uses a walking estimate. */
+/* Uses Google Maps for travel time when available, with a local walking estimate as fallback. */
 public class TravelTimeService {
 
     public enum Problem {NO_PERMISSION, NO_LOCATION, NO_PLACE, PLACES_UNAVAILABLE}
 
     public static final class Result {
         public final int minutes;
-        /* Cache label, or null when this result is the fresh walking estimate. */
+        /* Cache/Maps source label, or null when this result is the local walking estimate. */
         @Nullable
         public final String source;
         public final CampusPlace place;
@@ -68,10 +68,6 @@ public class TravelTimeService {
     }
 
     public void travelTo(PlannedActivity activity, Listener listener) {
-        if (!hasLocationPermission()) {
-            listener.onProblem(Problem.NO_PERMISSION);
-            return;
-        }
         Repositories.places().getPlaces(new Callback<List<CampusPlace>>() {
             @Override
             public void onSuccess(List<CampusPlace> places) {
@@ -85,6 +81,10 @@ public class TravelTimeService {
                         : Repositories.activities().getCachedTravelMinutes(activity.getId());
                 if (cached != null) {
                     listener.onTravel(result(activity, cached, CACHED_SOURCE, place));
+                    return;
+                }
+                if (!hasLocationPermission()) {
+                    listener.onProblem(Problem.NO_PERMISSION);
                     return;
                 }
                 readLocation(location -> {
@@ -130,9 +130,6 @@ public class TravelTimeService {
     private void useWalkingEstimate(PlannedActivity activity, CampusPlace place, Location from, Listener listener) {
         int walking = PlanContext.walkingMinutes(from.getLatitude(), from.getLongitude(),
                 place.getLat(), place.getLng());
-        if (activity.getId() != null) {
-            Repositories.activities().cacheTravelMinutes(activity.getId(), walking);
-        }
         listener.onTravel(result(activity, walking, null, place));
     }
 
