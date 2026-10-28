@@ -118,6 +118,14 @@
             <TextView android:id="@+id/duration_manual" android:layout_width="0dp" android:layout_height="38dp" android:layout_marginStart="3dp" android:layout_weight="1" android:background="@drawable/bg_chip_unselected" android:gravity="center" android:text="Indefinite / Manual" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" />
         </LinearLayout>
 
+        <TextView
+            android:id="@+id/motion_detection_message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:textColor="@color/brand_slate"
+            android:textSize="10sp" />
+
         <!-- Auto sync -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:background="@drawable/bg_card_flat" android:gravity="center_vertical" android:padding="12dp">
             <ImageView android:layout_width="34dp" android:layout_height="34dp" android:background="@drawable/bg_icon_badge_square" android:padding="8dp" android:src="@drawable/ic_refresh" android:tint="@color/brand_primary" />
