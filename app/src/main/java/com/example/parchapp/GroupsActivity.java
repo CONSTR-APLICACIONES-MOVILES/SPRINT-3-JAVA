@@ -16,12 +16,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.parchapp.analytics.AnalyticsEvents;
 import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.data.Repositories;
+import com.example.parchapp.data.SyncedCalendars;
+import com.example.parchapp.domain.PlanContext;
 import com.example.parchapp.domain.model.Group;
 import com.example.parchapp.domain.model.Member;
 import com.example.parchapp.util.Callback;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 /* Groups tab. Home's "View all" opens this same screen, so both show the groups the same way. */
 public class GroupsActivity extends AppCompatActivity {
@@ -98,12 +101,12 @@ public class GroupsActivity extends AppCompatActivity {
 
     private void bindCard(View card, Group group) {
         ((TextView) card.findViewById(R.id.group_card_title)).setText(group.getName());
-        ((TextView) card.findViewById(R.id.group_card_members)).setText("• " + group.getSize() + " members");
+        int size = group.getSize();
+        ((TextView) card.findViewById(R.id.group_card_members)).setText("• " + size + (size == 1 ? " member" : " members"));
         ((TextView) card.findViewById(R.id.group_card_next)).setText(group.getPlanTitle().isEmpty()
                 ? "No upcoming plan"
                 : "Next: " + group.getPlanTitle());
-        // Every member's schedule is stored on the group, so all of them count as synced, like in the detail screen.
-        ((TextView) card.findViewById(R.id.group_card_synced)).setText(group.getSize() + " calendars synced");
+        bindSynced(card.findViewById(R.id.group_card_synced), group);
         bindActivityLevel(card, group);
         bindAvatars(card.findViewById(R.id.group_card_avatars), group.getMembers());
         card.setOnClickListener(v -> {
@@ -111,6 +114,38 @@ public class GroupsActivity extends AppCompatActivity {
             startActivity(new Intent(this, GroupDetailActivity.class)
                     .putExtra(GroupDetailActivity.EXTRA_GROUP_ID, group.getId()));
         });
+    }
+
+    /* Real number of members whose calendar for today the backend knows, the same count as Group Detail. */
+    private void bindSynced(TextView synced, Group group) {
+        UserProfile user = UserSession.getCurrentUser();
+        if (user == null) {
+            synced.setText("Sync unknown");
+            return;
+        }
+        synced.setText("Checking sync\u2026");
+        java.text.SimpleDateFormat key = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        key.setTimeZone(PlanContext.bogota());
+        SyncedCalendars.count(Repositories.schedules(), key.format(new java.util.Date()), group.getMembers(),
+                user.getId(), new Callback<Integer>() {
+                    @Override
+                    public void onSuccess(Integer known) {
+                        if (isFinishing() || isDestroyed()) {
+                            return;
+                        }
+                        int size = group.getSize();
+                        synced.setText(known == size
+                                ? (size == 1 ? "1 calendar synced" : size + " calendars synced")
+                                : known + " of " + size + " calendars synced");
+                    }
+
+                    @Override
+                    public void onError(Exception error) {
+                        if (!isFinishing() && !isDestroyed()) {
+                            synced.setText("Sync unknown");
+                        }
+                    }
+                });
     }
 
     /* The share of members who said they are going decides how active the group looks. */
