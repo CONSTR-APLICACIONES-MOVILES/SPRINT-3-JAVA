@@ -47,6 +47,9 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment implement
         setupStatusRow(view, R.id.status_focus, R.id.check_focus, "Deep Focus");
         setupStatusRow(view, R.id.status_busy, R.id.check_busy, "Busy / Personal");
         setupStatusRow(view, R.id.status_transit, R.id.check_transit, "Commute / In Transit");
+        // the xml starts with commute highlighted, so we treat it as the selected row and selecting the saved status clears it
+        selectedStatusRow = view.findViewById(R.id.status_transit);
+        selectedStatusCheck = view.findViewById(R.id.check_transit);
         selectSavedStatus(view, statusService.getAvailability());
 
         TextView[] durationChips = {
@@ -136,14 +139,23 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment implement
         if (selectedStatusRow != null) {
             selectedStatusRow.setBackgroundResource(R.drawable.bg_option_row_unselected);
             selectedStatusCheck.setVisibility(View.GONE);
+            tintCheckCircle(selectedStatusCheck, android.content.res.ColorStateList.valueOf(
+                    android.graphics.Color.parseColor("#F1F5F9")));
         }
         View row = root.findViewById(rowId);
         ImageView check = root.findViewById(checkId);
         row.setBackgroundResource(R.drawable.bg_option_row_selected);
         check.setVisibility(View.VISIBLE);
+        tintCheckCircle(check, androidx.core.content.ContextCompat.getColorStateList(requireContext(), R.color.brand_primary));
         selectedStatusRow = row;
         selectedStatusCheck = check;
         selectedStatusName = name;
+    }
+
+    // the round badge behind the check is the first child of its frame
+    private static void tintCheckCircle(ImageView check, android.content.res.ColorStateList color) {
+        android.view.ViewGroup frame = (android.view.ViewGroup) check.getParent();
+        frame.getChildAt(0).setBackgroundTintList(color);
     }
 
     private void setupStatusRow(View root, int rowId, int checkId, String statusName) {
