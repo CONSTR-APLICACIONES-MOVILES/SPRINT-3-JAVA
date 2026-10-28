@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
-/* F6: reads the groups collection for the Dashboard. Reads try the local cache first and then the server, and live updates come from one snapshot listener per observed group. Writing groups (create, RSVP, invites) is the Create Group feature, so those calls only log for now. */
+/* F6: the groups collection. Reads try the local cache first and then the server, and live updates come from one snapshot listener per observed group. New groups are created by the backend function createGroup, with the user as owner. */
 class FirestoreGroupRepository extends BaseGroupRepository {
     private static final String TAG = "FirestoreGroupRepo";
     private static final String COLLECTION = "groups";
