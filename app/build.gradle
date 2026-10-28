@@ -60,6 +60,8 @@ dependencies {
     implementation libs.firebase.auth
     implementation libs.firebase.firestore
     implementation libs.play.services.auth
+// f1: fused location provider for the campus check
+    implementation libs.play.services.location
     testImplementation libs.junit
     androidTestImplementation libs.espresso.core
     androidTestImplementation libs.ext.junit
