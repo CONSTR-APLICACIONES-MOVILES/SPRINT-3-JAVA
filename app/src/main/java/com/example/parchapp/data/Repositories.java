@@ -100,7 +100,6 @@ public final class Repositories {
     }
 
     public static boolean isFirebaseAnalyticsAvailable() {
-        return firebaseAvailable;
         return firebaseAvailable && !BuildConfig.USE_FIREBASE_EMULATORS;
     }
 

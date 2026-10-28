@@ -38,13 +38,21 @@ public class PlannedActivity {
                            int groupSizeAtCreation, boolean comparisonUsed,
                            String startTime, String endTime) {
         this(id, groupId, title, category, date, time, location, status, createdAt, groupSizeAtCreation,
-                comparisonUsed, UNKNOWN_AREA);
+                comparisonUsed, startTime, endTime, UNKNOWN_AREA);
     }
 
     /* f3: locationAreaId is the campusAreas document of the place, the plan card uses it to know where to go */
     public PlannedActivity(String id, String groupId, String title, String category, String date,
                            String time, String location, String status, long createdAt,
                            int groupSizeAtCreation, boolean comparisonUsed, String locationAreaId) {
+        this(id, groupId, title, category, date, time, location, status, createdAt, groupSizeAtCreation,
+                comparisonUsed, null, null, locationAreaId);
+    }
+
+    public PlannedActivity(String id, String groupId, String title, String category, String date,
+                           String time, String location, String status, long createdAt,
+                           int groupSizeAtCreation, boolean comparisonUsed,
+                           String startTime, String endTime, String locationAreaId) {
         this.id = id;
         this.groupId = groupId;
         this.title = title;
@@ -63,17 +71,17 @@ public class PlannedActivity {
 
     public PlannedActivity withId(String newId) {
         return new PlannedActivity(newId, groupId, title, category, date, time, location, status,
-                createdAt, groupSizeAtCreation, comparisonUsed, startTime, endTime);
+                createdAt, groupSizeAtCreation, comparisonUsed, startTime, endTime, locationAreaId);
     }
 
     public PlannedActivity withPlanningContext(int groupSize, boolean usedComparison) {
         return new PlannedActivity(id, groupId, title, category, date, time, location, status,
-                createdAt, groupSize, usedComparison, startTime, endTime);
+                createdAt, groupSize, usedComparison, startTime, endTime, locationAreaId);
     }
 
     public PlannedActivity withSchedule(String start, String end) {
         return new PlannedActivity(id, groupId, title, category, date, time, location, status,
-                createdAt, groupSizeAtCreation, comparisonUsed, start, end);
+                createdAt, groupSizeAtCreation, comparisonUsed, start, end, locationAreaId);
     }
 
     public String getId() {

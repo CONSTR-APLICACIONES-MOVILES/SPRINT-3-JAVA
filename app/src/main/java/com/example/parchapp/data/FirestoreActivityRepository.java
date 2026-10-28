@@ -1,5 +1,6 @@
 package com.example.parchapp.data;
 
+import com.example.parchapp.domain.model.ActivityDetails;
 import com.example.parchapp.domain.model.PlannedActivity;
 import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.MainThread;
@@ -91,6 +92,20 @@ class FirestoreActivityRepository implements ActivityRepository {
             return ((Number) value).longValue();
         }
         return 0L;
+    }
+
+    @Override
+    public void getActivityDetails(String activityId, Callback<ActivityDetails> callback) {
+        // details come from the cloud function, see FirebaseActivityRepository
+        MainThread.post(() -> callback.onError(new UnsupportedOperationException(
+                "Activity details need the activity backend")));
+    }
+
+    @Override
+    public void setActivityReminder(String activityId, int minutesBefore, Callback<Void> callback) {
+        // reminders are saved by the cloud function, see FirebaseActivityRepository
+        MainThread.post(() -> callback.onError(new UnsupportedOperationException(
+                "Activity reminders need the activity backend")));
     }
 
     @Override

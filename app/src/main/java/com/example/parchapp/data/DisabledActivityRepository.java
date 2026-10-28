@@ -25,6 +25,7 @@ class DisabledActivityRepository implements ActivityRepository {
     @Override public void setActivityReminder(String activityId, int minutesBefore, Callback<Void> callback) {
         MainThread.post(() -> callback.onError(new UnsupportedOperationException(
                 "Activity reminders are not enabled in this base branch")));
+    }
 
     @Override
     public Integer getCachedTravelMinutes(String activityId) {

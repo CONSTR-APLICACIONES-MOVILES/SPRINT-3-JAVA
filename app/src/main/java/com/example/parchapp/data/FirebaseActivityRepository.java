@@ -16,6 +16,7 @@ import java.util.UUID;
 /** Activities are created/read and reminders configured through authenticated backend callables. */
 public final class FirebaseActivityRepository implements ActivityRepository {
     private final FirebaseFunctions functions;
+    private final TravelTimeCache travelCache = new TravelTimeCache();
 
     public FirebaseActivityRepository(FirebaseFunctions functions) {
         this.functions = functions;
@@ -102,6 +103,16 @@ public final class FirebaseActivityRepository implements ActivityRepository {
         functions.getHttpsCallable("setActivityReminder").call(input)
                 .addOnSuccessListener(result -> MainThread.post(() -> callback.onSuccess(null)))
                 .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+    }
+
+    @Override
+    public Integer getCachedTravelMinutes(String activityId) {
+        return travelCache.get(activityId);
+    }
+
+    @Override
+    public void cacheTravelMinutes(String activityId, int minutes) {
+        travelCache.put(activityId, minutes);
     }
 
     private static Map<?, ?> map(Object value) {

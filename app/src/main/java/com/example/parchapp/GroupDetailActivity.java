@@ -14,10 +14,19 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.example.parchapp.data.Repositories;
+import com.example.parchapp.data.TravelTimeService;
 import com.example.parchapp.domain.CampusArea;
+import com.example.parchapp.domain.PlanContext;
+import com.example.parchapp.domain.model.PlannedActivity;
+import com.example.parchapp.util.Callback;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 import com.google.android.gms.tasks.CancellationTokenSource;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
 
 /** Group screen shell. Group membership and Firestore behavior are restored on its feature branch. */
 public class GroupDetailActivity extends AppCompatActivity {
@@ -27,6 +36,10 @@ public class GroupDetailActivity extends AppCompatActivity {
 
 // f1: text that shows if the user is on campus or not
     private TextView campusText;
+// f3: service that gives the travel time to the place of the plan
+    private TravelTimeService travelTime;
+// f3: next plan of this group, null when the group has no plan
+    private PlannedActivity groupPlan;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,6 +82,92 @@ public class GroupDetailActivity extends AppCompatActivity {
 //f1: we look for the text and then we check the location
         campusText = findViewById(R.id.campus_status_text);
         loadPlanContext();
+
+// f3: we look for the next plan of this group to show it with the travel time
+        travelTime = new TravelTimeService(this);
+        loadGroupPlan();
+    }
+
+// f3: we read the plans of the user and keep only the ones of this group
+    private void loadGroupPlan() {
+        String groupId = getIntent().getStringExtra(EXTRA_GROUP_ID);
+        UserProfile user = UserSession.getCurrentUser();
+        if (groupId == null || user == null) {
+            return;
+        }
+        Repositories.activities().getActivities(user.getId(), new Callback<List<PlannedActivity>>() {
+            @Override
+            public void onSuccess(List<PlannedActivity> activities) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                List<PlannedActivity> groupPlans = new ArrayList<>();
+                for (PlannedActivity activity : activities) {
+                    if (groupId.equals(activity.getGroupId())) {
+                        groupPlans.add(activity);
+                    }
+                }
+                Calendar now = Calendar.getInstance(PlanContext.bogota());
+                int nowMinute = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE);
+                PlannedActivity next = PlanContext.nextPlan(groupPlans, now, nowMinute);
+// f3: when no plan is coming we show the newest one, like the dashboard card
+                if (next == null && !groupPlans.isEmpty()) {
+                    next = groupPlans.get(0);
+                }
+                if (next != null) {
+                    showGroupPlan(next);
+                }
+            }
+
+// f3: without plans the card stays hidden
+            @Override
+            public void onError(Exception error) {
+            }
+        });
+    }
+
+// f3: shows the plan card with the title, the time and the place
+    private void showGroupPlan(PlannedActivity plan) {
+        groupPlan = plan;
+        findViewById(R.id.group_plan_section).setVisibility(View.VISIBLE);
+        ((TextView) findViewById(R.id.next_plan_header)).setText("Next Group Plan");
+        ((TextView) findViewById(R.id.next_plan_status)).setText(plan.getStatus());
+        ((TextView) findViewById(R.id.plan_title_text)).setText(plan.getTitle());
+        String time = (plan.getDate() + " " + plan.getTime()).trim();
+        ((TextView) findViewById(R.id.next_plan_time)).setText(time.isEmpty() ? "Schedule not specified" : time);
+        ((TextView) findViewById(R.id.next_plan_location)).setText(
+                plan.getLocation().isEmpty() ? "Location not specified" : plan.getLocation());
+// f3: the rsvp of the plan is not part of this card yet
+        ((TextView) findViewById(R.id.rsvp_ready_text)).setText("");
+        findViewById(R.id.rsvp_progress_fill).setVisibility(View.GONE);
+        updateTravelTime(plan);
+    }
+
+// f3: asks for the travel time to the place and shows the warning when the user will be late
+    private void updateTravelTime(PlannedActivity plan) {
+        TextView travel = findViewById(R.id.travel_time_text);
+        View lateWarning = findViewById(R.id.late_warning_text);
+        travel.setVisibility(View.VISIBLE);
+        lateWarning.setVisibility(View.GONE);
+        travel.setText("➜  Finding your travel time…");
+        travelTime.travelTo(plan, new TravelTimeService.Listener() {
+            @Override
+            public void onTravel(TravelTimeService.Result result) {
+// f3: the answer can arrive late, so we check that the screen and the plan are the same
+                if (isFinishing() || isDestroyed() || plan != groupPlan) {
+                    return;
+                }
+                travel.setText(TravelTimeService.describe(result));
+                lateWarning.setVisibility(result.late ? View.VISIBLE : View.GONE);
+            }
+
+            @Override
+            public void onProblem(TravelTimeService.Problem problem) {
+                if (!isFinishing() && !isDestroyed() && plan == groupPlan) {
+                    travel.setText(TravelTimeService.describe(problem));
+                }
+            }
+        });
     }
 
 //f1: if we have the location permission we read the location, if not we ask the user for it
@@ -99,6 +198,10 @@ public class GroupDetailActivity extends AppCompatActivity {
             readLocation();
         } else {
             campusText.setText("◎  Location permission denied");
+        }
+// f3: after the answer we ask again for the travel time of the plan
+        if (groupPlan != null) {
+            updateTravelTime(groupPlan);
         }
     }
 

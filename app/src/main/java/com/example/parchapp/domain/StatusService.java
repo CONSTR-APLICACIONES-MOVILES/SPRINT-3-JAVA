@@ -89,6 +89,8 @@ public class StatusService implements SensorEventListener {
     /* F1: the live status card shows "Motion sensor" instead of "Live Sync" when this is true. */
     public boolean isFromMotion() {
         return prefs.getBoolean(KEY_FROM_MOTION, false);
+    }
+
     public boolean isMotionDetectionAvailable() {
         return linearAccelerationSensor != null || accelerometer != null;
     }
