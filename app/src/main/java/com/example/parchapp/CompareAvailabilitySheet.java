@@ -12,6 +12,8 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.example.parchapp.analytics.AnalyticsEvents;
+import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.data.InsightsRepository;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.domain.availability.AvailabilityEngine;
@@ -22,7 +24,9 @@ import com.example.parchapp.util.Callback;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 
 /* F4: shows the slots of the best-slot recommender for a group read from Firestore. The best one goes in the green card and the next two below it. */
@@ -233,6 +237,11 @@ public class CompareAvailabilitySheet extends BottomSheetDialogFragment {
             return;
         }
         TimeSlot slot = rankedSlots.get(selectedPosition);
+// f2: we save which suggested slot the organizer picked and the group size
+        Map<String, Object> params = new HashMap<>();
+        params.put(AnalyticsEvents.PARAM_SLOT_POSITION, selectedPosition);
+        params.put(AnalyticsEvents.PARAM_GROUP_SIZE, group.getSize());
+        AnalyticsTracker.getInstance().track(AnalyticsEvents.SLOT_SELECTED, params);
         CreateActivitySheet.newInstance(group.getId(), group.getSize(), slot.formatRange(), selectedPosition)
                 .show(getParentFragmentManager(), "create_activity");
         dismiss();
