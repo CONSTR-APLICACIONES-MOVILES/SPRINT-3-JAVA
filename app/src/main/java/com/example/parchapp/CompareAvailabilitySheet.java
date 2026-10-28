@@ -17,6 +17,9 @@ import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.data.InsightsRepository;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.domain.availability.AvailabilityEngine;
+import com.example.parchapp.domain.availability.OverlapRanking;
+import com.example.parchapp.domain.availability.PreferenceRanking;
+import com.example.parchapp.domain.availability.SlotRanker;
 import com.example.parchapp.domain.model.Group;
 import com.example.parchapp.domain.model.Member;
 import com.example.parchapp.domain.model.TimeSlot;
@@ -81,8 +84,12 @@ public class CompareAvailabilitySheet extends BottomSheetDialogFragment {
         scheduleButton.setEnabled(false);
 
         // the default strategy is OverlapRanking (most free members), the other two chips are their own features
-        view.findViewById(R.id.chip_rank_preference).setEnabled(false);
         view.findViewById(R.id.chip_rank_soonest).setEnabled(false);
+// f4: the preference chip orders the slots by the preferred hours, the overlap chip goes back to the default
+        TextView overlapChip = view.findViewById(R.id.chip_rank_overlap);
+        TextView preferenceChip = view.findViewById(R.id.chip_rank_preference);
+        overlapChip.setOnClickListener(v -> useRanker(new OverlapRanking(), overlapChip, preferenceChip));
+        preferenceChip.setOnClickListener(v -> useRanker(new PreferenceRanking(), preferenceChip, overlapChip));
 
         Repositories.insights().getRecommendedSlotPosition(new Callback<Integer>() {
             @Override
@@ -133,6 +140,19 @@ public class CompareAvailabilitySheet extends BottomSheetDialogFragment {
             statusText.setText(R.string.no_common_slots);
             Toast.makeText(requireContext(), "Could not load the group", Toast.LENGTH_SHORT).show();
         }
+    }
+
+// f4: changes the ranking of the engine, marks the chosen chip and calculates the slots again
+    private void useRanker(SlotRanker ranker, TextView selectedChip, TextView otherChip) {
+        if (ranker.getName().equals(engine.getRanker().getName())) {
+            return;
+        }
+        engine.setRanker(ranker);
+        selectedChip.setBackgroundResource(R.drawable.bg_chip_selected);
+        selectedChip.setTextColor(requireContext().getColor(R.color.brand_primary));
+        otherChip.setBackgroundResource(R.drawable.bg_chip_unselected);
+        otherChip.setTextColor(requireContext().getColor(R.color.brand_dark));
+        calculateSlots();
     }
 
     // the engine runs in a background thread and answers on the main one, so the sheet never freezes
