@@ -67,12 +67,14 @@ class FirestoreActivityRepository implements ActivityRepository {
         int groupSize = context != null && context.get("groupSizeAtCreation") instanceof Number
                 ? ((Number) context.get("groupSizeAtCreation")).intValue() : 0;
         boolean comparisonUsed = context != null && Boolean.TRUE.equals(context.get("comparisonUsed"));
+        String areaId = context != null && context.get("locationAreaId") != null
+                ? context.get("locationAreaId").toString() : PlannedActivity.UNKNOWN_AREA;
         return new PlannedActivity(snapshot.getId(),
                 stringValue(snapshot.get("groupId")), stringValue(snapshot.get("title")),
                 stringValue(snapshot.get("category")), stringValue(snapshot.get("date")),
                 stringValue(snapshot.get("time")), stringValue(snapshot.get("location")),
                 stringValue(snapshot.get("status")), timestampMillis(snapshot.get("createdAt")),
-                groupSize, comparisonUsed);
+                groupSize, comparisonUsed, areaId);
     }
 
     private static String stringValue(Object value) {

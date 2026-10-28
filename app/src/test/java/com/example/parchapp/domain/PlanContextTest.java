@@ -39,6 +39,24 @@ public class PlanContextTest {
         assertFalse(PlanContext.isToday("Friday", now));
     }
 
+    @Test
+    public void lateWhenTheTripEndsAfterTheStart() {
+        int start = 17 * 60;
+        assertTrue(PlanContext.isLate(16 * 60 + 50, 15, start, 18 * 60));
+        assertFalse(PlanContext.isLate(16 * 60 + 30, 15, start, 18 * 60));
+        assertFalse(PlanContext.isLate(18 * 60 + 5, 15, start, 18 * 60)); // already over
+        assertFalse(PlanContext.isLate(16 * 60, 15, -1, -1)); // no start time
+    }
+
+    @Test
+    public void walkingEstimateGrowsWithDistance() {
+        // About 1.15 km apart: 1.3 detour factor at 80 m/min is about 19 minutes.
+        int far = PlanContext.walkingMinutes(4.6100, -74.0720, 4.6021, -74.0654);
+        int near = PlanContext.walkingMinutes(4.6025, -74.0656, 4.6021, -74.0654);
+        assertEquals(19, far);
+        assertTrue(near >= 1 && near < far);
+    }
+
     private static com.example.parchapp.domain.model.PlannedActivity plan(String title, String date, String time) {
         return new com.example.parchapp.domain.model.PlannedActivity("id-" + title, "g", title, "other", date, time,
                 "", "PROPOSED", 0);

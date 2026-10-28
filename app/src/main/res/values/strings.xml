@@ -135,4 +135,5 @@
     <string name="close_label">Close</string>
     <string name="custom_duration">Custom</string>
     <string name="custom_duration_title">Meeting duration (minutes)</string>
+    <string name="late_warning">⚠  You won\'t make it on time</string>
 </resources>
