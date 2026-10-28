@@ -1,6 +1,7 @@
 package com.example.parchapp.data;
 
 import com.example.parchapp.domain.model.PlannedActivity;
+import com.example.parchapp.domain.model.ActivityDetails;
 import com.example.parchapp.util.Callback;
 
 import java.util.List;
@@ -11,4 +12,8 @@ public interface ActivityRepository {
     void createActivity(PlannedActivity activity, Callback<PlannedActivity> callback);
 
     void getActivities(String userId, Callback<List<PlannedActivity>> callback);
+
+    void getActivityDetails(String activityId, Callback<ActivityDetails> callback);
+
+    void setActivityReminder(String activityId, int minutesBefore, Callback<Void> callback);
 }

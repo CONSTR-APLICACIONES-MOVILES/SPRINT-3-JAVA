@@ -3,8 +3,12 @@ package com.example.parchapp.data;
 import android.content.Context;
 
 import com.example.parchapp.domain.StatusService;
+import com.example.parchapp.BuildConfig;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.functions.FirebaseFunctions;
 /* Sprint 3 base composition: keeps the view contracts while Sprint 2 features are reintroduced on feature branches. */
 public final class Repositories {
+    private static boolean firebaseAvailable;
     private static GroupRepository groups;
     private static ActivityRepository activities;
     private static AuthRepository auth;
@@ -18,19 +22,28 @@ public final class Repositories {
         if (groups != null) {
             return;
         }
+        firebaseAvailable = !FirebaseApp.getApps(context).isEmpty();
         groups = new EmptyGroupRepository();
-        activities = new DisabledActivityRepository();
+        if (firebaseAvailable) {
+            FirebaseFunctions functions = FirebaseFunctions.getInstance("us-central1");
+            if (BuildConfig.USE_FIREBASE_EMULATORS) {
+                functions.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 5001);
+            }
+            activities = new FirebaseActivityRepository(functions);
+        } else {
+            activities = new DisabledActivityRepository();
+        }
         auth = new DisabledAuthRepository();
         schedules = new EmptyScheduleRepository();
         status = new StatusService(context);
     }
 
     public static boolean isFirebaseAvailable() {
-        return false;
+        return firebaseAvailable;
     }
 
     public static boolean isFirebaseAnalyticsAvailable() {
-        return false;
+        return firebaseAvailable;
     }
 
     public static GroupRepository groups() {
