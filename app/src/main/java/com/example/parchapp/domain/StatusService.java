@@ -78,10 +78,18 @@ public class StatusService implements SensorEventListener {
     }
 
     public void setAvailability(String availability, String duration) {
+        saveAvailability(availability, duration, false);
+    }
+
+    public void setAvailabilityFromMotion(String availability, String duration) {
+        saveAvailability(availability, duration, true);
+    }
+
+    private void saveAvailability(String availability, String duration, boolean fromMotion) {
         prefs.edit()
                 .putString(KEY_AVAILABILITY, availability)
                 .putString(KEY_DURATION, duration)
-                .putBoolean(KEY_FROM_MOTION, false)
+                .putBoolean(KEY_FROM_MOTION, fromMotion)
                 .apply();
         notifyListeners();
     }

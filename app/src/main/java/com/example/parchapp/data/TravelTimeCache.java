@@ -5,7 +5,7 @@ import androidx.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
-/* F7: travel minutes per activity, kept for a short time so reopening the Dashboard does not call Google Maps again. The time to a place changes as the user moves, so entries expire. */
+/* Short-lived travel estimates per activity; entries expire because travel time changes as the user moves. */
 class TravelTimeCache {
     static final long TTL_MS = 15 * 60 * 1000L;
 
