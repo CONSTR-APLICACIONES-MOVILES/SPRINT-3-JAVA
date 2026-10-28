@@ -110,7 +110,7 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment implement
                     selectStatus(getView(), R.id.status_transit, R.id.check_transit,
                             "Commute / In Transit");
                     selectedDurationName = "For 1 hour";
-                    status.setAvailability(selectedStatusName, selectedDurationName);
+                    status.setAvailabilityFromMotion(selectedStatusName, selectedDurationName);
                     Toast.makeText(requireContext(), "Commute status saved", Toast.LENGTH_SHORT).show();
                 })
                 .show();
