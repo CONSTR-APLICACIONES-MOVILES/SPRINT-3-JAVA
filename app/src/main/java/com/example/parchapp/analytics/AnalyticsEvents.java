@@ -15,6 +15,7 @@ public final class AnalyticsEvents {
     /* BQ8: a core coordination feature was opened. */
     public static final String FEATURE_USED = "feature_used";
     public static final String ACTIVITY_CREATED = "activity_created";
+    public static final String SLOT_ACCEPTED = "slot_accepted";
     /* BQ2: activity creation reliability and latency. */
     public static final String ACTIVITY_CREATE_ATTEMPT = "activity_create_attempt";
     public static final String ACTIVITY_CREATE_RESULT = "activity_create_result";
@@ -29,6 +30,9 @@ public final class AnalyticsEvents {
     public static final String PARAM_CATEGORY = "category";
     public static final String PARAM_CLIENT_TS = "client_ts";
     public static final String PARAM_ACTIVITY_ID = "activity_id";
+    public static final String PARAM_RECOMMENDATION_ID = "recommendation_id";
+    public static final String PARAM_SLOT_POSITION = "slot_position";
+    public static final String PARAM_MODIFIED = "modified";
 // f2: place of the slot in the list, 0 is the best slot
     public static final String PARAM_SLOT_POSITION = "slot_position";
     public static final String PARAM_CREATION_SESSION_ID = "creation_session_id";
