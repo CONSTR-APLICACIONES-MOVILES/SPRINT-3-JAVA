@@ -14,10 +14,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.example.parchapp.data.GroupListener;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.data.TravelTimeService;
 import com.example.parchapp.domain.CampusArea;
 import com.example.parchapp.domain.PlanContext;
+import com.example.parchapp.domain.model.Group;
+import com.example.parchapp.domain.model.Member;
 import com.example.parchapp.domain.model.PlannedActivity;
 import com.example.parchapp.util.Callback;
 import com.google.android.gms.location.LocationServices;
@@ -29,7 +32,7 @@ import java.util.Calendar;
 import java.util.List;
 
 /** Group screen shell. Group membership and Firestore behavior are restored on its feature branch. */
-public class GroupDetailActivity extends AppCompatActivity {
+public class GroupDetailActivity extends AppCompatActivity implements GroupListener {
     public static final String EXTRA_GROUP_ID = "extra_group_id";
 // f1: code to know which permission answer is ours
     private static final int LOCATION_REQUEST = 10;
@@ -49,7 +52,8 @@ public class GroupDetailActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.group_category_text)).setText("GROUP");
         ((TextView) findViewById(R.id.top_group_name_text)).setText("Group details");
         ((TextView) findViewById(R.id.top_group_subtitle_text)).setText("");
-        ((TextView) findViewById(R.id.group_name_text)).setText("Group feature not included in this base branch");
+// f6: this text changes when the first snapshot of the group arrives
+        ((TextView) findViewById(R.id.group_name_text)).setText("Loading group…");
         ((TextView) findViewById(R.id.group_description_text)).setText("");
         ((TextView) findViewById(R.id.group_synced_badge)).setText("Not connected");
         ((TextView) findViewById(R.id.common_free_text)).setText("Availability feature not included in this base branch");
@@ -68,7 +72,9 @@ public class GroupDetailActivity extends AppCompatActivity {
         findViewById(R.id.plan_details_button).setEnabled(false);
         findViewById(R.id.add_calendar_button).setEnabled(false);
         findViewById(R.id.refresh_roommates_button).setEnabled(false);
-        findViewById(R.id.propose_plan_button).setEnabled(false);
+// f6: propose plan opens the create group form
+        findViewById(R.id.propose_plan_button).setOnClickListener(v ->
+                startActivity(new Intent(this, CreateGroupActivity.class)));
         findViewById(R.id.sync_schedules_button).setEnabled(false);
         findViewById(R.id.house_chat_button).setEnabled(false);
         findViewById(R.id.view_all_activities).setEnabled(false);
@@ -86,6 +92,78 @@ public class GroupDetailActivity extends AppCompatActivity {
 // f3: we look for the next plan of this group to show it with the travel time
         travelTime = new TravelTimeService(this);
         loadGroupPlan();
+    }
+
+// f6: when the screen is visible we listen to the group, so changes from other people appear at once
+    @Override
+    protected void onStart() {
+        super.onStart();
+        String groupId = getIntent().getStringExtra(EXTRA_GROUP_ID);
+        if (groupId != null) {
+            Repositories.groups().observeGroup(groupId, this);
+        }
+    }
+
+// f6: we stop listening when the screen is not visible, so we do not leak the screen
+    @Override
+    protected void onStop() {
+        String groupId = getIntent().getStringExtra(EXTRA_GROUP_ID);
+        if (groupId != null) {
+            Repositories.groups().removeGroupListener(groupId, this);
+        }
+        super.onStop();
+    }
+
+// f6: the repository calls this every time the group document changes in firestore
+    @Override
+    public void onGroupChanged(Group group) {
+        if (isFinishing() || isDestroyed()) {
+            return;
+        }
+        int size = group.getSize();
+        String members = size == 1 ? "1 member" : size + " members";
+        ((TextView) findViewById(R.id.top_group_name_text)).setText(group.getName());
+        ((TextView) findViewById(R.id.top_group_subtitle_text)).setText(members);
+        ((TextView) findViewById(R.id.group_name_text)).setText(group.getName());
+        int invites = group.getPendingInvites().size();
+        ((TextView) findViewById(R.id.group_description_text)).setText(invites == 0 ? members
+                : members + " • " + invites + (invites == 1 ? " pending invite" : " pending invites"));
+        ((TextView) findViewById(R.id.group_synced_badge)).setText("● " + size + "/" + size + " Synced");
+        bindMembers(group.getMembers());
+    }
+
+// f6: shows up to four members with their initials and name
+    private void bindMembers(List<Member> members) {
+        int[] cards = {R.id.member_card_0, R.id.member_card_1, R.id.member_card_2, R.id.member_card_3};
+        int[] initials = {R.id.member_initials_0, R.id.member_initials_1, R.id.member_initials_2, R.id.member_initials_3};
+        int[] names = {R.id.member_name_0, R.id.member_name_1, R.id.member_name_2, R.id.member_name_3};
+        int[] summaries = {R.id.member_summary_0, R.id.member_summary_1, R.id.member_summary_2, R.id.member_summary_3};
+        int[] statuses = {R.id.member_status_0, R.id.member_status_1, R.id.member_status_2, R.id.member_status_3};
+        findViewById(R.id.group_members_header).setVisibility(members.isEmpty() ? View.GONE : View.VISIBLE);
+        ((TextView) findViewById(R.id.member_summary_text)).setText(
+                members.size() == 1 ? "1 member" : members.size() + " members");
+        for (int i = 0; i < cards.length; i++) {
+            if (i >= members.size()) {
+                findViewById(cards[i]).setVisibility(View.GONE);
+                continue;
+            }
+            Member member = members.get(i);
+            findViewById(cards[i]).setVisibility(View.VISIBLE);
+            ((TextView) findViewById(initials[i])).setText(initialsOf(member));
+            ((TextView) findViewById(names[i])).setText(member.getName());
+// f6: the summary and the status of each member are other features, so we leave them empty
+            ((TextView) findViewById(summaries[i])).setText("");
+            ((TextView) findViewById(statuses[i])).setText("");
+        }
+    }
+
+// f6: groups made by the backend can have empty initials, then we use the first letter of the name
+    private static String initialsOf(Member member) {
+        if (!member.getInitials().isEmpty()) {
+            return member.getInitials();
+        }
+        String name = member.getName().trim();
+        return name.isEmpty() ? "?" : name.substring(0, 1).toUpperCase();
     }
 
 // f3: we read the plans of the user and keep only the ones of this group

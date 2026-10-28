@@ -15,6 +15,9 @@ class EmptyGroupRepository implements GroupRepository {
     @Override public void getGroups(String userId, Callback<java.util.List<Group>> callback) {
         MainThread.post(() -> callback.onSuccess(Collections.emptyList()));
     }
+    @Override public void createGroup(String name, String category, java.util.List<String> inviteEmails, Callback<String> callback) {
+        MainThread.post(() -> callback.onError(new UnsupportedOperationException("Groups feature is not enabled")));
+    }
     @Override public void observeGroup(String groupId, GroupListener listener) { }
     @Override public void removeGroupListener(String groupId, GroupListener listener) { }
     @Override public void setRsvp(String groupId, String userId, boolean going) { }
