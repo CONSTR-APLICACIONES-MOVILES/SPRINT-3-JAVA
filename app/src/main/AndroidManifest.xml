@@ -34,6 +34,7 @@
         <activity android:name=".ProfileActivity" />
         <activity android:name=".DashboardActivity" />
         <activity android:name=".ScheduleActivity" />
+        <activity android:name=".GroupsActivity" />
         <activity android:name=".GroupDetailActivity" />
         <activity android:name=".CreateGroupActivity" />
         <activity android:name=".ActivityCreatedActivity" />

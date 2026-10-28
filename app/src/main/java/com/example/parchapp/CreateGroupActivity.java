@@ -46,10 +46,8 @@ public class CreateGroupActivity extends AppCompatActivity {
                 startActivity(new Intent(this, AlertsActivity.class)));
         findViewById(R.id.header_profile_btn).setOnClickListener(v ->
                 startActivity(new Intent(this, ProfileActivity.class)));
-        findViewById(R.id.nav_home_create).setOnClickListener(v ->
-                startActivity(new Intent(this, DashboardActivity.class)));
-        findViewById(R.id.nav_schedule_create).setOnClickListener(v ->
-                startActivity(new Intent(this, ScheduleActivity.class)));
+// shared bottom bar, groups is the active tab
+        BottomNav.setup(this, BottomNav.Tab.GROUPS);
 
 // f6: the form to create the group and add the emails
         nameInput = findViewById(R.id.group_name_input);

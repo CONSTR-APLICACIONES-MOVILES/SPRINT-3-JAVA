@@ -19,6 +19,7 @@ import com.example.parchapp.data.Repositories;
 import com.example.parchapp.domain.availability.AvailabilityEngine;
 import com.example.parchapp.domain.availability.OverlapRanking;
 import com.example.parchapp.domain.availability.PreferenceRanking;
+import com.example.parchapp.domain.availability.SoonestRanking;
 import com.example.parchapp.domain.availability.SlotRanker;
 import com.example.parchapp.domain.model.Group;
 import com.example.parchapp.domain.model.Member;
@@ -51,6 +52,9 @@ public class CompareAvailabilitySheet extends BottomSheetDialogFragment {
     private View bestSlotCard;
     private LinearLayout alternativeSlots;
     private Button scheduleButton;
+    private TextView overlapChip;
+    private TextView preferenceChip;
+    private TextView soonestChip;
 
     public static CompareAvailabilitySheet newInstance(String groupId) {
         CompareAvailabilitySheet sheet = new CompareAvailabilitySheet();
@@ -83,13 +87,13 @@ public class CompareAvailabilitySheet extends BottomSheetDialogFragment {
         scheduleButton.setOnClickListener(v -> scheduleSelectedSlot());
         scheduleButton.setEnabled(false);
 
-        // the default strategy is OverlapRanking (most free members), the other two chips are their own features
-        view.findViewById(R.id.chip_rank_soonest).setEnabled(false);
-// f4: the preference chip orders the slots by the preferred hours, the overlap chip goes back to the default
-        TextView overlapChip = view.findViewById(R.id.chip_rank_overlap);
-        TextView preferenceChip = view.findViewById(R.id.chip_rank_preference);
-        overlapChip.setOnClickListener(v -> useRanker(new OverlapRanking(), overlapChip, preferenceChip));
-        preferenceChip.setOnClickListener(v -> useRanker(new PreferenceRanking(), preferenceChip, overlapChip));
+        // Overlap is the default; each chip applies its strategy to the same common slots.
+        overlapChip = view.findViewById(R.id.chip_rank_overlap);
+        preferenceChip = view.findViewById(R.id.chip_rank_preference);
+        soonestChip = view.findViewById(R.id.chip_rank_soonest);
+        overlapChip.setOnClickListener(v -> useRanker(new OverlapRanking()));
+        preferenceChip.setOnClickListener(v -> useRanker(new PreferenceRanking()));
+        soonestChip.setOnClickListener(v -> useRanker(new SoonestRanking()));
 
         Repositories.insights().getRecommendedSlotPosition(new Callback<Integer>() {
             @Override
@@ -142,17 +146,20 @@ public class CompareAvailabilitySheet extends BottomSheetDialogFragment {
         }
     }
 
-// f4: changes the ranking of the engine, marks the chosen chip and calculates the slots again
-    private void useRanker(SlotRanker ranker, TextView selectedChip, TextView otherChip) {
+    private void useRanker(SlotRanker ranker) {
         if (ranker.getName().equals(engine.getRanker().getName())) {
             return;
         }
         engine.setRanker(ranker);
-        selectedChip.setBackgroundResource(R.drawable.bg_chip_selected);
-        selectedChip.setTextColor(requireContext().getColor(R.color.brand_primary));
-        otherChip.setBackgroundResource(R.drawable.bg_chip_unselected);
-        otherChip.setTextColor(requireContext().getColor(R.color.brand_dark));
+        styleRankerChip(overlapChip, ranker.getName().equals("overlap"));
+        styleRankerChip(preferenceChip, ranker.getName().equals("preference"));
+        styleRankerChip(soonestChip, ranker.getName().equals("soonest"));
         calculateSlots();
+    }
+
+    private void styleRankerChip(TextView chip, boolean selected) {
+        chip.setBackgroundResource(selected ? R.drawable.bg_chip_selected : R.drawable.bg_chip_unselected);
+        chip.setTextColor(requireContext().getColor(selected ? R.color.brand_primary : R.color.brand_dark));
     }
 
     // the engine runs in a background thread and answers on the main one, so the sheet never freezes
