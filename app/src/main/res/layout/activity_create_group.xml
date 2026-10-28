@@ -116,7 +116,6 @@
                 android:hint="e.g. Bowling Night"
                 android:paddingStart="14dp"
                 android:paddingEnd="14dp"
-                android:text="Bowling Night"
                 android:textColor="@color/brand_dark"
                 android:textColorHint="@color/brand_slate"
                 android:textSize="13sp" />
@@ -305,13 +304,13 @@
             </LinearLayout>
             <LinearLayout android:id="@+id/email_chips" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:orientation="horizontal" />
 
-            <!-- Pending invitations -->
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:gravity="center_vertical">
+            <!-- Pending invitations: sample people from the mockup, hidden because the real invites are listed in email_chips -->
+            <LinearLayout android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:gravity="center_vertical">
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Pending invitations" android:textColor="@color/brand_dark" android:textSize="13sp" android:textStyle="bold" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="3 sent" android:textColor="@color/brand_slate" android:textSize="11sp" />
             </LinearLayout>
 
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_dashboard_card" android:orientation="vertical" android:padding="4dp">
+            <LinearLayout android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_dashboard_card" android:orientation="vertical" android:padding="4dp">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:padding="8dp">
                     <TextView android:layout_width="36dp" android:layout_height="36dp" android:background="@drawable/bg_oval_solid" android:backgroundTint="@color/brand_primary" android:gravity="center" android:text="SJ" android:textColor="@android:color/white" android:textSize="11sp" android:textStyle="bold" />
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:orientation="vertical">
