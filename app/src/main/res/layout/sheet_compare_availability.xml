@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/white"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="14dp"
+        android:background="@drawable/bg_home_indicator" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+        <TextView android:layout_width="36dp" android:layout_height="36dp" android:background="@drawable/bg_icon_badge" android:gravity="center" android:text="⚡" android:textColor="@color/brand_primary" android:textSize="16sp" />
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/group_availability_matrix" android:textColor="@color/brand_dark" android:textSize="15sp" android:textStyle="bold" />
+            <TextView android:id="@+id/compare_group_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/group_availability_subtitle" android:textColor="@color/brand_slate" android:textSize="11sp" />
+        </LinearLayout>
+        <ImageButton android:id="@+id/sheet_close_btn" android:layout_width="34dp" android:layout_height="34dp" android:background="@drawable/bg_icon_badge_square" android:backgroundTint="#F1F5F9" android:contentDescription="@string/close" android:padding="8dp" android:src="@drawable/ic_close" />
+    </LinearLayout>
+
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="@string/rank_slots_by" android:textAllCaps="true" android:textColor="@color/brand_slate" android:textSize="10sp" android:textStyle="bold" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:orientation="horizontal">
+        <TextView android:id="@+id/chip_rank_overlap" android:layout_width="0dp" android:layout_height="34dp" android:layout_marginEnd="4dp" android:layout_weight="1" android:background="@drawable/bg_chip_selected" android:gravity="center" android:text="@string/rank_overlap" android:textColor="@color/brand_primary" android:textSize="11sp" android:textStyle="bold" />
+        <TextView android:id="@+id/chip_rank_preference" android:layout_width="0dp" android:layout_height="34dp" android:layout_marginStart="2dp" android:layout_marginEnd="2dp" android:layout_weight="1" android:background="@drawable/bg_chip_unselected" android:gravity="center" android:text="@string/rank_preference" android:textColor="@color/brand_dark" android:textSize="11sp" android:textStyle="bold" />
+        <TextView android:id="@+id/chip_rank_soonest" android:layout_width="0dp" android:layout_height="34dp" android:layout_marginStart="4dp" android:layout_weight="1" android:background="@drawable/bg_chip_unselected" android:gravity="center" android:text="@string/rank_soonest" android:textColor="@color/brand_dark" android:textSize="11sp" android:textStyle="bold" />
+    </LinearLayout>
+
+    <TextView android:id="@+id/slots_status_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:gravity="center" android:padding="14dp" android:text="@string/calculating_slots" android:textColor="@color/brand_slate" android:textSize="12sp" />
+
+    <LinearLayout android:id="@+id/best_slot_card" android:clickable="true" android:focusable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:background="@drawable/bg_green_chip" android:orientation="vertical" android:padding="14dp" android:visibility="gone">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+            <TextView android:id="@+id/best_slot_label" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/best_mutual_match" android:textAllCaps="true" android:textColor="@color/brand_success_dark" android:textSize="11sp" android:textStyle="bold" />
+            <TextView android:id="@+id/best_slot_badge" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@android:color/white" android:paddingStart="8dp" android:paddingTop="3dp" android:paddingEnd="8dp" android:paddingBottom="3dp" android:text="4/4 Free" android:textColor="@color/brand_success_dark" android:textSize="10sp" android:textStyle="bold" />
+        </LinearLayout>
+        <TextView android:id="@+id/best_slot_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Loading..." android:textColor="@color/brand_success_dark" android:textSize="16sp" android:textStyle="bold" />
+        <TextView android:id="@+id/best_slot_note" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Everyone is out of classes and free before dinner." android:textColor="@color/brand_success_dark" android:textSize="11sp" />
+    </LinearLayout>
+
+    <LinearLayout android:id="@+id/alternative_slots" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_schedule_in_slot"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginTop="18dp"
+        android:background="@drawable/bg_primary_pill"
+        android:enabled="false"
+        android:text="⚡  Schedule Plan in Free Slot"
+        android:textAllCaps="false"
+        android:textColor="@android:color/white"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+</LinearLayout>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/white"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <View
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="14dp"
+            android:background="@drawable/bg_home_indicator" />
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/new_activity_title" android:textColor="@color/brand_dark" android:textSize="18sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/new_activity_subtitle" android:textColor="@color/brand_slate" android:textSize="12sp" />
+            </LinearLayout>
+            <ImageButton android:id="@+id/sheet_close_btn" android:layout_width="34dp" android:layout_height="34dp" android:background="@drawable/bg_icon_badge_square" android:backgroundTint="#F1F5F9" android:contentDescription="@string/close" android:padding="8dp" android:src="@drawable/ic_close" />
+        </LinearLayout>
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="@string/activity_title_label" android:textColor="@color/brand_dark" android:textSize="12sp" android:textStyle="bold" />
+        <EditText
+            android:id="@+id/input_activity_title"
+            android:layout_width="match_parent"
+            android:layout_height="46dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_login_field"
+            android:hint="e.g. Movie Night"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:textColor="@color/brand_dark"
+            android:textColorHint="@color/brand_slate"
+            android:textSize="13sp" />
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="@string/activity_group_label" android:textColor="@color/brand_dark" android:textSize="12sp" android:textStyle="bold" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:orientation="horizontal">
+            <TextView android:id="@+id/chip_group_eng" android:layout_width="0dp" android:layout_height="38dp" android:layout_marginEnd="4dp" android:layout_weight="1" android:background="@drawable/bg_chip_selected" android:gravity="center" android:text="Loading..." android:textColor="@color/brand_primary" android:textSize="11sp" android:textStyle="bold" />
+            <TextView android:id="@+id/chip_group_roomies" android:layout_width="0dp" android:layout_height="38dp" android:layout_marginStart="4dp" android:layout_weight="1" android:background="@drawable/bg_chip_unselected" android:gravity="center" android:text="Loading..." android:textColor="@color/brand_dark" android:textSize="11sp" android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:orientation="horizontal">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginEnd="4dp" android:layout_weight="1" android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/activity_date_label" android:textColor="@color/brand_dark" android:textSize="12sp" android:textStyle="bold" />
+                <EditText android:id="@+id/input_activity_date" android:layout_width="match_parent" android:layout_height="46dp" android:layout_marginTop="6dp" android:background="@drawable/bg_login_field" android:hint="Select a date" android:paddingStart="12dp" android:paddingEnd="10dp" android:textColor="@color/brand_dark" android:textColorHint="@color/brand_slate" android:textSize="12sp" />
+            </LinearLayout>
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:layout_weight="1" android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/activity_time_label" android:textColor="@color/brand_dark" android:textSize="12sp" android:textStyle="bold" />
+                <EditText android:id="@+id/input_activity_time" android:layout_width="match_parent" android:layout_height="46dp" android:layout_marginTop="6dp" android:background="@drawable/bg_login_field" android:hint="Select a time" android:paddingStart="12dp" android:paddingEnd="10dp" android:textColor="@color/brand_dark" android:textColorHint="@color/brand_slate" android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="@string/activity_location_label" android:textColor="@color/brand_dark" android:textSize="12sp" android:textStyle="bold" />
+        <EditText
+            android:id="@+id/input_activity_location"
+            android:layout_width="match_parent"
+            android:layout_height="46dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_login_field"
+            android:hint="e.g. Central Library"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:textColor="@color/brand_dark"
+            android:textColorHint="@color/brand_slate"
+            android:textSize="13sp" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_create_activity"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="22dp"
+            android:background="@drawable/bg_primary_pill"
+            android:text="@string/create_activity_cta"
+            android:textAllCaps="false"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F8F9FF"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:background="@android:color/white"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+        <ImageButton
+            android:id="@+id/alerts_back_button"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_icon_badge_square"
+            android:contentDescription="Back"
+            android:src="@drawable/ic_arrow_back" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:text="Alerts"
+            android:textColor="@color/brand_dark"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/alerts_unread_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_red_chip"
+            android:paddingStart="8dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="4dp"
+            android:textColor="@color/brand_urgent_dark"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <EditText
+        android:id="@+id/alerts_search_input"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:layout_margin="14dp"
+        android:background="@drawable/bg_login_field"
+        android:hint="Search alerts"
+        android:inputType="text"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp" />
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none">
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp">
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alerts_filter_all" android:layout_width="wrap_content" android:layout_height="36dp" android:background="@drawable/bg_chip_selected" android:text="All" android:textAllCaps="false" android:textColor="@color/brand_primary" android:textSize="11sp" />
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alerts_filter_invitations" android:layout_width="wrap_content" android:layout_height="36dp" android:layout_marginStart="6dp" android:background="@drawable/bg_chip_unselected" android:text="Invitations" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="11sp" />
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alerts_filter_schedule" android:layout_width="wrap_content" android:layout_height="36dp" android:layout_marginStart="6dp" android:background="@drawable/bg_chip_unselected" android:text="Schedule" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="11sp" />
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alerts_filter_groups" android:layout_width="wrap_content" android:layout_height="36dp" android:layout_marginStart="6dp" android:background="@drawable/bg_chip_unselected" android:text="Groups" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="11sp" />
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alerts_filter_unread" android:layout_width="wrap_content" android:layout_height="36dp" android:layout_marginStart="6dp" android:background="@drawable/bg_chip_unselected" android:text="Unread" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="11sp" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <TextView
+        android:id="@+id/alerts_state_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:padding="20dp"
+        android:textColor="@color/brand_slate"
+        android:textSize="13sp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+        <LinearLayout
+            android:id="@+id/alerts_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="24dp" />
+    </ScrollView>
+</LinearLayout>

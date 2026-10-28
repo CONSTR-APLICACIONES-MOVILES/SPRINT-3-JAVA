@@ -1,0 +1,138 @@
+<resources>
+    <string name="app_name">ParchApp</string>
+    <string name="welcome_back">Welcome back</string>
+    <string name="welcome_subtitle">Sign in to continue planning with your friends.</string>
+    <string name="verified">Verified</string>
+    <string name="continue_as_alex">Continue as Alex</string>
+    <string name="or">OR</string>
+    <string name="continue_with_google">Continue with Google</string>
+    <string name="university_email">University email</string>
+    <string name="password">Password</string>
+    <string name="forgot_password">Forgot password?</string>
+    <string name="sign_in">Sign in</string>
+    <string name="no_account">Don\'t have an account?</string>
+    <string name="create_one">Create one</string>
+
+    <!-- Dashboard header -->
+    <string name="invite_friends_title">Invite Friends to Sync</string>
+    <string name="invite_friends_subtitle">Share your link so classmates can connect and sync calendars in seconds</string>
+    <string name="copy_link">Copy Link</string>
+    <string name="link_copied">Link Copied</string>
+
+    <!-- Quick status card -->
+    <string name="quick_status_label">QUICK STATUS</string>
+    <string name="available_now">Available Now</string>
+    <string name="live_sync">Live Sync</string>
+    <string name="free_until_label">FREE UNTIL</string>
+    <string name="next_activity_label">NEXT ACTIVITY</string>
+    <string name="compare_availability_cta">Compare Availability with Group</string>
+
+    <!-- Today\'s plans -->
+    <string name="todays_plans">Today\'s Plans</string>
+    <string name="view_calendar">View calendar</string>
+    <string name="details">Details</string>
+    <string name="joining_question">Joining?</string>
+    <string name="going">Going</string>
+    <string name="maybe">Maybe</string>
+
+    <!-- Groups -->
+    <string name="your_active_groups">Your Active Groups</string>
+    <string name="view_all_groups">View all (5)</string>
+    <string name="open_chat">Open chat</string>
+    <string name="view_status">View status</string>
+
+    <!-- Bottom nav -->
+    <string name="nav_home">Home</string>
+    <string name="nav_groups">Groups</string>
+    <string name="nav_schedule">Schedule</string>
+    <string name="new_activity">New Activity</string>
+    <string name="cd_search">Search</string>
+    <string name="cd_notifications">Notifications</string>
+
+    <!-- Quick status modal -->
+    <string name="update_availability_title">Update Availability &amp; Status</string>
+    <string name="update_availability_subtitle">Synced in real-time with classmates</string>
+    <string name="free_until_field">Free Until</string>
+    <string name="next_activity_field">Next Activity</string>
+    <string name="custom_time_hint">Custom time (e.g. 4:30 PM)</string>
+    <string name="custom_activity_hint">Enter activity name</string>
+    <string name="cancel">Cancel</string>
+    <string name="save_changes">Save Changes</string>
+
+    <!-- Calendar modal -->
+    <string name="calendar_and_sync">Calendar &amp; Sync</string>
+    <string name="calendar_period">Connected calendar</string>
+    <string name="calendar_week">Schedule</string>
+    <string name="calendar_today_badge">Today</string>
+    <string name="free_availability_block">Free Availability Block</string>
+    <string name="synced_free">Synced Free</string>
+
+    <!-- Plan details modal -->
+    <string name="organized_by">Activity details</string>
+    <string name="add_to_calendar">Add to Calendar</string>
+    <string name="close">Close</string>
+
+    <!-- Group details modal -->
+    <string name="ping_availability">Ping Availability</string>
+
+    <!-- All groups modal -->
+    <string name="all_active_groups">All Active Groups (5)</string>
+
+    <!-- Compare availability modal -->
+    <string name="group_availability_matrix">Group Availability Matrix</string>
+    <string name="group_availability_subtitle">Calculated from 4 active classmate schedules</string>
+    <string name="best_mutual_match">Best Mutual Match</string>
+    <string name="schedule_plan_in_slot">Schedule Plan in Free Slot</string>
+
+    <!-- Create activity modal -->
+    <string name="new_activity_title">New Activity</string>
+    <string name="new_activity_subtitle">Plan something and invite your group</string>
+    <string name="activity_title_label">Activity title</string>
+    <string name="activity_group_label">Group</string>
+    <string name="activity_date_label">Date</string>
+    <string name="activity_time_label">Time</string>
+    <string name="activity_location_label">Location</string>
+    <string name="create_activity_cta">Create Activity</string>
+    <string name="rank_slots_by">Rank slots by</string>
+    <string name="rank_overlap">Most free</string>
+    <string name="rank_preference">Preferred hours</string>
+    <string name="rank_soonest">Soonest</string>
+    <string name="calculating_slots">Calculating common free slots…</string>
+    <string name="no_common_slots">No common free slot of at least 1 hour today.</string>
+    <string name="recommended">Recommended</string>
+    <string name="welcome_wordmark">PARCHAPP</string>
+    <string name="welcome_headline">Find the time\nyou share.</string>
+    <string name="welcome_value_proposition">Find when everyone is free, make the plan, and spend less time coordinating.</string>
+    <string name="welcome_get_started">Get started</string>
+    <string name="welcome_have_account">I already have an account</string>
+    <string name="go_back">Go back</string>
+    <string name="create_account_title">Create your ParchApp account</string>
+    <string name="create_account_subtitle">Join your friends, compare availability, and start planning together.</string>
+    <string name="choose_an_account">CHOOSE AN ACCOUNT</string>
+    <string name="use_another_google_account">Use another Google account</string>
+    <string name="or_email">OR EMAIL</string>
+    <string name="full_name">Full Name</string>
+    <string name="university_email_label">University Email</string>
+    <string name="email_placeholder">name@university.edu</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="toggle_password_visibility">Show or hide password</string>
+    <string name="toggle_confirm_password_visibility">Show or hide confirmation</string>
+    <string name="continue_label">Continue</string>
+    <string name="already_have_account">Already have an account?</string>
+    <string name="search">Search</string>
+    <string name="notifications">Notifications</string>
+    <string name="duration_label">Duration:</string>
+    <string name="time_column">TIME</string>
+    <string name="my_schedule">●  My Schedule</string>
+    <string name="add_friends">+ Add friends</string>
+    <string name="me_chip">Me</string>
+    <string name="select_friends_title">Select Friends to Compare</string>
+    <string name="select_friends_subtitle">Toggle who to include in the mutual availability overlay</string>
+    <string name="view_comparison">View Comparison</string>
+    <string name="done">Done</string>
+    <string name="available_common_slots">Available Common Slots</string>
+    <string name="plan_with_slot">Plan with this Slot</string>
+    <string name="close_label">Close</string>
+    <string name="custom_duration">Custom</string>
+    <string name="custom_duration_title">Meeting duration (minutes)</string>
+</resources>

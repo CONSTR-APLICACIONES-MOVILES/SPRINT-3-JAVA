@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/white"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <View
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="14dp"
+            android:background="@drawable/bg_home_indicator" />
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Change Availability Status" android:textColor="@color/brand_dark" android:textSize="16sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="Visible to your campus friends and study groups" android:textColor="@color/brand_slate" android:textSize="11sp" />
+            </LinearLayout>
+            <ImageButton android:id="@+id/sheet_close_btn" android:layout_width="34dp" android:layout_height="34dp" android:background="@drawable/bg_icon_badge_square" android:backgroundTint="#F1F5F9" android:contentDescription="@string/close" android:padding="8dp" android:src="@drawable/ic_close" />
+        </LinearLayout>
+
+        <!-- Status options -->
+        <LinearLayout
+            android:id="@+id/status_option_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:orientation="vertical">
+
+            <!-- Available now -->
+            <LinearLayout android:id="@+id/status_available" android:clickable="true" android:focusable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/bg_option_row_unselected" android:gravity="center_vertical" android:orientation="horizontal" android:padding="12dp">
+                <TextView android:layout_width="44dp" android:layout_height="44dp" android:background="@drawable/bg_icon_badge_square" android:backgroundTint="@color/brand_success_background" android:gravity="center" android:text="✓" android:textColor="@color/brand_success_dark" android:textSize="18sp" android:textStyle="bold" />
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
+                    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center_vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Available now" android:textColor="@color/brand_dark" android:textSize="13sp" android:textStyle="bold" />
+                        <View android:layout_width="6dp" android:layout_height="6dp" android:layout_marginStart="6dp" android:background="@drawable/bg_oval_solid" android:backgroundTint="@color/brand_success" />
+                    </LinearLayout>
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Ready to study, grab coffee, or spontaneous plans" android:textColor="@color/brand_slate" android:textSize="10sp" />
+                </LinearLayout>
+                <FrameLayout android:layout_width="24dp" android:layout_height="24dp">
+                    <View android:layout_width="24dp" android:layout_height="24dp" android:background="@drawable/bg_oval_solid" android:backgroundTint="#F1F5F9" />
+                    <ImageView android:id="@+id/check_available" android:layout_width="14dp" android:layout_height="14dp" android:layout_gravity="center" android:src="@drawable/ic_check" android:tint="@android:color/white" android:visibility="gone" />
+                </FrameLayout>
+            </LinearLayout>
+
+            <!-- In Class -->
+            <LinearLayout android:id="@+id/status_class" android:clickable="true" android:focusable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_option_row_unselected" android:gravity="center_vertical" android:orientation="horizontal" android:padding="12dp">
+                <ImageView android:layout_width="44dp" android:layout_height="44dp" android:background="@drawable/bg_icon_badge_square" android:padding="11dp" android:src="@drawable/ic_school" android:tint="@color/brand_primary" />
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="In Class" android:textColor="@color/brand_dark" android:textSize="13sp" android:textStyle="bold" />
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Currently in lecture or university session" android:textColor="@color/brand_slate" android:textSize="10sp" />
+                </LinearLayout>
+                <FrameLayout android:layout_width="24dp" android:layout_height="24dp">
+                    <View android:layout_width="24dp" android:layout_height="24dp" android:background="@drawable/bg_oval_solid" android:backgroundTint="#F1F5F9" />
+                    <ImageView android:id="@+id/check_class" android:layout_width="14dp" android:layout_height="14dp" android:layout_gravity="center" android:src="@drawable/ic_check" android:tint="@android:color/white" android:visibility="gone" />
+                </FrameLayout>
+            </LinearLayout>
+
+            <!-- Deep Focus -->
+            <LinearLayout android:id="@+id/status_focus" android:clickable="true" android:focusable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_option_row_unselected" android:gravity="center_vertical" android:orientation="horizontal" android:padding="12dp">
+                <ImageView android:layout_width="44dp" android:layout_height="44dp" android:background="@drawable/bg_icon_badge_square" android:backgroundTint="@color/brand_purple_background" android:padding="11dp" android:src="@drawable/ic_headphones" android:tint="@color/brand_purple" />
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Deep Focus" android:textColor="@color/brand_dark" android:textSize="13sp" android:textStyle="bold" />
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Library mode or intense study, do not disturb" android:textColor="@color/brand_slate" android:textSize="10sp" />
+                </LinearLayout>
+                <FrameLayout android:layout_width="24dp" android:layout_height="24dp">
+                    <View android:layout_width="24dp" android:layout_height="24dp" android:background="@drawable/bg_oval_solid" android:backgroundTint="#F1F5F9" />
+                    <ImageView android:id="@+id/check_focus" android:layout_width="14dp" android:layout_height="14dp" android:layout_gravity="center" android:src="@drawable/ic_check" android:tint="@android:color/white" android:visibility="gone" />
+                </FrameLayout>
+            </LinearLayout>
+
+            <!-- Busy / Personal -->
+            <LinearLayout android:id="@+id/status_busy" android:clickable="true" android:focusable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_option_row_unselected" android:gravity="center_vertical" android:orientation="horizontal" android:padding="12dp">
+                <ImageView android:layout_width="44dp" android:layout_height="44dp" android:background="@drawable/bg_icon_badge_square" android:backgroundTint="@color/brand_rose_background" android:padding="11dp" android:src="@drawable/ic_close" android:tint="@color/brand_rose" />
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Busy / Personal" android:textColor="@color/brand_dark" android:textSize="13sp" android:textStyle="bold" />
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Personal commitments or work off campus" android:textColor="@color/brand_slate" android:textSize="10sp" />
+                </LinearLayout>
+                <FrameLayout android:layout_width="24dp" android:layout_height="24dp">
+                    <View android:layout_width="24dp" android:layout_height="24dp" android:background="@drawable/bg_oval_solid" android:backgroundTint="#F1F5F9" />
+                    <ImageView android:id="@+id/check_busy" android:layout_width="14dp" android:layout_height="14dp" android:layout_gravity="center" android:src="@drawable/ic_check" android:tint="@android:color/white" android:visibility="gone" />
+                </FrameLayout>
+            </LinearLayout>
+
+            <!-- Commute / In Transit (default selected) -->
+            <LinearLayout android:id="@+id/status_transit" android:clickable="true" android:focusable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_option_row_selected" android:gravity="center_vertical" android:orientation="horizontal" android:padding="12dp">
+                <TextView android:layout_width="44dp" android:layout_height="44dp" android:background="@drawable/bg_icon_badge_square" android:backgroundTint="@color/brand_amber_background" android:gravity="center" android:text="🚌" android:textSize="18sp" />
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Commute / In Transit" android:textColor="@color/brand_dark" android:textSize="13sp" android:textStyle="bold" />
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="On public transit or walking..." android:textColor="@color/brand_slate" android:textSize="10sp" />
+                </LinearLayout>
+                <FrameLayout android:layout_width="24dp" android:layout_height="24dp">
+                    <View android:layout_width="24dp" android:layout_height="24dp" android:background="@drawable/bg_oval_solid" android:backgroundTint="@color/brand_primary" />
+                    <ImageView android:id="@+id/check_transit" android:layout_width="14dp" android:layout_height="14dp" android:layout_gravity="center" android:src="@drawable/ic_check" android:tint="@android:color/white" />
+                </FrameLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Duration -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:gravity="center_vertical">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="STATUS DURATION" android:textColor="@color/brand_slate" android:textSize="10sp" android:textStyle="bold" />
+            <TextView android:id="@+id/duration_selected_label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="◷ 1h selected" android:textColor="@color/brand_primary" android:textSize="10sp" android:textStyle="bold" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp">
+            <TextView android:id="@+id/duration_1h" android:layout_width="0dp" android:layout_height="38dp" android:layout_marginEnd="3dp" android:layout_weight="1" android:background="@drawable/bg_chip_selected" android:gravity="center" android:text="For 1 hour" android:textColor="@color/brand_primary" android:textSize="10sp" android:textStyle="bold" />
+            <TextView android:id="@+id/duration_6pm" android:layout_width="0dp" android:layout_height="38dp" android:layout_marginStart="3dp" android:layout_weight="1" android:background="@drawable/bg_chip_unselected" android:gravity="center" android:text="Until 6:00 PM" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp">
+            <TextView android:id="@+id/duration_tomorrow" android:layout_width="0dp" android:layout_height="38dp" android:layout_marginEnd="3dp" android:layout_weight="1" android:background="@drawable/bg_chip_unselected" android:gravity="center" android:text="Until tomorrow" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" />
+            <TextView android:id="@+id/duration_manual" android:layout_width="0dp" android:layout_height="38dp" android:layout_marginStart="3dp" android:layout_weight="1" android:background="@drawable/bg_chip_unselected" android:gravity="center" android:text="Indefinite / Manual" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Auto sync -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:background="@drawable/bg_card_flat" android:gravity="center_vertical" android:padding="12dp">
+            <ImageView android:layout_width="34dp" android:layout_height="34dp" android:background="@drawable/bg_icon_badge_square" android:padding="8dp" android:src="@drawable/ic_refresh" android:tint="@color/brand_primary" />
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:orientation="vertical">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Automatic synchronization" android:textColor="@color/brand_dark" android:textSize="11sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Switch based on your institutional class schedule" android:textColor="@color/brand_slate" android:textSize="9sp" />
+            </LinearLayout>
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/auto_sync_toggle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                app:thumbTint="@android:color/white"
+                app:trackTint="@color/brand_primary" />
+        </LinearLayout>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/save_status_button"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_primary_pill"
+            android:text="⚡  Update Status"
+            android:textAllCaps="false"
+            android:textColor="@android:color/white"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:gravity="center" android:text="You can adjust visibility in your group settings" android:textColor="@color/brand_slate" android:textSize="10sp" />
+    </LinearLayout>
+</ScrollView>
