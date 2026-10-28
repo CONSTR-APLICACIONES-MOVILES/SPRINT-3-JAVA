@@ -46,6 +46,8 @@ dependencies {
     implementation libs.material
     implementation platform(libs.firebase.bom)
     implementation libs.firebase.analytics
+// f1: fused location provider for the campus check
+    implementation libs.play.services.location
     testImplementation libs.junit
     androidTestImplementation libs.espresso.core
     androidTestImplementation libs.ext.junit
