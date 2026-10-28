@@ -4,6 +4,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <application
         android:name=".ParchApplication"
@@ -32,6 +34,7 @@
         <activity android:name=".ProfileActivity" />
         <activity android:name=".DashboardActivity" />
         <activity android:name=".ScheduleActivity" />
+        <activity android:name=".GroupsActivity" />
         <activity android:name=".GroupDetailActivity" />
         <activity android:name=".CreateGroupActivity" />
         <activity android:name=".ActivityCreatedActivity" />
