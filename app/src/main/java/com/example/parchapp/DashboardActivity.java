@@ -1,14 +1,18 @@
 package com.example.parchapp;
 
+import android.Manifest;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import com.example.parchapp.data.Repositories;
+import com.example.parchapp.data.TravelTimeService;
 import com.example.parchapp.domain.PlanContext;
 import com.example.parchapp.domain.StatusService;
 import com.example.parchapp.domain.model.Group;
@@ -19,8 +23,11 @@ import com.example.parchapp.util.Callback;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 
 public class DashboardActivity extends AppCompatActivity implements StatusService.Listener {
+
+    private static final int LOCATION_REQUEST = 41;
 
     private TextView displayFreeUntil;
     private TextView displayNextActivity;
@@ -28,6 +35,8 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
     private final List<Group> loadedGroups = new ArrayList<>();
     private final List<PlannedActivity> loadedActivities = new ArrayList<>();
     private PlannedActivity latestActivity;
+    private TravelTimeService travelTime;
+    private boolean askedLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +44,7 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         setContentView(R.layout.activity_dashboard);
 
         bindUser(UserSession.getCurrentUser());
+        travelTime = new TravelTimeService(this);
 
         displayFreeUntil = findViewById(R.id.display_free_until);
         displayNextActivity = findViewById(R.id.display_next_activity);
@@ -49,6 +59,9 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         findViewById(R.id.copy_link_button).setEnabled(false);
         findViewById(R.id.btn_edit_free_until).setOnClickListener(v -> openQuickStatusSheet());
         findViewById(R.id.btn_edit_next_activity).setOnClickListener(v -> openQuickStatusSheet());
+        // f1: tapping the status opens Set Availability Status, saving there updates this card right away
+        findViewById(R.id.status_title).setOnClickListener(v ->
+                new AvailabilityStatusSheet().show(getSupportFragmentManager(), "availability_status"));
         // f4: the compare button opens the best-slot recommender for my first group
         findViewById(R.id.compare_button).setOnClickListener(v -> openCompareAvailability());
         findViewById(R.id.calendar_button).setOnClickListener(v -> {
@@ -91,6 +104,14 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
 
     @Override
     public void onStatusChanged(StatusService status) {
+        // f1: the live status card. StatusService notifies every change, so an accepted commuting suggestion shows up here without reopening the screen
+        String availability = status.getAvailability();
+        boolean free = "Available now".equalsIgnoreCase(availability);
+        ((TextView) findViewById(R.id.status_title)).setText(free ? getString(R.string.available_now) : availability);
+        ((TextView) findViewById(R.id.status_source_chip)).setText(
+                status.isFromMotion() ? "◎ Motion sensor" : "● Live Sync");
+        ((TextView) findViewById(R.id.status_header_chip)).setText(
+                free ? "● FREE" : "● " + availability.toUpperCase(Locale.ROOT));
         displayFreeUntil.setText(status.getFreeUntil());
         // the next activity comes from my plans when there is one, the quick status is the fallback
         if (latestActivity == null) {
@@ -185,6 +206,49 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
                 shown.getLocation().isEmpty() ? "Location not specified" : shown.getLocation());
         findViewById(R.id.plan_details_button).setEnabled(true);
         bindPlanAvatars(shown);
+        updatePlanContext(shown);
+    }
+
+    // ---------- F3: context-aware plan card (location + current time) ----------
+
+    private void updatePlanContext(PlannedActivity activity) {
+        TextView travel = findViewById(R.id.plan_travel_text);
+        travel.setVisibility(View.VISIBLE);
+        findViewById(R.id.plan_late_warning).setVisibility(View.GONE);
+        // we ask for the location only once per screen, if the user says no the card just says why there is no time
+        if (!travelTime.hasLocationPermission() && !askedLocation) {
+            askedLocation = true;
+            ActivityCompat.requestPermissions(this, new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION}, LOCATION_REQUEST);
+        }
+        travel.setText("\u279C  Finding your travel time\u2026");
+        travelTime.travelTo(activity, new TravelTimeService.Listener() {
+            @Override
+            public void onTravel(TravelTimeService.Result result) {
+                // the answer can come after the card already shows another plan, then we ignore it
+                if (isFinishing() || isDestroyed() || activity != latestActivity) {
+                    return;
+                }
+                travel.setText(TravelTimeService.describe(result));
+                findViewById(R.id.plan_late_warning).setVisibility(result.late ? View.VISIBLE : View.GONE);
+            }
+
+            @Override
+            public void onProblem(TravelTimeService.Problem problem) {
+                if (!isFinishing() && !isDestroyed() && activity == latestActivity) {
+                    travel.setText(TravelTimeService.describe(problem));
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == LOCATION_REQUEST && latestActivity != null) {
+            updatePlanContext(latestActivity);
+        }
     }
 
     /* The people of the plan's group, from the group document: up to three initials and "+N". */

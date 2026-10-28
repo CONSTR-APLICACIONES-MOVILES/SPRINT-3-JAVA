@@ -12,12 +12,41 @@ import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/* F6: reads the date and time of the plans saved in Firestore, so the Dashboard can count the plans of today and pick the next one. Everything is in Bogota time. */
+/* F6: reads the date and time of the plans saved in Firestore, so the Dashboard can count the plans of today and pick the next one. F3: walking estimate to the place and the late check. Everything is in Bogota time. */
 public final class PlanContext {
+    /* About 4.8 km/h, plus 30% because streets are not straight lines. */
+    static final double WALKING_METERS_PER_MINUTE = 80;
+    static final double DETOUR_FACTOR = 1.3;
+
     private static final Pattern TIME = Pattern.compile("(\\d{1,2}):(\\d{2})\\s*([AaPp][Mm])?");
     private static final String[] DATE_FORMATS = {"EEE, MMM d, yyyy", "yyyy-MM-dd", "MMM d, yyyy", "EEE, MMM d"};
 
     private PlanContext() {
+    }
+
+    /* Walking estimate used for the travel time of the plan card. */
+    public static int walkingMinutes(double fromLat, double fromLng, double toLat, double toLng) {
+        double meters = distanceMeters(fromLat, fromLng, toLat, toLng) * DETOUR_FACTOR;
+        return Math.max(1, (int) Math.ceil(meters / WALKING_METERS_PER_MINUTE));
+    }
+
+    public static double distanceMeters(double lat1, double lng1, double lat2, double lng2) {
+        double earth = 6_371_000;
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLng = Math.toRadians(lng2 - lng1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        return 2 * earth * Math.asin(Math.sqrt(a));
+    }
+
+    /* The user cannot arrive before the start, and the plan is not over yet. */
+    public static boolean isLate(int nowMinute, int travelMinutes, int startMinute, int endMinute) {
+        if (startMinute < 0) {
+            return false;
+        }
+        int end = endMinute > startMinute ? endMinute : startMinute + 60;
+        return nowMinute < end && nowMinute + travelMinutes > startMinute;
     }
 
     /* Start minute of "5:00 PM – 6:00 PM", "7:30 PM" or "17:30", or -1 if there is no time. */

@@ -3,6 +3,8 @@ package com.example.parchapp.domain.model;
 public class PlannedActivity {
     public static final String STATUS_PROPOSED = "PROPOSED";
     public static final String STATUS_CONFIRMED = "CONFIRMED";
+    /* locationAreaId of activities whose place is not one of the campusAreas */
+    public static final String UNKNOWN_AREA = "unknown";
 
     private final String id;
     private final String groupId;
@@ -15,6 +17,7 @@ public class PlannedActivity {
     private final long createdAt;
     private final int groupSizeAtCreation;
     private final boolean comparisonUsed;
+    private final String locationAreaId;
 
     public PlannedActivity(String id, String groupId, String title, String category, String date,
                            String time, String location, String status, long createdAt) {
@@ -24,6 +27,14 @@ public class PlannedActivity {
     public PlannedActivity(String id, String groupId, String title, String category, String date,
                            String time, String location, String status, long createdAt,
                            int groupSizeAtCreation, boolean comparisonUsed) {
+        this(id, groupId, title, category, date, time, location, status, createdAt, groupSizeAtCreation,
+                comparisonUsed, UNKNOWN_AREA);
+    }
+
+    /* f3: locationAreaId is the campusAreas document of the place, the plan card uses it to know where to go */
+    public PlannedActivity(String id, String groupId, String title, String category, String date,
+                           String time, String location, String status, long createdAt,
+                           int groupSizeAtCreation, boolean comparisonUsed, String locationAreaId) {
         this.id = id;
         this.groupId = groupId;
         this.title = title;
@@ -35,6 +46,7 @@ public class PlannedActivity {
         this.createdAt = createdAt;
         this.groupSizeAtCreation = groupSizeAtCreation;
         this.comparisonUsed = comparisonUsed;
+        this.locationAreaId = locationAreaId == null || locationAreaId.isEmpty() ? UNKNOWN_AREA : locationAreaId;
     }
 
     public PlannedActivity withId(String newId) {
@@ -89,5 +101,9 @@ public class PlannedActivity {
 
     public boolean isComparisonUsed() {
         return comparisonUsed;
+    }
+
+    public String getLocationAreaId() {
+        return locationAreaId;
     }
 }

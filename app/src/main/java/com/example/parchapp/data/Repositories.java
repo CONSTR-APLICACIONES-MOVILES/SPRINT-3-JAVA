@@ -18,6 +18,7 @@ public final class Repositories {
     private static GroupRepository groups;
     private static ActivityRepository activities;
     private static InsightsRepository insights;
+    private static CampusPlaceRepository places;
     private static AuthRepository auth;
     private static StatusService status;
     private static ScheduleRepository schedules;
@@ -57,12 +58,15 @@ public final class Repositories {
             groups = new FirestoreGroupRepository(db);
             activities = new FirestoreActivityRepository(db);
             insights = new FirestoreInsightsRepository(db);
+            places = new FirestoreCampusPlaceRepository(db);
         } else {
             auth = new DisabledAuthRepository();
             groups = new EmptyGroupRepository();
             activities = new DisabledActivityRepository();
             insights = callback -> MainThread.post(() ->
                     callback.onSuccess(InsightsRepository.DEFAULT_RECOMMENDED_POSITION));
+            // without a backend there is no place data, so the card says travel time is unavailable
+            places = callback -> MainThread.post(() -> callback.onSuccess(java.util.Collections.emptyList()));
         }
         schedules = new EmptyScheduleRepository();
         status = new StatusService(context);
@@ -93,6 +97,10 @@ public final class Repositories {
 
     public static InsightsRepository insights() {
         return insights;
+    }
+
+    public static CampusPlaceRepository places() {
+        return places;
     }
 
     public static AuthRepository auth() {
