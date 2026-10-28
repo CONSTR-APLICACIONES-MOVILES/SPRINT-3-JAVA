@@ -4,15 +4,20 @@ import android.content.Context;
 
 import com.example.parchapp.BuildConfig;
 import com.example.parchapp.domain.StatusService;
+import com.example.parchapp.util.MainThread;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreSettings;
+import com.google.firebase.firestore.PersistentCacheSettings;
 
 /* Sprint 3 composition: creates the repositories once and hands them to the controllers. Each feature branch swaps its placeholder for the real backend one. */
 public final class Repositories {
     private static boolean firebaseAvailable;
     private static GroupRepository groups;
     private static ActivityRepository activities;
+    private static InsightsRepository insights;
     private static AuthRepository auth;
     private static StatusService status;
     private static ScheduleRepository schedules;
@@ -41,11 +46,24 @@ public final class Repositories {
                 firebaseAuth.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 9099);
             }
             auth = new FirebaseAuthRepository(firebaseAuth);
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
+            if (BuildConfig.USE_FIREBASE_EMULATORS) {
+                db.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 8080);
+            }
+            // offline persistence: without signal the dashboard reads the local copy
+            db.setFirestoreSettings(new FirebaseFirestoreSettings.Builder()
+                    .setLocalCacheSettings(PersistentCacheSettings.newBuilder().build())
+                    .build());
+            groups = new FirestoreGroupRepository(db);
+            activities = new FirestoreActivityRepository(db);
+            insights = new FirestoreInsightsRepository(db);
         } else {
             auth = new DisabledAuthRepository();
+            groups = new EmptyGroupRepository();
+            activities = new DisabledActivityRepository();
+            insights = callback -> MainThread.post(() ->
+                    callback.onSuccess(InsightsRepository.DEFAULT_RECOMMENDED_POSITION));
         }
-        groups = new EmptyGroupRepository();
-        activities = new DisabledActivityRepository();
         schedules = new EmptyScheduleRepository();
         status = new StatusService(context);
     }
@@ -71,6 +89,10 @@ public final class Repositories {
 
     public static ActivityRepository activities() {
         return activities;
+    }
+
+    public static InsightsRepository insights() {
+        return insights;
     }
 
     public static AuthRepository auth() {

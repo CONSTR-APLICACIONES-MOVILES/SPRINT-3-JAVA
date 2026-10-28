@@ -19,6 +19,8 @@ public class StatusService {
     private static final String KEY_NEXT_ACTIVITY = "next_activity";
     private static final String KEY_AVAILABILITY = "availability";
     private static final String KEY_DURATION = "availability_duration";
+    // f1: true when the status came from the motion sensor suggestion, the sensor feature writes it when the user accepts
+    static final String KEY_FROM_MOTION = "availability_from_motion";
 
     private final SharedPreferences prefs;
     private final List<Listener> listeners = new ArrayList<>();
@@ -60,8 +62,14 @@ public class StatusService {
         prefs.edit()
                 .putString(KEY_AVAILABILITY, availability)
                 .putString(KEY_DURATION, duration)
+                .putBoolean(KEY_FROM_MOTION, false)
                 .apply();
         notifyListeners();
+    }
+
+    /* F1: the live status card shows "Motion sensor" instead of "Live Sync" when this is true. */
+    public boolean isFromMotion() {
+        return prefs.getBoolean(KEY_FROM_MOTION, false);
     }
 
     public void addListener(Listener listener) {
