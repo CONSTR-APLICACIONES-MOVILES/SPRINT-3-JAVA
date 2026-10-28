@@ -22,6 +22,7 @@ import com.google.android.gms.tasks.CancellationTokenSource;
 import java.util.Calendar;
 import java.util.List;
 
+/* Uses Google Maps for travel time when available, with a local walking estimate as fallback. */
 /* Travel time from the user's location to a campus place, with a local walking estimate as fallback. */
 public class TravelTimeService {
 
@@ -68,10 +69,6 @@ public class TravelTimeService {
     }
 
     public void travelTo(PlannedActivity activity, Listener listener) {
-        if (!hasLocationPermission()) {
-            listener.onProblem(Problem.NO_PERMISSION);
-            return;
-        }
         Repositories.places().getPlaces(new Callback<List<CampusPlace>>() {
             @Override
             public void onSuccess(List<CampusPlace> places) {
@@ -85,6 +82,10 @@ public class TravelTimeService {
                         : Repositories.activities().getCachedTravelMinutes(activity.getId());
                 if (cached != null) {
                     listener.onTravel(result(activity, cached, CACHED_SOURCE, place));
+                    return;
+                }
+                if (!hasLocationPermission()) {
+                    listener.onProblem(Problem.NO_PERMISSION);
                     return;
                 }
                 readLocation(location -> {
@@ -130,9 +131,6 @@ public class TravelTimeService {
     private void useWalkingEstimate(PlannedActivity activity, CampusPlace place, Location from, Listener listener) {
         int walking = PlanContext.walkingMinutes(from.getLatitude(), from.getLongitude(),
                 place.getLat(), place.getLng());
-        if (activity.getId() != null) {
-            Repositories.activities().cacheTravelMinutes(activity.getId(), walking);
-        }
         listener.onTravel(result(activity, walking, null, place));
     }
 

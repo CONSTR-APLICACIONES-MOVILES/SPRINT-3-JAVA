@@ -217,13 +217,6 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         TextView travel = findViewById(R.id.plan_travel_text);
         travel.setVisibility(View.VISIBLE);
         findViewById(R.id.plan_late_warning).setVisibility(View.GONE);
-        // we ask for the location only once per screen, if the user says no the card just says why there is no time
-        if (!travelTime.hasLocationPermission() && !askedLocation) {
-            askedLocation = true;
-            ActivityCompat.requestPermissions(this, new String[]{
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION}, LOCATION_REQUEST);
-        }
         travel.setText("\u279C  Finding your travel time\u2026");
         travelTime.travelTo(activity, new TravelTimeService.Listener() {
             @Override
@@ -239,6 +232,13 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
             @Override
             public void onProblem(TravelTimeService.Problem problem) {
                 if (!isFinishing() && !isDestroyed() && activity == latestActivity) {
+                    // Ask only after TravelTimeService has had a chance to serve a cached Maps result.
+                    if (problem == TravelTimeService.Problem.NO_PERMISSION && !askedLocation) {
+                        askedLocation = true;
+                        ActivityCompat.requestPermissions(DashboardActivity.this, new String[]{
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION}, LOCATION_REQUEST);
+                    }
                     travel.setText(TravelTimeService.describe(problem));
                 }
             }
