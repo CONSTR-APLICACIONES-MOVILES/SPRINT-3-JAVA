@@ -19,6 +19,7 @@ import com.example.parchapp.util.Callback;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 
 public class DashboardActivity extends AppCompatActivity implements StatusService.Listener {
 
@@ -49,6 +50,9 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         findViewById(R.id.copy_link_button).setEnabled(false);
         findViewById(R.id.btn_edit_free_until).setOnClickListener(v -> openQuickStatusSheet());
         findViewById(R.id.btn_edit_next_activity).setOnClickListener(v -> openQuickStatusSheet());
+        // f1: tapping the status opens Set Availability Status, saving there updates this card right away
+        findViewById(R.id.status_title).setOnClickListener(v ->
+                new AvailabilityStatusSheet().show(getSupportFragmentManager(), "availability_status"));
         // f4: the compare button opens the best-slot recommender for my first group
         findViewById(R.id.compare_button).setOnClickListener(v -> openCompareAvailability());
         findViewById(R.id.calendar_button).setOnClickListener(v -> {
@@ -91,6 +95,14 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
 
     @Override
     public void onStatusChanged(StatusService status) {
+        // f1: the live status card. StatusService notifies every change, so an accepted commuting suggestion shows up here without reopening the screen
+        String availability = status.getAvailability();
+        boolean free = "Available now".equalsIgnoreCase(availability);
+        ((TextView) findViewById(R.id.status_title)).setText(free ? getString(R.string.available_now) : availability);
+        ((TextView) findViewById(R.id.status_source_chip)).setText(
+                status.isFromMotion() ? "◎ Motion sensor" : "● Live Sync");
+        ((TextView) findViewById(R.id.status_header_chip)).setText(
+                free ? "● FREE" : "● " + availability.toUpperCase(Locale.ROOT));
         displayFreeUntil.setText(status.getFreeUntil());
         // the next activity comes from my plans when there is one, the quick status is the fallback
         if (latestActivity == null) {
