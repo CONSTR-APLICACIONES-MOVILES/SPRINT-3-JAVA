@@ -137,4 +137,5 @@
     <string name="custom_duration">Custom</string>
     <string name="custom_duration_title">Meeting duration (minutes)</string>
     <string name="late_warning">⚠  You won\'t make it on time</string>
+    <string name="offline_banner_message">You\'re offline. Saved groups and plans are shown; some actions need an internet connection.</string>
 </resources>

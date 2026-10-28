@@ -77,6 +77,8 @@
             android:tint="@color/brand_slate" />
     </LinearLayout>
 
+    <include layout="@layout/view_offline_banner" />
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"

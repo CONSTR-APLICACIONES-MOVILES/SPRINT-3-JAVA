@@ -41,6 +41,7 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
     private TextView campusText;
 // f3: service that gives the travel time to the place of the plan
     private TravelTimeService travelTime;
+    private final OfflineBannerController offlineBanner = new OfflineBannerController();
 // f3: next plan of this group, null when the group has no plan
     private PlannedActivity groupPlan;
 
@@ -96,6 +97,7 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
     @Override
     protected void onStart() {
         super.onStart();
+        offlineBanner.start(findViewById(R.id.offline_banner));
         String groupId = getIntent().getStringExtra(EXTRA_GROUP_ID);
         if (groupId != null) {
             Repositories.groups().observeGroup(groupId, this);
@@ -105,6 +107,7 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
 // f6: we stop listening when the screen is not visible, so we do not leak the screen
     @Override
     protected void onStop() {
+        offlineBanner.stop();
         String groupId = getIntent().getStringExtra(EXTRA_GROUP_ID);
         if (groupId != null) {
             Repositories.groups().removeGroupListener(groupId, this);

@@ -60,7 +60,7 @@ public final class Repositories {
             db.setFirestoreSettings(new FirebaseFirestoreSettings.Builder()
                     .setLocalCacheSettings(PersistentCacheSettings.newBuilder().build())
                     .build());
-            groups = new FirestoreGroupRepository(db);
+            groups = new FirestoreGroupRepository(db, functions);
             activities = new CompositeActivityRepository(
                     new FirestoreActivityRepository(db),
                     new FirebaseActivityRepository(functions));

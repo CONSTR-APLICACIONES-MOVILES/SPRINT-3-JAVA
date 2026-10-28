@@ -22,14 +22,14 @@ import com.google.android.gms.tasks.CancellationTokenSource;
 import java.util.Calendar;
 import java.util.List;
 
-/* Travel-time estimate from the user's location to a plan's campus place. This branch uses a walking estimate. */
+/* Travel time from the user's location to a campus place, with a local walking estimate as fallback. */
 public class TravelTimeService {
 
     public enum Problem {NO_PERMISSION, NO_LOCATION, NO_PLACE, PLACES_UNAVAILABLE}
 
     public static final class Result {
         public final int minutes;
-        /* Cache label, or null when this result is the fresh walking estimate. */
+        /* Cache/Maps source label, or null when this result is the local walking estimate. */
         @Nullable
         public final String source;
         public final CampusPlace place;

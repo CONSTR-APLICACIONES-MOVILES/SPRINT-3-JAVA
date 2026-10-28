@@ -31,6 +31,7 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
 
     private TextView displayFreeUntil;
     private TextView displayNextActivity;
+    private final OfflineBannerController offlineBanner = new OfflineBannerController();
     // f6: what the dashboard read from firestore, the cards are drawn from these lists
     private final List<Group> loadedGroups = new ArrayList<>();
     private final List<PlannedActivity> loadedActivities = new ArrayList<>();
@@ -93,10 +94,12 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         StatusService status = Repositories.status();
         status.addListener(this);
         onStatusChanged(status);
+        offlineBanner.start(findViewById(R.id.offline_banner));
     }
 
     @Override
     protected void onStop() {
+        offlineBanner.stop();
         Repositories.status().removeListener(this);
         super.onStop();
     }
