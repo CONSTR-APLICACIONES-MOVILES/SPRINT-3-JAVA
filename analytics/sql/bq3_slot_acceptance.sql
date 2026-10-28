@@ -1,18 +1,19 @@
-  /*BQ3 (Type 2, Direct User Experience Improvement)
-    What percentage of the time slots suggested by the recommendation engine are accepted by the
-    organizer without being changed?
+-- bq3: what percentage of the suggested slots are accepted by the organizer without changes
+-- slot_selected is saved when the organizer picks a suggested slot in compare availability
+-- slot_accepted is saved when the activity is confirmed, modified 0 means no changes
+-- suggested_slot_acceptance is the percentage of selected slots accepted without changes for each position
+-- the position with is_recommended true goes to insights/bq3_slot_acceptance, field recommended_position
+-- change parchapp.analytics_PROPERTY_ID for the real analytics dataset
 
-      Source event: slot_accepted, logged by CreateActivitySheet when an activity is created from a
-      slot chosen in Compare Availability. slot_position is the slot's place in the ranked list
-      (0 = best match); modified = 1 when the organiser changed the time or the group before creating.
-      
-      Feedback loop: the row with is_recommended = TRUE gives the value that must be copied to the
-      Firestore document insights/bq3_slot_acceptance, field recommended_position (a number). The app
-      reads it in FirestoreInsightsRepository and marks that slot as Recommended (feature F2).
-
-      Replace `parchapp.analytics_PROPERTY_ID` with the Firebase Analytics export dataset. When back is done */
-
-WITH accepted AS (
+WITH selected AS (
+  SELECT
+    (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'slot_position') AS slot_position
+  FROM `parchapp.analytics_PROPERTY_ID.events_*`
+  WHERE event_name = 'slot_selected'
+    AND _TABLE_SUFFIX BETWEEN FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY))
+                          AND FORMAT_DATE('%Y%m%d', CURRENT_DATE())
+),
+accepted AS (
   SELECT
     (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'slot_position') AS slot_position,
     (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'modified') AS modified
@@ -21,21 +22,30 @@ WITH accepted AS (
     AND _TABLE_SUFFIX BETWEEN FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY))
                           AND FORMAT_DATE('%Y%m%d', CURRENT_DATE())
 ),
+-- how many times each position was selected and how many were accepted without changes
 by_position AS (
   SELECT
-    slot_position,
-    COUNT(*) AS accepted,
-    COUNTIF(modified = 0) AS accepted_unchanged
-  FROM accepted
-  WHERE slot_position IS NOT NULL
-  GROUP BY slot_position
+    s.slot_position,
+    s.selected,
+    IFNULL(a.accepted_unchanged, 0) AS accepted_unchanged
+  FROM (
+    SELECT slot_position, COUNT(*) AS selected
+    FROM selected
+    WHERE slot_position IS NOT NULL
+    GROUP BY slot_position
+  ) s
+  LEFT JOIN (
+    SELECT slot_position, COUNT(*) AS accepted_unchanged
+    FROM accepted
+    WHERE modified = 0 AND slot_position IS NOT NULL
+    GROUP BY slot_position
+  ) a USING (slot_position)
 )
 SELECT
   slot_position,
-  accepted,
+  selected,
   accepted_unchanged,
-  ROUND(100 * accepted_unchanged / accepted, 1) AS pct_unchanged_in_position,
-  ROUND(100 * SUM(accepted_unchanged) OVER () / SUM(accepted) OVER (), 1) AS pct_unchanged_overall,
+  ROUND(100 * accepted_unchanged / selected, 1) AS suggested_slot_acceptance,
   accepted_unchanged = MAX(accepted_unchanged) OVER () AS is_recommended
 FROM by_position
 ORDER BY slot_position;
