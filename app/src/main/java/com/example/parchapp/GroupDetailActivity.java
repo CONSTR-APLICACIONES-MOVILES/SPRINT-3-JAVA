@@ -80,10 +80,8 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         findViewById(R.id.view_all_activities).setEnabled(false);
         findViewById(R.id.create_plan_button).setEnabled(false);
 
-        findViewById(R.id.nav_home_group).setOnClickListener(v ->
-                startActivity(new Intent(this, DashboardActivity.class)));
-        findViewById(R.id.nav_schedule_group).setOnClickListener(v ->
-                startActivity(new Intent(this, ScheduleActivity.class)));
+// shared bottom bar, groups is the active tab and it goes back to the list of groups
+        BottomNav.setup(this, BottomNav.Tab.GROUPS);
 
 //f1: we look for the text and then we check the location
         campusText = findViewById(R.id.campus_status_text);

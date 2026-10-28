@@ -102,14 +102,8 @@ public class ScheduleActivity extends AppCompatActivity {
         findViewById(R.id.schedule_fab).setOnClickListener(v ->
                 new CreateActivitySheet().withSuggestedDate(selectedDateLabel())
                         .show(getSupportFragmentManager(), "create_activity"));
-        findViewById(R.id.schedule_nav_home).setOnClickListener(v -> {
-            startActivity(new Intent(this, DashboardActivity.class)
-                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP));
-            finish();
-        });
-        findViewById(R.id.schedule_nav_groups).setOnClickListener(v -> {
-            startActivity(new Intent(this, GroupDetailActivity.class));
-        });
+// shared bottom bar, schedule is the active tab
+        BottomNav.setup(this, BottomNav.Tab.SCHEDULE);
 
         buildWeek();
         buildTimeColumnAndGrid();
