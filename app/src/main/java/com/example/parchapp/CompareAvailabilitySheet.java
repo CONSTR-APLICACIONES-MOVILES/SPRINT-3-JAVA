@@ -12,6 +12,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.example.parchapp.data.InsightsRepository;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.domain.availability.AvailabilityEngine;
 import com.example.parchapp.domain.model.Group;
@@ -36,6 +37,8 @@ public class CompareAvailabilitySheet extends BottomSheetDialogFragment {
     private Group group;
     private List<TimeSlot> rankedSlots = new ArrayList<>();
     private int selectedPosition;
+    // f2: which position gets the Recommended badge, it comes from the BQ3 result in firestore
+    private int recommendedPosition = InsightsRepository.DEFAULT_RECOMMENDED_POSITION;
 
     private TextView statusText;
     private View bestSlotCard;
@@ -76,6 +79,21 @@ public class CompareAvailabilitySheet extends BottomSheetDialogFragment {
         // the default strategy is OverlapRanking (most free members), the other two chips are their own features
         view.findViewById(R.id.chip_rank_preference).setEnabled(false);
         view.findViewById(R.id.chip_rank_soonest).setEnabled(false);
+
+        Repositories.insights().getRecommendedSlotPosition(new Callback<Integer>() {
+            @Override
+            public void onSuccess(Integer position) {
+                recommendedPosition = position;
+                // the slots can arrive before or after this answer, so we redraw if they are already there
+                if (getView() != null && !rankedSlots.isEmpty()) {
+                    renderSlots();
+                }
+            }
+
+            @Override
+            public void onError(Exception error) {
+            }
+        });
 
         if (groupId == null) {
             showGroupError();
@@ -174,13 +192,15 @@ public class CompareAvailabilitySheet extends BottomSheetDialogFragment {
     }
 
     private String bestSlotLabel() {
-        return getString(R.string.best_mutual_match);
+        String label = getString(R.string.best_mutual_match);
+        return recommendedPosition == 0 ? label + "  •  ★ " + getString(R.string.recommended) : label;
     }
 
     private String alternativeText(int position) {
         TimeSlot slot = rankedSlots.get(position);
-        return String.format(Locale.US, "%s   •   %d/%d free", slot.formatRange(),
+        String text = String.format(Locale.US, "%s   •   %d/%d free", slot.formatRange(),
                 slot.getFreeCount(), slot.getGroupSize());
+        return position == recommendedPosition ? text + "   •   ★ " + getString(R.string.recommended) : text;
     }
 
     private TextView alternativeRow(int position) {
