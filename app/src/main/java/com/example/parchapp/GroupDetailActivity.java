@@ -16,9 +16,11 @@ import androidx.core.content.ContextCompat;
 
 import com.example.parchapp.data.GroupListener;
 import com.example.parchapp.data.Repositories;
+import com.example.parchapp.data.ScheduleRepository;
 import com.example.parchapp.data.TravelTimeService;
 import com.example.parchapp.domain.CampusArea;
 import com.example.parchapp.domain.PlanContext;
+import com.example.parchapp.domain.model.DaySchedule;
 import com.example.parchapp.domain.model.Group;
 import com.example.parchapp.domain.model.Member;
 import com.example.parchapp.domain.model.PlannedActivity;
@@ -30,6 +32,7 @@ import com.google.android.gms.tasks.CancellationTokenSource;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 
 /** Group screen shell. Group membership and Firestore behavior are restored on its feature branch. */
 public class GroupDetailActivity extends AppCompatActivity implements GroupListener {
@@ -129,8 +132,69 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         int invites = group.getPendingInvites().size();
         ((TextView) findViewById(R.id.group_description_text)).setText(invites == 0 ? members
                 : members + " • " + invites + (invites == 1 ? " pending invite" : " pending invites"));
-        ((TextView) findViewById(R.id.group_synced_badge)).setText("● " + size + "/" + size + " Synced");
+        loadSyncedCount(group);
         bindMembers(group.getMembers());
+    }
+
+// "N/M Synced": members whose calendar for today is known to the backend (getScheduleDay), not just the group size
+    private void loadSyncedCount(Group group) {
+        TextView synced = findViewById(R.id.group_synced_badge);
+        UserProfile user = UserSession.getCurrentUser();
+        if (user == null) {
+            synced.setText("\u25CF Sync unknown");
+            return;
+        }
+        String me = user.getId();
+        List<String> others = new ArrayList<>();
+        for (Member member : group.getMembers()) {
+            if (!member.getId().equals(me)) {
+                others.add(member.getId());
+            }
+        }
+        java.text.SimpleDateFormat key = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        key.setTimeZone(PlanContext.bogota());
+        String today = key.format(new java.util.Date());
+        // the backend compares at most 10 friends per call, so big groups are checked in batches
+        List<List<String>> batches = new ArrayList<>();
+        for (int start = 0; start < others.size(); start += ScheduleRepository.MAX_FRIENDS) {
+            batches.add(new ArrayList<>(others.subList(start,
+                    Math.min(others.size(), start + ScheduleRepository.MAX_FRIENDS))));
+        }
+        if (batches.isEmpty()) {
+            batches.add(new ArrayList<>());
+        }
+        synced.setText("\u25CF Checking sync\u2026");
+        int[] known = {0};
+        int[] pending = {batches.size()};
+        boolean[] failed = {false};
+        for (int b = 0; b < batches.size(); b++) {
+            boolean countMe = b == 0;
+            Repositories.schedules().getDay(today, batches.get(b), new Callback<List<DaySchedule>>() {
+                @Override
+                public void onSuccess(List<DaySchedule> schedules) {
+                    for (DaySchedule schedule : schedules) {
+                        // every call also returns my own schedule, so i count it only once
+                        if (schedule.isKnown() && (countMe || !schedule.getOwnerId().equals(me))) {
+                            known[0]++;
+                        }
+                    }
+                    done();
+                }
+
+                @Override
+                public void onError(Exception error) {
+                    failed[0] = true;
+                    done();
+                }
+
+                private void done() {
+                    if (--pending[0] == 0 && !isFinishing() && !isDestroyed()) {
+                        synced.setText(failed[0] ? "\u25CF Sync unknown"
+                                : String.format(Locale.US, "\u25CF %d/%d Synced", known[0], group.getSize()));
+                    }
+                }
+            });
+        }
     }
 
 // f6: shows up to four members with their initials and name

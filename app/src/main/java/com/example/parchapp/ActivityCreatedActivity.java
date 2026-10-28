@@ -68,7 +68,12 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         findViewById(R.id.whatsapp_button).setEnabled(false);
         findViewById(R.id.calendar_toggle).setEnabled(false);
         findViewById(R.id.view_schedule_button).setEnabled(false);
-        findViewById(R.id.back_home_button).setOnClickListener(v -> finishAffinity());
+        // back to the dashboard closing the screens opened on top of it, finishAffinity closed the whole app
+        findViewById(R.id.back_home_button).setOnClickListener(v -> {
+            startActivity(new android.content.Intent(this, DashboardActivity.class)
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP));
+            finish();
+        });
 
         String activityId = getIntent().getStringExtra(EXTRA_ACTIVITY_ID);
         if (activityId == null || activityId.trim().isEmpty()) {
