@@ -351,49 +351,5 @@
     </FrameLayout>
 
     <!-- Bottom navigation -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="68dp"
-        android:background="@android:color/white"
-        android:elevation="8dp"
-        android:gravity="center_vertical">
-
-        <TextView
-            android:id="@+id/schedule_nav_home"
-            style="@style/ScheduleNavItem"
-            android:text="@string/nav_home"
-            android:drawableTop="@drawable/ic_home" />
-
-        <TextView
-            android:id="@+id/schedule_nav_groups"
-            style="@style/ScheduleNavItem"
-            android:text="@string/nav_groups"
-            android:drawableTop="@drawable/ic_group" />
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:orientation="vertical">
-
-            <ImageView
-                android:layout_width="56dp"
-                android:layout_height="28dp"
-                android:background="@drawable/bg_schedule_nav_active"
-                android:contentDescription="@null"
-                android:paddingTop="3dp"
-                android:paddingBottom="3dp"
-                android:src="@drawable/ic_schedule_week" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="@string/nav_schedule"
-                android:textColor="#0B1C30"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-    </LinearLayout>
+    <include layout="@layout/view_bottom_nav" />
 </LinearLayout>

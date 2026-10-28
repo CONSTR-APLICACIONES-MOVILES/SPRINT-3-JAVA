@@ -31,6 +31,7 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
 
     private TextView displayFreeUntil;
     private TextView displayNextActivity;
+    private final OfflineBannerController offlineBanner = new OfflineBannerController();
     // f6: what the dashboard read from firestore, the cards are drawn from these lists
     private final List<Group> loadedGroups = new ArrayList<>();
     private final List<PlannedActivity> loadedActivities = new ArrayList<>();
@@ -76,11 +77,10 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         findViewById(R.id.maybe_button).setEnabled(false);
         findViewById(R.id.group_card_eng).setOnClickListener(v -> openGroupByIndex(0));
         findViewById(R.id.roomies_group_card).setOnClickListener(v -> openGroupByIndex(1));
-        findViewById(R.id.view_all_groups_button).setOnClickListener(v -> openAllGroupsSheet());
-        findViewById(R.id.nav_groups).setOnClickListener(v -> openGroupByIndex(0));
-        findViewById(R.id.nav_schedule).setOnClickListener(v -> {
-            startActivity(new Intent(this, ScheduleActivity.class));
-        });
+// view all and the groups tab open the same groups screen
+        findViewById(R.id.view_all_groups_button).setOnClickListener(v -> openGroups());
+// shared bottom bar, home is the active tab
+        BottomNav.setup(this, BottomNav.Tab.HOME);
     }
 
     @Override
@@ -94,10 +94,12 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         StatusService status = Repositories.status();
         status.addListener(this);
         onStatusChanged(status);
+        offlineBanner.start(findViewById(R.id.offline_banner));
     }
 
     @Override
     protected void onStop() {
+        offlineBanner.stop();
         Repositories.status().removeListener(this);
         super.onStop();
     }
@@ -284,7 +286,9 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
                 R.id.group_card_eng_icon, R.id.group_card_eng);
         bindGroupCard(1, R.id.group_card_roomies_title, R.id.group_card_roomies_subtitle,
                 R.id.group_card_roomies_icon, R.id.roomies_group_card);
-        View viewAll = findViewById(R.id.view_all_groups_button);
+        TextView viewAll = findViewById(R.id.view_all_groups_button);
+// the count comes from the real groups, not a fixed number
+        viewAll.setText(getString(R.string.view_all_groups, loadedGroups.size()));
         viewAll.setVisibility(loadedGroups.isEmpty() ? View.GONE : View.VISIBLE);
         viewAll.setEnabled(!loadedGroups.isEmpty());
         if (latestActivity != null) {
@@ -322,17 +326,8 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
                 .putExtra(GroupDetailActivity.EXTRA_GROUP_ID, loadedGroups.get(index).getId()));
     }
 
-    private void openAllGroupsSheet() {
-        AllGroupsSheet.newInstance(groupKey -> {
-            for (Group group : loadedGroups) {
-                if (group.getId().equals(groupKey)) {
-                    startActivity(new Intent(this, GroupDetailActivity.class)
-                            .putExtra(GroupDetailActivity.EXTRA_GROUP_ID, group.getId()));
-                    return;
-                }
-            }
-            toast("Group is no longer available");
-        }, loadedGroups).show(getSupportFragmentManager(), "all_groups");
+    private void openGroups() {
+        startActivity(new Intent(this, GroupsActivity.class));
     }
 
     private void openCompareAvailability() {

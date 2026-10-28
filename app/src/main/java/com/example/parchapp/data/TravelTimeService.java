@@ -23,6 +23,7 @@ import java.util.Calendar;
 import java.util.List;
 
 /* Uses Google Maps for travel time when available, with a local walking estimate as fallback. */
+/* Travel time from the user's location to a campus place, with a local walking estimate as fallback. */
 public class TravelTimeService {
 
     public enum Problem {NO_PERMISSION, NO_LOCATION, NO_PLACE, PLACES_UNAVAILABLE}
