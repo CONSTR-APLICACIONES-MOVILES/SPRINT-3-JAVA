@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Patterns;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -51,6 +52,21 @@ public class MainActivity extends AppCompatActivity {
 
         findViewById(R.id.google_button).setOnClickListener(v -> googleSignIn.start());
         signInButton.setOnClickListener(v -> signIn());
+        // Next goes to the password and Done signs in, so the user does not have to close the keyboard to reach the button
+        emailInput.setOnEditorActionListener((field, action, event) -> {
+            if (action == EditorInfo.IME_ACTION_NEXT) {
+                passwordInput.requestFocus();
+                return true;
+            }
+            return false;
+        });
+        passwordInput.setOnEditorActionListener((field, action, event) -> {
+            if (action == EditorInfo.IME_ACTION_DONE) {
+                signIn();
+                return true;
+            }
+            return false;
+        });
         findViewById(R.id.forgot_password).setOnClickListener(v -> sendPasswordReset());
         findViewById(R.id.create_account).setOnClickListener(v ->
                 startActivity(new Intent(this, CreateAccountActivity.class)));
@@ -67,22 +83,28 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        signInButton.setEnabled(false);
+        setSigningIn(true);
         auth.signIn(email, password, new Callback<UserProfile>() {
             @Override
             public void onSuccess(UserProfile user) {
-                signInButton.setEnabled(true);
+                setSigningIn(false);
                 passwordInput.setText("");
                 openDashboard(user);
             }
 
             @Override
             public void onError(Exception error) {
-                signInButton.setEnabled(true);
+                setSigningIn(false);
                 // we dont say which one failed so nobody can check which emails have an account
                 showMessage("Email or password is incorrect");
             }
         });
+    }
+
+    // loading state: the button says what is happening and cannot be pressed twice
+    private void setSigningIn(boolean signingIn) {
+        signInButton.setEnabled(!signingIn);
+        signInButton.setText(signingIn ? R.string.signing_in : R.string.sign_in);
     }
 
     private void sendPasswordReset() {
