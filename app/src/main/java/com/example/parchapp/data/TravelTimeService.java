@@ -28,7 +28,7 @@ public class TravelTimeService {
 
     public static final class Result {
         public final int minutes;
-        /* "Google Maps", or null for the walking estimate. */
+        /* "Google Maps", the cache, or null for the walking estimate. */
         @Nullable
         public final String source;
         public final CampusPlace place;
@@ -47,6 +47,9 @@ public class TravelTimeService {
 
         void onProblem(Problem problem);
     }
+
+    /* F7: source shown when the minutes come from the ActivityRepository cache. */
+    static final String CACHED_SOURCE = "saved travel time";
 
     private final Context context;
 
@@ -72,6 +75,13 @@ public class TravelTimeService {
                     listener.onProblem(Problem.NO_PLACE);
                     return;
                 }
+                // f7: first the cache, so reopening the dashboard does not wait for the location or measure again
+                Integer cached = activity.getId() == null ? null
+                        : Repositories.activities().getCachedTravelMinutes(activity.getId());
+                if (cached != null) {
+                    listener.onTravel(result(activity, cached, CACHED_SOURCE, place));
+                    return;
+                }
                 readLocation(location -> {
                     if (location == null) {
                         listener.onProblem(Problem.NO_LOCATION);
@@ -91,6 +101,9 @@ public class TravelTimeService {
     private void measure(PlannedActivity activity, CampusPlace place, Location from, Listener listener) {
         int walking = PlanContext.walkingMinutes(from.getLatitude(), from.getLongitude(),
                 place.getLat(), place.getLng());
+        if (activity.getId() != null) {
+            Repositories.activities().cacheTravelMinutes(activity.getId(), walking);
+        }
         listener.onTravel(result(activity, walking, null, place));
     }
 
