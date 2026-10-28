@@ -14,6 +14,9 @@ public interface GroupRepository {
 
     void getGroups(String userId, Callback<List<Group>> callback);
 
+// f6: creates the group in the backend and saves the emails as pending invites, the callback gets the id of the new group
+    void createGroup(String name, String category, List<String> inviteEmails, Callback<String> callback);
+
     /* Subscribes to live updates. The listener also receives the current value. */
     void observeGroup(String groupId, GroupListener listener);
 

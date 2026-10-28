@@ -71,7 +71,12 @@ public final class Repositories {
             db.setFirestoreSettings(new FirebaseFirestoreSettings.Builder()
                     .setLocalCacheSettings(PersistentCacheSettings.newBuilder().build())
                     .build());
-            groups = new FirestoreGroupRepository(db);
+// f6: the group repository needs the functions client to create groups in the backend
+            FirebaseFunctions groupFunctions = FirebaseFunctions.getInstance("us-central1");
+            if (BuildConfig.USE_FIREBASE_EMULATORS) {
+                groupFunctions.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 5001);
+            }
+            groups = new FirestoreGroupRepository(db, groupFunctions);
             activities = new FirestoreActivityRepository(db);
             insights = new FirestoreInsightsRepository(db);
             places = new FirestoreCampusPlaceRepository(db);
