@@ -66,6 +66,8 @@ public final class Repositories {
                     new FirebaseActivityRepository(functions));
             insights = new FirestoreInsightsRepository(db);
             places = new FirestoreCampusPlaceRepository(db);
+            // schedules come from the backend callables getScheduleFriends and getScheduleDay
+            schedules = new FunctionsScheduleRepository(functions);
         } else {
             auth = new DisabledAuthRepository();
             groups = new EmptyGroupRepository();
@@ -74,8 +76,8 @@ public final class Repositories {
                     callback.onSuccess(InsightsRepository.DEFAULT_RECOMMENDED_POSITION));
             // without a backend there is no place data, so the card says travel time is unavailable
             places = callback -> MainThread.post(() -> callback.onSuccess(java.util.Collections.emptyList()));
+            schedules = new EmptyScheduleRepository();
         }
-        schedules = new EmptyScheduleRepository();
         status = new StatusService(context);
     }
 
