@@ -72,7 +72,13 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
 
         findViewById(R.id.share_button).setEnabled(false);
         findViewById(R.id.more_options_button).setEnabled(false);
-        findViewById(R.id.compare_roommates_button).setEnabled(false);
+        // f4: quick compare of this group in the sheet, without leaving the group
+        findViewById(R.id.compare_roommates_button).setOnClickListener(v -> {
+            String id = getIntent().getStringExtra(EXTRA_GROUP_ID);
+            if (id != null) {
+                CompareAvailabilitySheet.newInstance(id).show(getSupportFragmentManager(), "compare_availability");
+            }
+        });
         findViewById(R.id.plan_details_button).setEnabled(false);
         findViewById(R.id.add_calendar_button).setEnabled(false);
         findViewById(R.id.refresh_roommates_button).setEnabled(false);

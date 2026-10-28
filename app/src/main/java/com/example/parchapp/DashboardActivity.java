@@ -330,13 +330,10 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         startActivity(new Intent(this, GroupsActivity.class));
     }
 
+    // f4: the full Compare Availability screen, starting on my first group; it handles having no groups
     private void openCompareAvailability() {
-        if (loadedGroups.isEmpty()) {
-            toast("No group is available");
-            return;
-        }
-        CompareAvailabilitySheet.newInstance(loadedGroups.get(0).getId())
-                .show(getSupportFragmentManager(), "compare_availability");
+        startActivity(CompareAvailabilityActivity.intent(this,
+                loadedGroups.isEmpty() ? null : loadedGroups.get(0).getId()));
     }
 
     private void openPlanDetails() {

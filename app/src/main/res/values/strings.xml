@@ -138,4 +138,9 @@
     <string name="custom_duration_title">Meeting duration (minutes)</string>
     <string name="late_warning">⚠  You won\'t make it on time</string>
     <string name="offline_banner_message">You\'re offline. Saved groups and plans are shown; some actions need an internet connection.</string>
+    <string name="compare_availability_title">Compare Availability</string>
+    <string name="go_back_short">Back</string>
+    <string name="loading_groups">Loading your groups…</string>
+    <string name="compare_group_label">Group</string>
+    <string name="no_groups_to_compare">Join or create a group to compare availability.</string>
 </resources>
