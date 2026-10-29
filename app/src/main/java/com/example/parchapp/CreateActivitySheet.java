@@ -1,6 +1,7 @@
 package com.example.parchapp;
 
 import android.app.DatePickerDialog;
+import android.app.Dialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
@@ -20,6 +21,8 @@ import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.domain.model.PlannedActivity;
 import com.example.parchapp.util.Callback;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 
 import java.text.ParsePosition;
@@ -76,6 +79,18 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.sheet_create_activity, container, false);
+    }
+
+    // half open, the first tap on Create Activity only moved the sheet; fully open it goes to the button
+    @Override
+    public void onStart() {
+        super.onStart();
+        Dialog dialog = getDialog();
+        if (dialog instanceof BottomSheetDialog) {
+            BottomSheetBehavior<?> behavior = ((BottomSheetDialog) dialog).getBehavior();
+            behavior.setSkipCollapsed(true);
+            behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+        }
     }
 
     @Override
