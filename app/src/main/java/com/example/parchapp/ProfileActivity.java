@@ -17,6 +17,8 @@ public class ProfileActivity extends AppCompatActivity {
         findViewById(R.id.profile_back_button).setOnClickListener(v -> finish());
         findViewById(R.id.profile_edit_button).setEnabled(false);
         findViewById(R.id.profile_status_button).setEnabled(false);
+        findViewById(R.id.profile_calendar_card).setOnClickListener(v ->
+                startActivity(new Intent(this, PrivacySettingsActivity.class)));
         findViewById(R.id.profile_logout_button).setOnClickListener(v -> logout());
         renderViewOnlyProfile();
     }
@@ -34,7 +36,7 @@ public class ProfileActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.profile_rate)).setText("—\nOn-time rate");
         ((TextView) findViewById(R.id.profile_academic_card)).setText("Academic information");
         ((TextView) findViewById(R.id.profile_groups_card)).setText("Groups");
-        ((TextView) findViewById(R.id.profile_calendar_card)).setText("Calendar and privacy");
+        ((TextView) findViewById(R.id.profile_calendar_card)).setText("Privacy and settings  ›");
     }
 
     private void logout() {

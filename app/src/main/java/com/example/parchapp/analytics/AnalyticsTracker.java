@@ -34,6 +34,7 @@ public final class AnalyticsTracker {
     private AnalyticsSink sink;
     private ConnectivityMonitor connectivity;
     private String pendingUserId;
+    private volatile boolean analyticsConsent;
 
     private AnalyticsTracker() {
     }
@@ -51,12 +52,21 @@ public final class AnalyticsTracker {
 
     /* Called once from the Application. Events tracked before this are kept in the queue as we know. */
     public synchronized void init(Application application, boolean firebaseAvailable) {
+        init(application, firebaseAvailable, false);
+    }
+
+    public synchronized void init(Application application, boolean firebaseAvailable, boolean analyticsConsent) {
         if (sink != null) {
             return;
         }
+        this.analyticsConsent = analyticsConsent;
         queue.attach(application);
         sink = firebaseAvailable ? new FirebaseAnalyticsSink(application) : new LogcatSink();
-        if (pendingUserId != null) {
+        sink.setCollectionEnabled(analyticsConsent);
+        if (!analyticsConsent) {
+            queue.clear();
+        }
+        if (pendingUserId != null && analyticsConsent) {
             sink.setUserId(pendingUserId);
             pendingUserId = null;
         }
@@ -88,18 +98,39 @@ public final class AnalyticsTracker {
         connectivityListeners.remove(listener);
     }
 
+    public synchronized void setAnalyticsConsent(boolean accepted) {
+        analyticsConsent = accepted;
+        if (sink == null) {
+            if (!accepted) queue.clear();
+            return;
+        }
+        sink.setCollectionEnabled(accepted);
+        if (accepted) {
+            if (pendingUserId != null) {
+                sink.setUserId(pendingUserId);
+                pendingUserId = null;
+            }
+        } else {
+            queue.clear();
+            sink.setUserId(null);
+        }
+    }
+
     public void track(String name) {
         track(name, new HashMap<>());
     }
 
     public void track(String name, Map<String, Object> params) {
-        Map<String, Object> withTimestamp = new HashMap<>(params);
-        // Batching delays the upload, so the real time of the event travels as a parameter.
-        withTimestamp.put(AnalyticsEvents.PARAM_CLIENT_TS, System.currentTimeMillis());
-        queue.add(name, withTimestamp);
-        if (queue.size() >= BATCH_SIZE) {
-            flush();
+        boolean shouldFlush;
+        synchronized (this) {
+            if (!analyticsConsent) return;
+            Map<String, Object> withTimestamp = new HashMap<>(params);
+            // Batching delays the upload, so the real time of the event travels as a parameter.
+            withTimestamp.put(AnalyticsEvents.PARAM_CLIENT_TS, System.currentTimeMillis());
+            queue.add(name, withTimestamp);
+            shouldFlush = queue.size() >= BATCH_SIZE;
         }
+        if (shouldFlush) flush();
     }
 
     /* BQ8 shortcut: a core coordination feature was opened from {@code screen}. */
@@ -115,22 +146,22 @@ public final class AnalyticsTracker {
         String anonymousId = rawUserId == null ? null : anonymise(rawUserId);
         if (sink == null) {
             pendingUserId = anonymousId;
+        } else if (!analyticsConsent) {
+            pendingUserId = anonymousId;
+            sink.setUserId(null);
         } else {
+            pendingUserId = null;
             sink.setUserId(anonymousId);
         }
     }
 
-    public void flush() {
-        AnalyticsSink target;
-        synchronized (this) {
-            if (sink == null || connectivity == null || !connectivity.isOnline()) {
-                return;
-            }
-            target = sink;
+    public synchronized void flush() {
+        if (sink == null || connectivity == null || !analyticsConsent || !connectivity.isOnline()) {
+            return;
         }
         List<EventQueue.Event> batch = queue.drain();
         for (EventQueue.Event event : batch) {
-            target.send(event.name, event.toBundle());
+            sink.send(event.name, event.toBundle());
         }
     }
 

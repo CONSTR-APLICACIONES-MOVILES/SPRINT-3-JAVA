@@ -23,6 +23,7 @@ public final class Repositories {
     private static RecommendationDecisionRepository recommendationDecisions;
     private static CampusPlaceRepository places;
     private static AuthRepository auth;
+    private static PrivacySettingsRepository privacySettings;
     private static StatusService status;
     private static ScheduleRepository schedules;
 
@@ -54,6 +55,7 @@ public final class Repositories {
                 firebaseAuth.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 9099);
             }
             auth = new FirebaseAuthRepository(firebaseAuth);
+            privacySettings = new FirebasePrivacySettingsRepository(context, functions);
             FirebaseFirestore db = FirebaseFirestore.getInstance();
             if (BuildConfig.USE_FIREBASE_EMULATORS) {
                 db.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 8080);
@@ -74,6 +76,7 @@ public final class Repositories {
             schedules = new FunctionsScheduleRepository(functions);
         } else {
             auth = new DisabledAuthRepository();
+            privacySettings = new DisabledPrivacySettingsRepository(context);
             groups = new EmptyGroupRepository();
             activities = new DisabledActivityRepository();
             alerts = new DisabledAlertsRepository();
@@ -128,6 +131,10 @@ public final class Repositories {
 
     public static AuthRepository auth() {
         return auth;
+    }
+
+    public static PrivacySettingsRepository privacySettings() {
+        return privacySettings;
     }
 
     public static ScheduleRepository schedules() {
