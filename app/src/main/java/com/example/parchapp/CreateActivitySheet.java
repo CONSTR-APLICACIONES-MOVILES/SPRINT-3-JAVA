@@ -37,6 +37,8 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
     private static final String ARG_GROUP_SIZE = "arg_group_size";
     private static final String ARG_SLOT_TIME = "arg_slot_time";
     private static final String ARG_SLOT_DATE = "arg_slot_date";
+    // Schedule: length of the common slot, so the plan keeps it
+    private static final String ARG_DURATION = "arg_duration";
     // bq3: position of the slot picked in Compare Availability, -1 when the form was opened without one
     private static final String ARG_SLOT_POSITION = "arg_slot_position";
 
@@ -62,6 +64,13 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         return this;
     }
 
+    public CreateActivitySheet withSuggestedDuration(int minutes) {
+        Bundle args = getArguments() == null ? new Bundle() : getArguments();
+        args.putInt(ARG_DURATION, minutes);
+        setArguments(args);
+        return this;
+    }
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -83,7 +92,11 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         EditText location = view.findViewById(R.id.input_activity_location);
         TextView groupChip = view.findViewById(R.id.chip_group_eng);
         view.findViewById(R.id.chip_group_roomies).setVisibility(View.GONE);
-        groupChip.setText(groupId == null ? "Open this form from a group" : "Group selected");
+        groupChip.setText(groupId == null ? "Loading your groups…" : "Group selected");
+        int suggestedDuration = args.getInt(ARG_DURATION, 0);
+        if (suggestedDuration >= 15 && suggestedDuration <= 720) {
+            duration.setText(String.valueOf(suggestedDuration));
+        }
 
         String suggestedDate = args.getString(ARG_SLOT_DATE);
         String suggestedTime = args.getString(ARG_SLOT_TIME);
@@ -108,6 +121,65 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         View createButton = view.findViewById(R.id.btn_create_activity);
         createButton.setEnabled(groupId != null && !groupId.trim().isEmpty());
         createButton.setOnClickListener(v -> publish(title, date, time, duration, location, createButton));
+        if (groupId == null) {
+            showGroupChoices(groupChip, createButton);
+        }
+    }
+
+    /* Opened without a group (from Schedule): the organizer picks one of their groups, the plan is published for it. */
+    private void showGroupChoices(TextView placeholder, View createButton) {
+        UserProfile user = UserSession.getCurrentUser();
+        if (user == null) {
+            placeholder.setText("Sign in to choose a group");
+            return;
+        }
+        Repositories.groups().getGroups(user.getId(), new Callback<java.util.List<com.example.parchapp.domain.model.Group>>() {
+            @Override public void onSuccess(java.util.List<com.example.parchapp.domain.model.Group> groups) {
+                if (!isAdded()) return;
+                if (groups.isEmpty()) {
+                    placeholder.setText("Join a group to plan an activity");
+                    return;
+                }
+                ViewGroup row = (ViewGroup) placeholder.getParent();
+                row.removeAllViews();
+                android.widget.HorizontalScrollView scroll = new android.widget.HorizontalScrollView(requireContext());
+                scroll.setHorizontalScrollBarEnabled(false);
+                android.widget.LinearLayout chips = new android.widget.LinearLayout(requireContext());
+                scroll.addView(chips);
+                row.addView(scroll, new android.widget.LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                java.util.List<TextView> all = new java.util.ArrayList<>();
+                for (com.example.parchapp.domain.model.Group group : groups) {
+                    TextView chip = new TextView(requireContext());
+                    chip.setText(group.getIcon().isEmpty() ? group.getName() : group.getIcon() + "  " + group.getName());
+                    chip.setTextSize(12);
+                    chip.setGravity(android.view.Gravity.CENTER);
+                    int padding = Math.round(14 * getResources().getDisplayMetrics().density);
+                    chip.setPadding(padding, 0, padding, 0);
+                    android.widget.LinearLayout.LayoutParams params = new android.widget.LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT, Math.round(38 * getResources().getDisplayMetrics().density));
+                    params.setMarginEnd(Math.round(8 * getResources().getDisplayMetrics().density));
+                    chip.setOnClickListener(v -> {
+                        groupId = group.getId();
+                        groupSize = group.getSize();
+                        for (TextView other : all) {
+                            boolean on = other == chip;
+                            other.setBackgroundResource(on ? R.drawable.bg_chip_selected : R.drawable.bg_chip_unselected);
+                            other.setTextColor(requireContext().getColor(on ? R.color.brand_primary : R.color.brand_dark));
+                        }
+                        createButton.setEnabled(true);
+                    });
+                    chip.setBackgroundResource(R.drawable.bg_chip_unselected);
+                    chip.setTextColor(requireContext().getColor(R.color.brand_dark));
+                    all.add(chip);
+                    chips.addView(chip, params);
+                }
+            }
+
+            @Override public void onError(Exception error) {
+                if (isAdded()) placeholder.setText("Could not load your groups");
+            }
+        });
     }
 
     private void publish(EditText titleInput, EditText dateInput, EditText timeInput,

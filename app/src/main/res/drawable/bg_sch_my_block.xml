@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Schedule: my busy block, light blue with the primary bar on the left -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/brand_primary" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+    <item android:left="4dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#EAF1FF" />
+            <corners android:topRightRadius="10dp" android:bottomRightRadius="10dp" />
+        </shape>
+    </item>
+</layer-list>
