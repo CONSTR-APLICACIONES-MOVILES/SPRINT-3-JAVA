@@ -258,4 +258,6 @@
     <string name="activity_duration_hours">%1$d hr</string>
     <string name="activity_duration_hours_minutes">%1$d hr %2$d min</string>
     <string name="activity_reminder_requires_schedule">A complete scheduled time is required for a reminder.</string>
+    <string name="signing_in">Signing in…</string>
+    <string name="creating_account">Creating account…</string>
 </resources>

@@ -16,6 +16,8 @@ public final class AnalyticsEvents {
     public static final String FEATURE_USED = "feature_used";
     public static final String ACTIVITY_CREATED = "activity_created";
     public static final String SLOT_ACCEPTED = "slot_accepted";
+    /* BQ9: an activity reached CONFIRMED; with activity_created it gives the confirmation rate with and without Compare Availability. */
+    public static final String ACTIVITY_CONFIRMED = "activity_confirmed";
     /* BQ2: activity creation reliability and latency. */
     public static final String ACTIVITY_CREATE_ATTEMPT = "activity_create_attempt";
     public static final String ACTIVITY_CREATE_RESULT = "activity_create_result";
@@ -36,6 +38,11 @@ public final class AnalyticsEvents {
     public static final String PARAM_CREATION_SESSION_ID = "creation_session_id";
     public static final String PARAM_RESULT = "result";
     public static final String PARAM_ERROR_CODE = "error_code";
+    public static final String PARAM_LOCATION_AREA_ID = "location_area_id";
+
+    // activity_created sources: bq9 counts suggested_slot as created after comparing availability
+    public static final String SOURCE_SUGGESTED_SLOT = "suggested_slot";
+    public static final String SOURCE_GROUP_ACTIVITY = "group_activity";
 
     // BQ8 feature names.
     public static final String FEATURE_GROUPS = "groups";

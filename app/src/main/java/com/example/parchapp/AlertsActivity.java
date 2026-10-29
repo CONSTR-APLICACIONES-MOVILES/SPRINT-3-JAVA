@@ -3,6 +3,8 @@ package com.example.parchapp;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.res.ColorStateList;
+import com.example.parchapp.analytics.AnalyticsTracker;
+import com.example.parchapp.analytics.AnalyticsEvents;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -65,6 +67,10 @@ public class AlertsActivity extends AppCompatActivity {
         retryButton = findViewById(R.id.alerts_retry_button);
         searchInput = findViewById(R.id.alerts_search_input);
 
+        // bq8: alerts counts as used when this screen opens (not again on rotation)
+        if (savedInstanceState == null) {
+            AnalyticsTracker.getInstance().trackFeature(AnalyticsEvents.FEATURE_ALERTS, "alerts");
+        }
         findViewById(R.id.alerts_back_button).setOnClickListener(v -> finish());
         findViewById(R.id.alerts_mark_all_read).setOnClickListener(v -> markAllRead());
         retryButton.setOnClickListener(v -> loadAlerts());

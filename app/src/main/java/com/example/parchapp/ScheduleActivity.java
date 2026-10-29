@@ -1,5 +1,7 @@
 package com.example.parchapp;
 
+import com.example.parchapp.analytics.AnalyticsTracker;
+import com.example.parchapp.analytics.AnalyticsEvents;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -78,6 +80,10 @@ public class ScheduleActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_schedule);
+        // bq8: schedule counts as used when this screen opens (not again on rotation)
+        if (savedInstanceState == null) {
+            AnalyticsTracker.getInstance().trackFeature(AnalyticsEvents.FEATURE_SCHEDULE, "schedule");
+        }
 
         chips = findViewById(R.id.schedule_chips);
         durations = findViewById(R.id.schedule_durations);

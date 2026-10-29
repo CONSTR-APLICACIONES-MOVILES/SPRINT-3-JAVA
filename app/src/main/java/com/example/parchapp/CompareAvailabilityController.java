@@ -68,6 +68,8 @@ final class CompareAvailabilityController {
         this.host = host;
         this.source = source;
         this.maxAlternatives = maxAlternatives;
+        // bq8: opening the sheet or the full screen is one use of compare availability, source says which one
+        AnalyticsTracker.getInstance().trackFeature(AnalyticsEvents.FEATURE_COMPARE_AVAILABILITY, source);
 
         statusText = root.findViewById(R.id.slots_status_text);
         bestSlotCard = root.findViewById(R.id.best_slot_card);
