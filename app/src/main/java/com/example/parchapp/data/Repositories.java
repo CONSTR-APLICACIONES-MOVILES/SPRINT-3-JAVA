@@ -20,6 +20,7 @@ public final class Repositories {
     private static ActivityRepository activities;
     private static AlertsRepository alerts;
     private static InsightsRepository insights;
+    private static ResponseTimeInsightsRepository responseTimeInsights;
     private static RecommendationDecisionRepository recommendationDecisions;
     private static CampusPlaceRepository places;
     private static AuthRepository auth;
@@ -73,6 +74,7 @@ public final class Repositories {
                     new FirebaseActivityRepository(functions));
             alerts = new FirebaseAlertsRepository(functions);
             insights = new FirestoreInsightsRepository(db);
+            responseTimeInsights = new FirestoreResponseTimeInsightsRepository(db);
             places = new FirestoreCampusPlaceRepository(db);
             // schedules come from the backend callables getScheduleFriends and getScheduleDay
             // like the Flutter app, the last friends and days are kept on the phone and shown when offline
@@ -85,6 +87,8 @@ public final class Repositories {
             alerts = new DisabledAlertsRepository();
             insights = callback -> MainThread.post(() ->
                     callback.onSuccess(InsightsRepository.DEFAULT_RECOMMENDED_POSITION));
+            responseTimeInsights = callback -> MainThread.post(() ->
+                    callback.onSuccess(java.util.Collections.emptyList()));
             // without a backend there is no place data, so the card says travel time is unavailable
             places = callback -> MainThread.post(() -> callback.onSuccess(java.util.Collections.emptyList()));
             schedules = new EmptyScheduleRepository();
@@ -126,6 +130,10 @@ public final class Repositories {
 
     public static InsightsRepository insights() {
         return insights;
+    }
+
+    public static ResponseTimeInsightsRepository responseTimeInsights() {
+        return responseTimeInsights;
     }
 
     public static CampusPlaceRepository places() {

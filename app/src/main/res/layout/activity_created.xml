@@ -262,6 +262,18 @@
         android:paddingEnd="20dp"
         android:paddingBottom="16dp">
         <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/suggested_times_button"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/bg_light_blue"
+            android:text="Suggested Times"
+            android:textAllCaps="false"
+            android:textColor="@color/brand_primary"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/view_schedule_button"
             android:layout_width="match_parent"
             android:layout_height="48dp"

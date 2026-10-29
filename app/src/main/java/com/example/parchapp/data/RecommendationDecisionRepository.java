@@ -1,6 +1,9 @@
 package com.example.parchapp.data;
 
+import com.example.parchapp.domain.model.SlotRecommendationBatch;
 import com.example.parchapp.util.Callback;
+
+import java.util.List;
 
 /** Persists an organizer's unchanged/modified choice for a previously presented BQ3 slot. */
 public interface RecommendationDecisionRepository {
@@ -24,6 +27,14 @@ public interface RecommendationDecisionRepository {
     void prepareDecision(String activityId, String date, int durationMinutes, int slotPosition,
                          long chosenStartMs, long chosenEndMs, int[] shownStartMinutes,
                          Callback<PreparedDecision> callback);
+
+    /* F3/F4: fetch server-ranked candidates for the Suggested Times view. */
+    void getRecommendedSlots(String activityId, int durationMinutes,
+                             Callback<SlotRecommendationBatch> callback);
+
+    /* Acknowledge candidates only once the organizer can actually see them. */
+    void markRecommendationsShown(String activityId, List<String> recommendationIds,
+                                  Callback<Void> callback);
 
     void recordDecision(String activityId, String recommendationId, boolean wasModified,
                         String selectedStartTime, String selectedEndTime,

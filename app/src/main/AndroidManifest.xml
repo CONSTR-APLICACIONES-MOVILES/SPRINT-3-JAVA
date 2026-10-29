@@ -56,6 +56,7 @@
         <activity android:name=".GroupDetailActivity" />
         <activity android:name=".CreateGroupActivity" />
         <activity android:name=".ActivityCreatedActivity" />
+        <activity android:name=".SuggestedTimesActivity" />
         <activity android:name=".AvailabilityActivity" />
     </application>
 

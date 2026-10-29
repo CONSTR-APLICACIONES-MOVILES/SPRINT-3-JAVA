@@ -21,8 +21,12 @@ public final class AnalyticsEvents {
     /* BQ2: activity creation reliability and latency. */
     public static final String ACTIVITY_CREATE_ATTEMPT = "activity_create_attempt";
     public static final String ACTIVITY_CREATE_RESULT = "activity_create_result";
+    /* BQ5: response timing by activity group size. */
+    public static final String RSVP_SUBMITTED = "rsvp_submitted";
 
     public static final String PARAM_GROUP_SIZE = "group_size";
+    public static final String PARAM_RESPONSE_MS = "response_ms";
+    public static final String PARAM_RESPONSE = "response";
     public static final String PARAM_DURATION_MS = "duration_ms";
     public static final String PARAM_SLOT_COUNT = "slot_count";
     public static final String PARAM_RANKER = "ranker";
