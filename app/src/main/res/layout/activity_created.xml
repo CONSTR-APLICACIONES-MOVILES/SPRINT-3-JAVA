@@ -26,6 +26,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:clipToPadding="false"
         android:fillViewport="true">
         <LinearLayout
             android:layout_width="match_parent"
@@ -36,22 +37,87 @@
             android:paddingEnd="20dp"
             android:paddingBottom="20dp">
 
-            <!-- Success hero -->
-            <FrameLayout android:layout_width="88dp" android:layout_height="88dp">
-                <View android:layout_width="88dp" android:layout_height="88dp" android:background="@drawable/bg_oval_solid" android:backgroundTint="@color/brand_success_background" />
-                <TextView android:layout_width="66dp" android:layout_height="66dp" android:layout_gravity="center" android:background="@drawable/bg_oval_solid" android:backgroundTint="@color/brand_success" android:gravity="center" android:text="✓" android:textColor="@android:color/white" android:textSize="30sp" android:textStyle="bold" />
-            </FrameLayout>
+            <LinearLayout
+                android:id="@+id/activity_loading_state"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:minHeight="180dp"
+                android:orientation="vertical">
+                <ProgressBar
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:indeterminate="true" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:gravity="center"
+                    android:text="@string/activity_loading_details"
+                    android:textColor="@color/brand_slate"
+                    android:textSize="13sp" />
+            </LinearLayout>
 
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:gravity="center" android:text="Activity Created!" android:textColor="@color/brand_dark" android:textSize="24sp" android:textStyle="bold" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:gravity="center" android:text="Your activity has been scheduled and invitations were sent to your group." android:textColor="@color/brand_slate" android:textSize="12sp" />
-            <TextView android:id="@+id/calendar_added_badge" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/bg_green_chip" android:paddingStart="10dp" android:paddingTop="6dp" android:paddingEnd="10dp" android:paddingBottom="6dp" android:text="Added to calendar" android:textColor="@color/brand_success_dark" android:textSize="10sp" android:textStyle="bold" android:visibility="gone" />
+            <LinearLayout
+                android:id="@+id/activity_error_state"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:minHeight="180dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+                <TextView
+                    android:id="@+id/activity_error_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="@string/activity_unavailable_title"
+                    android:textColor="@color/brand_dark"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/activity_error_message"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:gravity="center"
+                    android:textColor="@color/brand_slate"
+                    android:textSize="12sp" />
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/retry_activity_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="14dp"
+                    android:background="@drawable/bg_light_blue"
+                    android:text="@string/activity_retry"
+                    android:textAllCaps="false"
+                    android:textColor="@color/brand_primary"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <!-- Success content is shown only after the saved activity is loaded. -->
+            <LinearLayout
+                android:id="@+id/activity_success_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:visibility="gone">
+                <FrameLayout android:layout_width="88dp" android:layout_height="88dp">
+                    <View android:layout_width="88dp" android:layout_height="88dp" android:background="@drawable/bg_oval_solid" android:backgroundTint="@color/brand_success_background" />
+                    <TextView android:layout_width="66dp" android:layout_height="66dp" android:layout_gravity="center" android:background="@drawable/bg_oval_solid" android:backgroundTint="@color/brand_success" android:gravity="center" android:text="✓" android:textColor="@android:color/white" android:textSize="30sp" android:textStyle="bold" />
+                </FrameLayout>
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:gravity="center" android:text="@string/activity_created_title" android:textColor="@color/brand_dark" android:textSize="24sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:gravity="center" android:text="@string/activity_created_subtitle" android:textColor="@color/brand_slate" android:textSize="12sp" />
+                <TextView android:id="@+id/calendar_added_badge" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/bg_green_chip" android:paddingStart="10dp" android:paddingTop="6dp" android:paddingEnd="10dp" android:paddingBottom="6dp" android:text="Added to calendar" android:textColor="@color/brand_success_dark" android:textSize="10sp" android:textStyle="bold" android:visibility="gone" />
+            </LinearLayout>
 
             <!-- Summary card -->
-            <LinearLayout android:id="@+id/activity_summary_card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:background="@drawable/bg_dashboard_card" android:orientation="vertical" android:padding="14dp">
+            <LinearLayout android:id="@+id/activity_summary_card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:background="@drawable/bg_dashboard_card" android:orientation="vertical" android:padding="14dp" android:visibility="gone">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="4dp" android:layout_marginTop="-14dp" android:layout_marginStart="-14dp" android:layout_marginEnd="-14dp" android:layout_marginBottom="10dp" android:background="@color/brand_primary" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_light_blue" android:paddingStart="8dp" android:paddingTop="5dp" android:paddingEnd="8dp" android:paddingBottom="5dp" android:text="📚 Study Session" android:textColor="@color/brand_primary" android:textSize="10sp" android:textStyle="bold" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:background="@drawable/bg_card_flat" android:paddingStart="8dp" android:paddingTop="5dp" android:paddingEnd="8dp" android:paddingBottom="5dp" android:text="Group" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/created_activity_category" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_light_blue" android:paddingStart="8dp" android:paddingTop="5dp" android:paddingEnd="8dp" android:paddingBottom="5dp" android:textColor="@color/brand_primary" android:textSize="10sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/created_activity_status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:background="@drawable/bg_card_flat" android:paddingStart="8dp" android:paddingTop="5dp" android:paddingEnd="8dp" android:paddingBottom="5dp" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" />
                 </LinearLayout>
                 <TextView android:id="@+id/created_activity_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:textColor="@color/brand_dark" android:textSize="14sp" android:textStyle="bold" />
                 <TextView android:id="@+id/recommendation_outcome_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:textColor="@color/brand_primary" android:textSize="11sp" android:visibility="gone" />
@@ -69,7 +135,6 @@
                         <TextView android:id="@+id/created_activity_location" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/brand_dark" android:textSize="11sp" android:textStyle="bold" />
                         <TextView android:id="@+id/created_activity_location_detail" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/brand_slate" android:textSize="10sp" />
                     </LinearLayout>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_green_chip" android:paddingStart="6dp" android:paddingTop="3dp" android:paddingEnd="6dp" android:paddingBottom="3dp" android:text="3 min walk" android:textColor="@color/brand_success_dark" android:textSize="9sp" android:textStyle="bold" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -151,7 +216,7 @@
             </LinearLayout>
 
             <!-- Utilities card -->
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/bg_dashboard_card" android:orientation="vertical" android:padding="14dp">
+            <LinearLayout android:id="@+id/activity_utilities_card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/bg_dashboard_card" android:orientation="vertical" android:padding="14dp" android:visibility="gone">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
                     <TextView android:layout_width="28dp" android:layout_height="28dp" android:background="@drawable/bg_icon_badge" android:gravity="center" android:text="▣" android:textColor="@color/brand_primary" android:textSize="13sp" />
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:orientation="vertical">
