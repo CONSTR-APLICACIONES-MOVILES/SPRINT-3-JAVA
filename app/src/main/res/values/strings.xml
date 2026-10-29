@@ -168,4 +168,18 @@
     <string name="free_until_not_set">Tap to set</string>
     <string name="invite_link_soon">Invite links are coming soon</string>
     <string name="groups_load_error">Could not load your groups. Check your connection and come back.</string>
+    <string name="activity_created_title">Activity created!</string>
+    <string name="activity_created_subtitle">Your activity is saved and visible to your group.</string>
+    <string name="activity_loading_details">Loading your saved activity…</string>
+    <string name="activity_unavailable_title">Activity unavailable</string>
+    <string name="activity_missing_id">This screen was opened without a saved activity.</string>
+    <string name="activity_load_error">We couldn\'t load this activity. Check your connection and try again.</string>
+    <string name="activity_incomplete_details">The saved activity details are incomplete.</string>
+    <string name="activity_retry">Try again</string>
+    <string name="activity_schedule_unspecified">Schedule not specified</string>
+    <string name="activity_duration_unavailable">Duration unavailable</string>
+    <string name="activity_duration_minutes">%1$d min</string>
+    <string name="activity_duration_hours">%1$d hr</string>
+    <string name="activity_duration_hours_minutes">%1$d hr %2$d min</string>
+    <string name="activity_reminder_requires_schedule">A complete scheduled time is required for a reminder.</string>
 </resources>
