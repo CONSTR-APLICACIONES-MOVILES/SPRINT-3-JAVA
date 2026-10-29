@@ -1,5 +1,7 @@
 package com.example.parchapp;
 
+import com.example.parchapp.analytics.AnalyticsTracker;
+import com.example.parchapp.analytics.AnalyticsEvents;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Intent;
@@ -54,6 +56,10 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_group_detail);
+        // bq8: groups counts as used when this screen opens (not again on rotation)
+        if (savedInstanceState == null) {
+            AnalyticsTracker.getInstance().trackFeature(AnalyticsEvents.FEATURE_GROUPS, "group_detail");
+        }
         findViewById(R.id.back_button).setOnClickListener(v -> finish());
         ((TextView) findViewById(R.id.group_category_text)).setText("GROUP");
         ((TextView) findViewById(R.id.top_group_name_text)).setText("Group details");

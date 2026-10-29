@@ -1,5 +1,7 @@
 package com.example.parchapp;
 
+import com.example.parchapp.analytics.AnalyticsTracker;
+import com.example.parchapp.analytics.AnalyticsEvents;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
@@ -11,6 +13,10 @@ public class AlertsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_alerts);
+        // bq8: alerts counts as used when this screen opens (not again on rotation)
+        if (savedInstanceState == null) {
+            AnalyticsTracker.getInstance().trackFeature(AnalyticsEvents.FEATURE_ALERTS, "alerts");
+        }
         findViewById(R.id.alerts_back_button).setOnClickListener(v -> finish());
         findViewById(R.id.alerts_unread_count).setVisibility(View.GONE);
         findViewById(R.id.alerts_search_input).setEnabled(false);
