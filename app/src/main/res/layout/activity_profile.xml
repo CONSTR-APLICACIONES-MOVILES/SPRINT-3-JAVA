@@ -14,7 +14,46 @@
             <ImageButton android:id="@+id/profile_edit_button" android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/bg_icon_badge_square" android:contentDescription="Edit profile" android:src="@drawable/ic_edit" />
         </LinearLayout>
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_horizontal" android:orientation="vertical" android:paddingTop="12dp" android:paddingBottom="18dp">
-            <TextView android:id="@+id/profile_initials" android:layout_width="92dp" android:layout_height="92dp" android:background="@drawable/bg_oval_solid" android:backgroundTint="@color/brand_primary" android:gravity="center" android:textColor="@android:color/white" android:textSize="28sp" android:textStyle="bold" />
+            <FrameLayout android:layout_width="92dp" android:layout_height="92dp">
+                <ImageView
+                    android:id="@+id/profile_photo"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_oval_solid"
+                    android:backgroundTint="@color/brand_primary"
+                    android:clipToOutline="true"
+                    android:contentDescription="@string/profile_photo_content_description"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+                <TextView
+                    android:id="@+id/profile_initials"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_oval_solid"
+                    android:backgroundTint="@color/brand_primary"
+                    android:gravity="center"
+                    android:textColor="@android:color/white"
+                    android:textSize="28sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+            <TextView
+                android:id="@+id/profile_photo_saving"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/profile_photo_saving"
+                android:textColor="@color/brand_slate"
+                android:textSize="12sp"
+                android:visibility="gone" />
+            <TextView
+                android:id="@+id/profile_photo_error"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:textColor="@color/brand_urgent_dark"
+                android:textSize="12sp"
+                android:visibility="gone" />
             <TextView android:id="@+id/profile_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:textColor="@color/brand_dark" android:textSize="24sp" android:textStyle="bold" />
             <TextView android:id="@+id/profile_program" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:textColor="@color/brand_slate" android:textSize="13sp" />
             <androidx.appcompat.widget.AppCompatButton android:id="@+id/profile_status_button" android:layout_width="wrap_content" android:layout_height="38dp" android:layout_marginTop="10dp" android:background="@drawable/bg_green_chip" android:textAllCaps="false" android:textColor="@color/brand_success_dark" android:textSize="11sp" />
