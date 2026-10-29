@@ -72,7 +72,7 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         ((TextView) findViewById(R.id.group_name_text)).setText("Loading group…");
         ((TextView) findViewById(R.id.group_description_text)).setText("");
         ((TextView) findViewById(R.id.group_synced_badge)).setText("Not connected");
-        ((TextView) findViewById(R.id.common_free_text)).setText("Availability feature not included in this base branch");
+        ((TextView) findViewById(R.id.common_free_text)).setText("Compare everyone's free time to find a slot");
         findViewById(R.id.common_free_badge).setVisibility(View.GONE);
         findViewById(R.id.group_plan_section).setVisibility(View.GONE);
         findViewById(R.id.group_members_header).setVisibility(View.GONE);
