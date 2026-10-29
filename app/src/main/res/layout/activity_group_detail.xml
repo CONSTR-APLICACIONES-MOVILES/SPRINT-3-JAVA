@@ -77,6 +77,8 @@
             android:tint="@color/brand_slate" />
     </LinearLayout>
 
+    <include layout="@layout/view_offline_banner" />
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -108,6 +110,7 @@
 
                 <TextView android:id="@+id/group_name_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:textColor="@android:color/white" android:textSize="19sp" android:textStyle="bold" />
                 <TextView android:id="@+id/group_description_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textColor="#D9E5FF" android:textSize="12sp" />
+                <TextView android:id="@+id/campus_status_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="◎  Checking your location…" android:textColor="#D9E5FF" android:textSize="11sp" />
 
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:background="#193F87" android:orientation="vertical" android:padding="12dp">
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="top">
@@ -139,6 +142,8 @@
                 <TextView android:id="@+id/plan_title_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Weekly House Dinner &amp; Grocery Run" android:textColor="@color/brand_dark" android:textSize="14sp" android:textStyle="bold" />
                 <TextView android:id="@+id/next_plan_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="9dp" android:textColor="@color/brand_slate" android:textSize="11sp" />
                 <TextView android:id="@+id/next_plan_location" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:textColor="@color/brand_slate" android:textSize="11sp" />
+                <TextView android:id="@+id/travel_time_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:textColor="@color/brand_primary" android:textSize="11sp" android:textStyle="bold" android:visibility="gone" />
+                <TextView android:id="@+id/late_warning_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_late_warning" android:padding="8dp" android:text="@string/late_warning" android:textColor="#B91C1C" android:textSize="11sp" android:textStyle="bold" android:visibility="gone" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="center_vertical">
                     <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Roommate RSVP Status" android:textColor="@color/brand_slate" android:textSize="10sp" />
                     <TextView android:id="@+id/rsvp_ready_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="100% Ready (4 of 4)" android:textColor="@color/brand_success_dark" android:textSize="10sp" android:textStyle="bold" />
@@ -178,7 +183,7 @@
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:orientation="vertical">
                     <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center_vertical">
                         <TextView android:id="@+id/member_name_0" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/brand_dark" android:textSize="12sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:background="@drawable/bg_light_blue" android:paddingStart="6dp" android:paddingTop="2dp" android:paddingEnd="6dp" android:paddingBottom="2dp" android:text="LEADER" android:textColor="@color/brand_primary" android:textSize="8sp" android:textStyle="bold" />
+                        <TextView android:id="@+id/member_leader_0" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:background="@drawable/bg_light_blue" android:paddingStart="6dp" android:paddingTop="2dp" android:paddingEnd="6dp" android:paddingBottom="2dp" android:text="LEADER" android:textColor="@color/brand_primary" android:textSize="8sp" android:textStyle="bold" />
                     </LinearLayout>
                     <TextView android:id="@+id/member_summary_0" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/brand_slate" android:textSize="10sp" />
                     <TextView android:id="@+id/member_status_0" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textColor="@color/brand_success_dark" android:textSize="10sp" android:textStyle="bold" />
@@ -230,9 +235,9 @@
 
             <!-- Quick actions -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp">
-                <androidx.appcompat.widget.AppCompatButton android:id="@+id/propose_plan_button" android:layout_width="0dp" android:layout_height="72dp" android:layout_marginEnd="4dp" android:layout_weight="1" android:background="@drawable/bg_dashboard_card" android:drawablePadding="4dp" android:drawableTint="@color/brand_primary" android:drawableTop="@drawable/ic_calendar" android:gravity="center" android:text="Propose Plan" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" />
-                <androidx.appcompat.widget.AppCompatButton android:id="@+id/sync_schedules_button" android:layout_width="0dp" android:layout_height="72dp" android:layout_marginStart="2dp" android:layout_marginEnd="2dp" android:layout_weight="1" android:background="@drawable/bg_dashboard_card" android:drawablePadding="4dp" android:drawableTint="@color/brand_success" android:drawableTop="@drawable/ic_refresh" android:gravity="center" android:text="Sync Schedules" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" />
-                <androidx.appcompat.widget.AppCompatButton android:id="@+id/house_chat_button" android:layout_width="0dp" android:layout_height="72dp" android:layout_marginStart="4dp" android:layout_weight="1" android:background="@drawable/bg_dashboard_card" android:drawablePadding="4dp" android:drawableTint="@color/brand_indigo" android:drawableTop="@drawable/ic_chat" android:gravity="center" android:text="House Chat" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" />
+                <androidx.appcompat.widget.AppCompatButton android:id="@+id/propose_plan_button" android:layout_width="0dp" android:layout_height="72dp" android:layout_marginEnd="4dp" android:layout_weight="1" android:background="@drawable/bg_dashboard_card" android:drawablePadding="6dp" android:paddingTop="13dp" android:paddingBottom="11dp" android:drawableTint="@color/brand_primary" android:drawableTop="@drawable/ic_calendar" android:gravity="center" android:text="Propose Plan" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" />
+                <androidx.appcompat.widget.AppCompatButton android:id="@+id/sync_schedules_button" android:layout_width="0dp" android:layout_height="72dp" android:layout_marginStart="2dp" android:layout_marginEnd="2dp" android:layout_weight="1" android:background="@drawable/bg_dashboard_card" android:drawablePadding="6dp" android:paddingTop="13dp" android:paddingBottom="11dp" android:drawableTint="@color/brand_success" android:drawableTop="@drawable/ic_refresh" android:gravity="center" android:text="Sync Schedules" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" />
+                <androidx.appcompat.widget.AppCompatButton android:id="@+id/house_chat_button" android:layout_width="0dp" android:layout_height="72dp" android:layout_marginStart="4dp" android:layout_weight="1" android:background="@drawable/bg_dashboard_card" android:drawablePadding="6dp" android:paddingTop="13dp" android:paddingBottom="11dp" android:drawableTint="@color/brand_indigo" android:drawableTop="@drawable/ic_chat" android:gravity="center" android:text="House Chat" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" />
             </LinearLayout>
 
             <!-- Recent activity -->
@@ -266,7 +271,7 @@
         android:layout_width="wrap_content"
         android:layout_height="44dp"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="-20dp"
+        android:layout_marginBottom="6dp"
         android:background="@drawable/bg_primary_pill"
         android:elevation="6dp"
         android:paddingStart="20dp"
@@ -277,10 +282,5 @@
         android:textSize="11sp"
         android:textStyle="bold" />
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="64dp" android:background="@android:color/white" android:gravity="center" android:orientation="horizontal">
-        <TextView android:id="@+id/nav_home_group" android:clickable="true" android:focusable="true" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="⌂\nHome" android:textColor="@color/brand_slate" android:textSize="11sp" />
-        <TextView android:id="@+id/nav_groups_group" android:clickable="true" android:focusable="true" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="♧\nGroups" android:textColor="@color/brand_primary" android:textSize="11sp" android:textStyle="bold" />
-        <TextView android:id="@+id/nav_schedule_group" android:clickable="true" android:focusable="true" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="▣\nSchedule" android:textColor="@color/brand_slate" android:textSize="11sp" />
-        <TextView android:id="@+id/nav_history_group" android:clickable="true" android:focusable="true" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="◷\nHistory" android:textColor="@color/brand_slate" android:textSize="11sp" />
-    </LinearLayout>
+    <include layout="@layout/view_bottom_nav" />
 </LinearLayout>

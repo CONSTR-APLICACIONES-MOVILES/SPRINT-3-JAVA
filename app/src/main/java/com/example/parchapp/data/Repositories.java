@@ -10,15 +10,20 @@ import com.google.firebase.FirebaseOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreSettings;
+import com.google.firebase.functions.FirebaseFunctions;
 import com.google.firebase.firestore.PersistentCacheSettings;
 
-/* Sprint 3 composition: creates the repositories once and hands them to the controllers. Each feature branch swaps its placeholder for the real backend one. */
+/** App-wide data adapters: Firestore serves group-plan reads; callables handle activity actions/details. */
 public final class Repositories {
     private static boolean firebaseAvailable;
     private static GroupRepository groups;
     private static ActivityRepository activities;
+    private static AlertsRepository alerts;
     private static InsightsRepository insights;
+    private static RecommendationDecisionRepository recommendationDecisions;
+    private static CampusPlaceRepository places;
     private static AuthRepository auth;
+    private static PrivacySettingsRepository privacySettings;
     private static StatusService status;
     private static ScheduleRepository schedules;
 
@@ -41,11 +46,16 @@ public final class Repositories {
         }
         firebaseAvailable = !FirebaseApp.getApps(context).isEmpty();
         if (firebaseAvailable) {
+            FirebaseFunctions functions = FirebaseFunctions.getInstance("us-central1");
+            if (BuildConfig.USE_FIREBASE_EMULATORS) {
+                functions.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 5001);
+            }
             FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
             if (BuildConfig.USE_FIREBASE_EMULATORS) {
                 firebaseAuth.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 9099);
             }
             auth = new FirebaseAuthRepository(firebaseAuth);
+            privacySettings = new FirebasePrivacySettingsRepository(context, functions);
             FirebaseFirestore db = FirebaseFirestore.getInstance();
             if (BuildConfig.USE_FIREBASE_EMULATORS) {
                 db.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 8080);
@@ -54,17 +64,28 @@ public final class Repositories {
             db.setFirestoreSettings(new FirebaseFirestoreSettings.Builder()
                     .setLocalCacheSettings(PersistentCacheSettings.newBuilder().build())
                     .build());
-            groups = new FirestoreGroupRepository(db);
-            activities = new FirestoreActivityRepository(db);
+            groups = new FirestoreGroupRepository(db, functions);
+            recommendationDecisions = new FirebaseRecommendationDecisionRepository(functions);
+            activities = new CompositeActivityRepository(
+                    new FirestoreActivityRepository(db),
+                    new FirebaseActivityRepository(functions));
+            alerts = new FirebaseAlertsRepository(functions);
             insights = new FirestoreInsightsRepository(db);
+            places = new FirestoreCampusPlaceRepository(db);
+            // schedules come from the backend callables getScheduleFriends and getScheduleDay
+            schedules = new FunctionsScheduleRepository(functions);
         } else {
             auth = new DisabledAuthRepository();
+            privacySettings = new DisabledPrivacySettingsRepository(context);
             groups = new EmptyGroupRepository();
             activities = new DisabledActivityRepository();
+            alerts = new DisabledAlertsRepository();
             insights = callback -> MainThread.post(() ->
                     callback.onSuccess(InsightsRepository.DEFAULT_RECOMMENDED_POSITION));
+            // without a backend there is no place data, so the card says travel time is unavailable
+            places = callback -> MainThread.post(() -> callback.onSuccess(java.util.Collections.emptyList()));
+            schedules = new EmptyScheduleRepository();
         }
-        schedules = new EmptyScheduleRepository();
         status = new StatusService(context);
     }
 
@@ -91,12 +112,29 @@ public final class Repositories {
         return activities;
     }
 
+    public static AlertsRepository alerts() {
+        return alerts;
+    }
+
+    /* null without Firebase: BQ3 decisions only exist on the backend */
+    public static RecommendationDecisionRepository recommendationDecisions() {
+        return recommendationDecisions;
+    }
+
     public static InsightsRepository insights() {
         return insights;
     }
 
+    public static CampusPlaceRepository places() {
+        return places;
+    }
+
     public static AuthRepository auth() {
         return auth;
+    }
+
+    public static PrivacySettingsRepository privacySettings() {
+        return privacySettings;
     }
 
     public static ScheduleRepository schedules() {

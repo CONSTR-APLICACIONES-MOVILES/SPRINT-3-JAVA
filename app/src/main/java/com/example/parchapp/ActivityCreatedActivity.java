@@ -1,49 +1,327 @@
 package com.example.parchapp;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import android.view.View;
+import androidx.appcompat.widget.AppCompatButton;
+
+import com.example.parchapp.analytics.AnalyticsEvents;
+import com.example.parchapp.analytics.AnalyticsTracker;
+import com.example.parchapp.data.FirebaseRecommendationDecisionRepository;
+import com.example.parchapp.data.Repositories;
+import com.example.parchapp.domain.model.ActivityDetails;
+import com.example.parchapp.util.Callback;
+import com.google.firebase.functions.FirebaseFunctions;
+
+import java.text.ParsePosition;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TimeZone;
 
 public class ActivityCreatedActivity extends AppCompatActivity {
-
     public static final String EXTRA_TITLE = "extra_activity_title";
     public static final String EXTRA_DATE = "extra_activity_date";
     public static final String EXTRA_TIME = "extra_activity_time";
     public static final String EXTRA_LOCATION = "extra_activity_location";
+    public static final String EXTRA_ACTIVITY_ID = "extra_activity_id";
+    public static final String EXTRA_RECOMMENDATION_ID = "extra_recommendation_id";
+    public static final String EXTRA_WAS_MODIFIED = "extra_was_modified";
+    public static final String EXTRA_SELECTED_START_TIME = "extra_selected_start_time";
+    public static final String EXTRA_SELECTED_END_TIME = "extra_selected_end_time";
+    public static final String EXTRA_SLOT_POSITION = "extra_slot_position";
+    public static final String EXTRA_GROUP_SIZE = "extra_group_size";
 
+    private ActivityDetails activity;
+    private String activityId;
+    private AppCompatButton reminderButton;
+    private TextView reminderStatus;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_created);
 
-        String title = getIntent().getStringExtra(EXTRA_TITLE);
-        String date = getIntent().getStringExtra(EXTRA_DATE);
-        String time = getIntent().getStringExtra(EXTRA_TIME);
-        String location = getIntent().getStringExtra(EXTRA_LOCATION);
-        if (title == null || title.trim().isEmpty()) {
-            findViewById(R.id.activity_summary_card).setVisibility(View.GONE);
-        } else {
-            ((android.widget.TextView) findViewById(R.id.created_activity_title)).setText(title);
-            ((android.widget.TextView) findViewById(R.id.created_activity_time)).setText(
-                    joinNonEmpty(date, time));
-            ((android.widget.TextView) findViewById(R.id.created_activity_duration)).setText(
-                    "Duration not specified");
-            ((android.widget.TextView) findViewById(R.id.created_activity_location)).setText(
-                    location == null || location.trim().isEmpty() ? "Location not specified" : location);
-            ((android.widget.TextView) findViewById(R.id.created_activity_location_detail)).setText("");
-        }
-        // Participant records are not part of the Java activity read contract yet.
-        findViewById(R.id.attendees_card).setVisibility(View.GONE);
-
+        reminderButton = findViewById(R.id.reminder_button);
+        reminderStatus = findViewById(R.id.reminder_status);
         findViewById(R.id.close_created_button).setOnClickListener(v -> finish());
         findViewById(R.id.copy_invite_button).setEnabled(false);
         findViewById(R.id.whatsapp_button).setEnabled(false);
         findViewById(R.id.calendar_toggle).setEnabled(false);
-        findViewById(R.id.reminder_button).setEnabled(false);
+        ((androidx.appcompat.widget.SwitchCompat) findViewById(R.id.calendar_toggle)).setChecked(false);
         findViewById(R.id.view_schedule_button).setEnabled(false);
-        findViewById(R.id.back_home_button).setOnClickListener(v -> finishAffinity());
+        findViewById(R.id.retry_activity_button).setOnClickListener(v -> {
+            if (!isBlank(activityId)) loadActivity(activityId);
+        });
+        // back to the dashboard closing the screens opened on top of it, finishAffinity closed the whole app
+        findViewById(R.id.back_home_button).setOnClickListener(v -> {
+            startActivity(new android.content.Intent(this, DashboardActivity.class)
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP));
+            finish();
+        });
+
+        activityId = getIntent().getStringExtra(EXTRA_ACTIVITY_ID);
+        if (savedInstanceState == null) persistRecommendationOutcome();
+        if (isBlank(activityId)) {
+            String title = getIntent().getStringExtra(EXTRA_TITLE);
+            if (isBlank(title)) {
+                showActivityUnavailable(getString(R.string.activity_missing_id), false);
+            } else {
+                showLegacyActivity(title, getIntent().getStringExtra(EXTRA_DATE),
+                        getIntent().getStringExtra(EXTRA_TIME), getIntent().getStringExtra(EXTRA_LOCATION));
+            }
+        } else {
+            loadActivity(activityId);
+        }
+    }
+
+    private void loadActivity(String activityId) {
+        showLoading();
+        Repositories.activities().getActivityDetails(activityId, new Callback<ActivityDetails>() {
+            @Override public void onSuccess(ActivityDetails details) {
+                if (isFinishing() || isDestroyed()) return;
+                if (details == null || isBlank(details.getTitle())) {
+                    showActivityUnavailable(getString(R.string.activity_incomplete_details), true);
+                    return;
+                }
+                activity = details;
+                bindActivity(details);
+            }
+
+            @Override public void onError(Exception error) {
+                if (!isFinishing() && !isDestroyed()) {
+                    showActivityUnavailable(getString(R.string.activity_load_error), true);
+                }
+            }
+        });
+    }
+
+    private void bindActivity(ActivityDetails details) {
+        showSuccessContent();
+        bindSummary(details.getTitle(), details.getDate(), details.getTime(), details.getLocation(),
+                categoryLabel(details.getCategory()), statusLabel(details.getStatus()), durationLabel(details));
+        if (!hasCompleteSchedule(details)) {
+            reminderButton.setText("Reminder unavailable");
+            reminderStatus.setText(R.string.activity_reminder_requires_schedule);
+            reminderStatus.setVisibility(View.VISIBLE);
+            reminderButton.setEnabled(false);
+            return;
+        }
+        reminderButton.setEnabled(true);
+        updateReminderLabel(details.getReminderMinutesBefore());
+        reminderButton.setOnClickListener(v -> showReminderOptions());
+        reminderStatus.setVisibility(View.GONE);
+    }
+
+    private void showLegacyActivity(String title, String date, String time, String location) {
+        showSuccessContent();
+        bindSummary(title, date, time, location, "Activity", "Created",
+                getString(R.string.activity_schedule_unspecified));
+        reminderButton.setEnabled(false);
+        reminderButton.setText("Reminder unavailable");
+        reminderStatus.setText(R.string.activity_reminder_requires_schedule);
+        reminderStatus.setVisibility(View.VISIBLE);
+    }
+
+    private void bindSummary(String title, String date, String time, String location,
+                             String category, String status, String duration) {
+        ((TextView) findViewById(R.id.created_activity_title)).setText(title);
+        ((TextView) findViewById(R.id.created_activity_category)).setText(category);
+        ((TextView) findViewById(R.id.created_activity_status)).setText(status);
+        ((TextView) findViewById(R.id.created_activity_time)).setText(joinNonEmpty(date, time));
+        ((TextView) findViewById(R.id.created_activity_duration)).setText(duration);
+        String safeLocation = location == null ? "" : location.trim();
+        ((TextView) findViewById(R.id.created_activity_location)).setText(
+                safeLocation.isEmpty() ? "Location not specified" : safeLocation);
+        findViewById(R.id.created_activity_location_detail).setVisibility(View.GONE);
+    }
+
+    private void showLoading() {
+        findViewById(R.id.activity_loading_state).setVisibility(View.VISIBLE);
+        findViewById(R.id.activity_error_state).setVisibility(View.GONE);
+        findViewById(R.id.activity_success_header).setVisibility(View.GONE);
+        findViewById(R.id.activity_summary_card).setVisibility(View.GONE);
+        findViewById(R.id.attendees_card).setVisibility(View.GONE);
+        findViewById(R.id.activity_utilities_card).setVisibility(View.GONE);
+        reminderButton.setEnabled(false);
+        reminderButton.setText(R.string.activity_loading_details);
+        reminderStatus.setVisibility(View.GONE);
+    }
+
+    private void showSuccessContent() {
+        findViewById(R.id.activity_loading_state).setVisibility(View.GONE);
+        findViewById(R.id.activity_error_state).setVisibility(View.GONE);
+        findViewById(R.id.activity_success_header).setVisibility(View.VISIBLE);
+        findViewById(R.id.activity_summary_card).setVisibility(View.VISIBLE);
+        findViewById(R.id.attendees_card).setVisibility(View.GONE);
+        findViewById(R.id.activity_utilities_card).setVisibility(View.VISIBLE);
+    }
+
+    private void showActivityUnavailable(String message, boolean retryable) {
+        findViewById(R.id.activity_loading_state).setVisibility(View.GONE);
+        findViewById(R.id.activity_success_header).setVisibility(View.GONE);
+        findViewById(R.id.activity_summary_card).setVisibility(View.GONE);
+        findViewById(R.id.attendees_card).setVisibility(View.GONE);
+        findViewById(R.id.activity_utilities_card).setVisibility(View.GONE);
+        findViewById(R.id.activity_error_state).setVisibility(View.VISIBLE);
+        ((TextView) findViewById(R.id.activity_error_message)).setText(message);
+        findViewById(R.id.retry_activity_button).setVisibility(retryable ? View.VISIBLE : View.GONE);
+        reminderButton.setEnabled(false);
+        reminderButton.setText("Reminder unavailable");
+        reminderStatus.setVisibility(View.GONE);
+    }
+
+    private boolean hasCompleteSchedule(ActivityDetails details) {
+        return !isBlank(details.getStartTime()) && !isBlank(details.getEndTime());
+    }
+
+    private String durationLabel(ActivityDetails details) {
+        if (!hasCompleteSchedule(details)) {
+            return getString(R.string.activity_schedule_unspecified);
+        }
+        Date start = parseUtc(details.getStartTime());
+        Date end = parseUtc(details.getEndTime());
+        if (start == null || end == null || end.getTime() <= start.getTime()) {
+            return getString(R.string.activity_duration_unavailable);
+        }
+        long minutes = (end.getTime() - start.getTime()) / 60_000L;
+        long hours = minutes / 60;
+        long remainingMinutes = minutes % 60;
+        if (hours == 0) {
+            return getString(R.string.activity_duration_minutes, minutes);
+        }
+        if (remainingMinutes == 0) {
+            return getString(R.string.activity_duration_hours, hours);
+        }
+        return getString(R.string.activity_duration_hours_minutes, hours, remainingMinutes);
+    }
+
+    private Date parseUtc(String value) {
+        String[] patterns = {"yyyy-MM-dd'T'HH:mm:ss.SSSX", "yyyy-MM-dd'T'HH:mm:ssX"};
+        for (String pattern : patterns) {
+            SimpleDateFormat parser = new SimpleDateFormat(pattern, Locale.US);
+            parser.setLenient(false);
+            parser.setTimeZone(TimeZone.getTimeZone("UTC"));
+            ParsePosition position = new ParsePosition(0);
+            Date parsed = parser.parse(value, position);
+            if (parsed != null && position.getIndex() == value.length()) {
+                return parsed;
+            }
+        }
+        return null;
+    }
+
+    private String categoryLabel(String category) {
+        return isBlank(category) ? "Activity" : displayLabel(category);
+    }
+
+    private String statusLabel(String status) {
+        return isBlank(status) ? "Saved" : displayLabel(status);
+    }
+
+    private String displayLabel(String value) {
+        String[] words = value.trim().replace('_', ' ').replace('-', ' ')
+                .toLowerCase(Locale.US).split("\\s+");
+        StringBuilder label = new StringBuilder();
+        for (String word : words) {
+            if (word.isEmpty()) continue;
+            if (label.length() > 0) label.append(' ');
+            label.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+        }
+        return label.toString();
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private void showReminderOptions() {
+        String[] labels = {"No reminder", "15 minutes before", "30 minutes before", "1 hour before"};
+        int[] values = {0, 15, 30, 60};
+        new AlertDialog.Builder(this)
+                .setTitle("Activity reminder")
+                .setItems(labels, (dialog, selected) -> saveReminder(values[selected]))
+                .show();
+    }
+
+    private void saveReminder(int minutesBefore) {
+        reminderButton.setEnabled(false);
+        reminderStatus.setText("Saving reminder setting…");
+        reminderStatus.setVisibility(View.VISIBLE);
+        Repositories.activities().setActivityReminder(activity.getId(), minutesBefore, new Callback<Void>() {
+            @Override public void onSuccess(Void ignored) {
+                if (isFinishing() || isDestroyed()) return;
+                reminderButton.setEnabled(true);
+                updateReminderLabel(minutesBefore);
+                reminderStatus.setText(minutesBefore == 0 ? "Reminder disabled" : "Reminder saved");
+            }
+
+            @Override public void onError(Exception error) {
+                if (isFinishing() || isDestroyed()) return;
+                reminderButton.setEnabled(true);
+                reminderStatus.setText("Could not save reminder setting");
+                Toast.makeText(ActivityCreatedActivity.this,
+                        "Could not save reminder setting", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void updateReminderLabel(Integer minutesBefore) {
+        if (minutesBefore == null) reminderButton.setText("Set reminder  ⌄");
+        else if (minutesBefore == 0) reminderButton.setText("No reminder  ⌄");
+        else reminderButton.setText(minutesBefore + " min before  ⌄");
+    }
+
+    /** Persists was_modified as the backend's authoritative BQ3 recommendation outcome. */
+    private void persistRecommendationOutcome() {
+        String activityId = getIntent().getStringExtra(EXTRA_ACTIVITY_ID);
+        String recommendationId = getIntent().getStringExtra(EXTRA_RECOMMENDATION_ID);
+        if (activityId == null || recommendationId == null) return;
+
+        TextView outcomeView = findViewById(R.id.recommendation_outcome_text);
+        outcomeView.setVisibility(View.VISIBLE);
+        if (!Repositories.isFirebaseAvailable()) {
+            outcomeView.setText("Recommendation outcome requires the backend integration.");
+            return;
+        }
+
+        boolean wasModified = getIntent().getBooleanExtra(EXTRA_WAS_MODIFIED, false);
+        String startTime = getIntent().getStringExtra(EXTRA_SELECTED_START_TIME);
+        String endTime = getIntent().getStringExtra(EXTRA_SELECTED_END_TIME);
+        int slotPosition = getIntent().getIntExtra(EXTRA_SLOT_POSITION, -1);
+        int groupSize = getIntent().getIntExtra(EXTRA_GROUP_SIZE, 0);
+        outcomeView.setText("Saving recommendation decision…");
+
+        FirebaseRecommendationDecisionRepository decisions = new FirebaseRecommendationDecisionRepository(
+                FirebaseFunctions.getInstance("us-central1"));
+        decisions.recordDecision(activityId, recommendationId, wasModified, startTime, endTime,
+                new Callback<Void>() {
+                    @Override public void onSuccess(Void ignored) {
+                        if (isFinishing() || isDestroyed()) return;
+                        outcomeView.setText(wasModified
+                                ? "The suggested time was modified"
+                                : "The suggested time was kept");
+                        Map<String, Object> event = new HashMap<>();
+                        event.put(AnalyticsEvents.PARAM_RECOMMENDATION_ID, recommendationId);
+                        event.put(AnalyticsEvents.PARAM_MODIFIED, wasModified);
+                        if (slotPosition >= 0) event.put(AnalyticsEvents.PARAM_SLOT_POSITION, slotPosition);
+                        if (groupSize > 0) event.put(AnalyticsEvents.PARAM_GROUP_SIZE, groupSize);
+                        AnalyticsTracker.getInstance().track(AnalyticsEvents.SLOT_ACCEPTED, event);
+                    }
+
+                    @Override public void onError(Exception error) {
+                        if (isFinishing() || isDestroyed()) return;
+                        outcomeView.setText("Could not save the recommendation decision");
+                        Toast.makeText(ActivityCreatedActivity.this,
+                                "Could not save the recommendation decision", Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     private String joinNonEmpty(String first, String second) {

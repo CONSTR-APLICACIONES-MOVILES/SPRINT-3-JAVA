@@ -1,5 +1,7 @@
 package com.example.parchapp;
 
+import com.example.parchapp.analytics.AnalyticsTracker;
+import com.example.parchapp.analytics.AnalyticsEvents;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -78,6 +80,10 @@ public class ScheduleActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_schedule);
+        // bq8: schedule counts as used when this screen opens (not again on rotation)
+        if (savedInstanceState == null) {
+            AnalyticsTracker.getInstance().trackFeature(AnalyticsEvents.FEATURE_SCHEDULE, "schedule");
+        }
 
         chips = findViewById(R.id.schedule_chips);
         durations = findViewById(R.id.schedule_durations);
@@ -102,14 +108,8 @@ public class ScheduleActivity extends AppCompatActivity {
         findViewById(R.id.schedule_fab).setOnClickListener(v ->
                 new CreateActivitySheet().withSuggestedDate(selectedDateLabel())
                         .show(getSupportFragmentManager(), "create_activity"));
-        findViewById(R.id.schedule_nav_home).setOnClickListener(v -> {
-            startActivity(new Intent(this, DashboardActivity.class)
-                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP));
-            finish();
-        });
-        findViewById(R.id.schedule_nav_groups).setOnClickListener(v -> {
-            startActivity(new Intent(this, GroupDetailActivity.class));
-        });
+// shared bottom bar, schedule is the active tab
+        BottomNav.setup(this, BottomNav.Tab.SCHEDULE);
 
         buildWeek();
         buildTimeColumnAndGrid();

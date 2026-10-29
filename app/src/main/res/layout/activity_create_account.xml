@@ -202,7 +202,9 @@
             style="@style/CreateAccountInput"
             android:autofillHints="name"
             android:hint="@string/full_name"
-            android:inputType="textPersonName|textCapWords" />
+            android:inputType="textPersonName|textCapWords"
+            android:imeOptions="actionNext"
+            android:nextFocusForward="@id/create_email_input" />
 
         <TextView
             style="@style/CreateAccountLabel"
@@ -213,7 +215,9 @@
             style="@style/CreateAccountInput"
             android:autofillHints="emailAddress"
             android:hint="@string/email_placeholder"
-            android:inputType="textEmailAddress" />
+            android:inputType="textEmailAddress"
+            android:imeOptions="actionNext"
+            android:nextFocusForward="@id/create_password_input" />
 
         <TextView
             style="@style/CreateAccountLabel"
@@ -228,10 +232,13 @@
                 style="@style/CreateAccountInput"
                 android:autofillHints="newPassword"
                 android:inputType="textPassword"
+            android:imeOptions="actionNext"
+            android:nextFocusForward="@id/create_confirm_password_input"
                 android:paddingEnd="44dp" />
 
             <ImageButton
                 android:id="@+id/toggle_password"
+                android:focusable="false"
                 style="@style/CreateAccountEyeButton"
                 android:contentDescription="@string/toggle_password_visibility" />
         </FrameLayout>
@@ -249,10 +256,12 @@
                 style="@style/CreateAccountInput"
                 android:autofillHints="newPassword"
                 android:inputType="textPassword"
+            android:imeOptions="actionDone"
                 android:paddingEnd="44dp" />
 
             <ImageButton
                 android:id="@+id/toggle_confirm_password"
+                android:focusable="false"
                 style="@style/CreateAccountEyeButton"
                 android:contentDescription="@string/toggle_confirm_password_visibility" />
         </FrameLayout>

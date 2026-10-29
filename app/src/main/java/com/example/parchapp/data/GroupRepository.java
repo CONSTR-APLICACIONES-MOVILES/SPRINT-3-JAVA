@@ -5,14 +5,14 @@ import com.example.parchapp.util.Callback;
 
 import java.util.List;
 
-/* Single access point for groups. Controllers depend in this on this interface only, never on Firestore.
-    <p>Writes are applied locally first, so they work offline. Observers see the change right away
-    through {@link GroupListener}; syncing with the server happens in the background.
- */
+/** Single access point for group data and actions; controllers do not depend directly on Firestore. */
 public interface GroupRepository {
     void getGroup(String groupId, Callback<Group> callback);
 
     void getGroups(String userId, Callback<List<Group>> callback);
+
+// f6: creates the group in the backend and saves the emails as pending invites, the callback gets the id of the new group
+    void createGroup(String name, String category, List<String> inviteEmails, Callback<String> callback);
 
     /* Subscribes to live updates. The listener also receives the current value. */
     void observeGroup(String groupId, GroupListener listener);

@@ -58,6 +58,7 @@
                 android:orientation="horizontal">
 
                 <TextView
+                    android:id="@+id/restored_user_initials"
                     android:layout_width="56dp"
                     android:layout_height="56dp"
                     android:background="@drawable/bg_avatar"
@@ -102,6 +103,7 @@
                             android:textStyle="bold" />
                     </LinearLayout>
                     <TextView
+                        android:id="@+id/restored_user_detail"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:ellipsize="end"
@@ -110,6 +112,7 @@
                         android:textColor="@color/brand_slate"
                         android:textSize="12sp" />
                     <TextView
+                        android:id="@+id/restored_user_email"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:ellipsize="end"
@@ -179,6 +182,8 @@
             android:background="@drawable/bg_login_field"
             android:hint="@string/university_email"
             android:inputType="textEmailAddress"
+            android:imeOptions="actionNext"
+            android:nextFocusForward="@id/password_input"
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
             android:textColor="@color/brand_dark"
@@ -193,6 +198,7 @@
             android:background="@drawable/bg_login_field"
             android:hint="@string/password"
             android:inputType="textPassword"
+            android:imeOptions="actionDone"
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
             android:textColor="@color/brand_dark"

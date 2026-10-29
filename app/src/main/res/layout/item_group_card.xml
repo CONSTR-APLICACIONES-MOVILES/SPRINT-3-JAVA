@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp"
+    android:background="@drawable/bg_dashboard_card"
+    android:clickable="true"
+    android:focusable="true"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+        <TextView android:id="@+id/group_card_title" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:ellipsize="end" android:singleLine="true" android:textColor="@color/brand_dark" android:textSize="16sp" android:textStyle="bold" />
+        <TextView android:id="@+id/group_card_activity" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:paddingStart="10dp" android:paddingTop="4dp" android:paddingEnd="10dp" android:paddingBottom="4dp" android:textSize="10sp" android:textStyle="bold" />
+        <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_marginStart="6dp" android:contentDescription="@null" android:src="@drawable/ic_chevron_right" android:tint="@color/brand_dark" />
+    </LinearLayout>
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center_vertical" android:orientation="horizontal">
+        <View android:id="@+id/group_card_dot" android:layout_width="8dp" android:layout_height="8dp" android:background="@drawable/bg_oval_solid" />
+        <TextView android:id="@+id/group_card_members" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:textColor="@color/brand_slate" android:textSize="12sp" />
+    </LinearLayout>
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/bg_light_blue" android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="12dp" android:paddingTop="9dp" android:paddingEnd="12dp" android:paddingBottom="9dp">
+        <ImageView android:layout_width="16dp" android:layout_height="16dp" android:contentDescription="@null" android:src="@drawable/ic_calendar" android:tint="@color/brand_primary" />
+        <TextView android:id="@+id/group_card_next" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1" android:ellipsize="end" android:singleLine="true" android:textColor="@color/brand_dark" android:textSize="12sp" />
+    </LinearLayout>
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="center_vertical" android:orientation="horizontal">
+        <LinearLayout android:id="@+id/group_card_avatars" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="horizontal" />
+        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_green_chip" android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="10dp" android:paddingTop="5dp" android:paddingEnd="10dp" android:paddingBottom="5dp">
+            <ImageView android:layout_width="14dp" android:layout_height="14dp" android:contentDescription="@null" android:src="@drawable/ic_check" android:tint="@color/brand_success_dark" />
+            <TextView android:id="@+id/group_card_synced" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:textColor="@color/brand_success_dark" android:textSize="11sp" android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

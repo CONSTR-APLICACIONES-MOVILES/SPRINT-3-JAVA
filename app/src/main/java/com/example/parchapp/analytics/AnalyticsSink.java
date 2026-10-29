@@ -7,4 +7,6 @@ public interface AnalyticsSink {
     void send(String name, Bundle params);
 
     void setUserId(String anonymousId);
+
+    default void setCollectionEnabled(boolean enabled) { }
 }

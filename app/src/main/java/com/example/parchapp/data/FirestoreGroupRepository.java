@@ -10,26 +10,67 @@ import com.example.parchapp.util.MainThread;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Source;
+import com.google.firebase.functions.FirebaseFunctions;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.UUID;
 
-/* F6: reads the groups collection for the Dashboard. Reads try the local cache first and then the server, and live updates come from one snapshot listener per observed group. Writing groups (create, RSVP, invites) is the Create Group feature, so those calls only log for now. */
+/* F6: the groups collection. Reads try the local cache first and then the server, and live updates come from one snapshot listener per observed group. New groups are created by the backend function createGroup, with the user as owner. */
 class FirestoreGroupRepository extends BaseGroupRepository {
     private static final String TAG = "FirestoreGroupRepo";
     private static final String COLLECTION = "groups";
 
     private final CollectionReference collection;
+// f6: the rules do not let the app write a new group, so the backend function creates it
+    private final FirebaseFunctions functions;
     private final Map<String, ListenerRegistration> registrations = new HashMap<>();
 
-    FirestoreGroupRepository(FirebaseFirestore db) {
+    FirestoreGroupRepository(FirebaseFirestore db, FirebaseFunctions functions) {
         collection = db.collection(COLLECTION);
+        this.functions = functions;
+    }
+
+// f6: calls the createGroup function, then saves the emails as pending invites of the new group
+    @Override
+    public void createGroup(String name, String category, List<String> inviteEmails, Callback<String> callback) {
+        Map<String, Object> input = new HashMap<>();
+// f6: a new request id for each try, the backend uses it so the same group is not created two times
+        input.put("requestId", UUID.randomUUID().toString());
+        input.put("name", name);
+        input.put("category", category);
+        input.put("inviteeIds", new ArrayList<String>());
+        functions.getHttpsCallable("createGroup").call(input)
+                .addOnSuccessListener(result -> {
+                    Object data = result.getData();
+                    Object id = data instanceof Map ? ((Map<?, ?>) data).get("groupId") : null;
+                    if (id == null) {
+                        MainThread.post(() -> callback.onError(new IllegalStateException(
+                                "Backend response did not contain groupId")));
+                        return;
+                    }
+                    String groupId = id.toString();
+                    if (inviteEmails.isEmpty()) {
+                        MainThread.post(() -> callback.onSuccess(groupId));
+                        return;
+                    }
+                    collection.document(groupId)
+                            .update("pendingInvites", FieldValue.arrayUnion(inviteEmails.toArray()))
+                            .addOnSuccessListener(done -> MainThread.post(() -> callback.onSuccess(groupId)))
+// f6: the group already exists, so we still open it even if the invites failed
+                            .addOnFailureListener(error -> {
+                                Log.w(TAG, "Saving the invites of " + groupId + " failed", error);
+                                MainThread.post(() -> callback.onSuccess(groupId));
+                            });
+                })
+                .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
     }
 
     @Override
@@ -69,12 +110,17 @@ class FirestoreGroupRepository extends BaseGroupRepository {
     @Override
     protected void startObserving(String groupId) {
         ListenerRegistration registration = collection.document(groupId).addSnapshotListener((snapshot, error) -> {
+// an error here usually means the user can not read the group anymore
             if (error != null) {
                 Log.w(TAG, "Listening to group " + groupId + " failed", error);
+                notifyUnavailable(groupId);
                 return;
             }
             if (snapshot != null && snapshot.exists()) {
                 notifyListeners(fromSnapshot(snapshot));
+// the document does not exist, for example it was deleted while the screen was open
+            } else if (snapshot != null && !snapshot.getMetadata().isFromCache()) {
+                notifyUnavailable(groupId);
             }
         });
         registrations.put(groupId, registration);
@@ -93,14 +139,20 @@ class FirestoreGroupRepository extends BaseGroupRepository {
         Log.i(TAG, "RSVP is not part of this branch");
     }
 
+// f6: adds one email to the pending invites, the snapshot listener shows the change on every screen
     @Override
     public void addInvite(String groupId, String email) {
-        Log.i(TAG, "Invites are not part of this branch");
+        collection.document(groupId)
+                .update("pendingInvites", FieldValue.arrayUnion(email))
+                .addOnFailureListener(e -> Log.w(TAG, "Adding invite failed", e));
     }
 
+// f6: removes one email from the pending invites
     @Override
     public void removeInvite(String groupId, String email) {
-        Log.i(TAG, "Invites are not part of this branch");
+        collection.document(groupId)
+                .update("pendingInvites", FieldValue.arrayRemove(email))
+                .addOnFailureListener(e -> Log.w(TAG, "Removing invite failed", e));
     }
 
     @SuppressWarnings("unchecked")
@@ -123,7 +175,8 @@ class FirestoreGroupRepository extends BaseGroupRepository {
         }
         return new Group(snapshot.getId(), asString(snapshot.get("name")), asString(snapshot.get("icon")),
                 asString(snapshot.get("planTitle")), members, stringList(snapshot.get("goingIds")),
-                stringList(snapshot.get("maybeIds")), stringList(snapshot.get("pendingInvites")));
+                stringList(snapshot.get("maybeIds")), stringList(snapshot.get("pendingInvites")),
+                asString(snapshot.get("ownerId")));
     }
 
     private static int asInt(Object value) {

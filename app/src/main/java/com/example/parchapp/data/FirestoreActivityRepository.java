@@ -15,18 +15,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-/* F6: reads the activities of my groups for the Today's Plans section. Saving an activity is the Activity Created feature, so createActivity is not part of this branch. */
-class FirestoreActivityRepository implements ActivityRepository {
+/* F6: reads the activities of my groups for the Today's Plans section. */
+class FirestoreActivityRepository implements ActivityPlanRepository {
+    // f7: kept in memory, one entry per activity
+    private final TravelTimeCache travelCache = new TravelTimeCache();
     private final FirebaseFirestore db;
 
     FirestoreActivityRepository(FirebaseFirestore db) {
         this.db = db;
-    }
-
-    @Override
-    public void createActivity(PlannedActivity activity, Callback<PlannedActivity> callback) {
-        MainThread.post(() -> callback.onError(new UnsupportedOperationException(
-                "Activity publishing is not part of this branch")));
     }
 
     // first my groups, then one query per group, because the rules only let me read activities of groups i belong to
@@ -67,12 +63,18 @@ class FirestoreActivityRepository implements ActivityRepository {
         int groupSize = context != null && context.get("groupSizeAtCreation") instanceof Number
                 ? ((Number) context.get("groupSizeAtCreation")).intValue() : 0;
         boolean comparisonUsed = context != null && Boolean.TRUE.equals(context.get("comparisonUsed"));
+        String areaId = context != null && context.get("locationAreaId") != null
+                ? context.get("locationAreaId").toString() : PlannedActivity.UNKNOWN_AREA;
+        Object rawReminder = snapshot.get("reminderMinutesBefore");
+        Integer reminder = rawReminder instanceof Number ? ((Number) rawReminder).intValue() : null;
         return new PlannedActivity(snapshot.getId(),
                 stringValue(snapshot.get("groupId")), stringValue(snapshot.get("title")),
                 stringValue(snapshot.get("category")), stringValue(snapshot.get("date")),
                 stringValue(snapshot.get("time")), stringValue(snapshot.get("location")),
                 stringValue(snapshot.get("status")), timestampMillis(snapshot.get("createdAt")),
-                groupSize, comparisonUsed);
+                groupSize, comparisonUsed, stringValue(snapshot.get("startTime")),
+                stringValue(snapshot.get("endTime")), areaId,
+                stringValue(snapshot.get("createdBy")), reminder);
     }
 
     private static String stringValue(Object value) {
@@ -87,5 +89,15 @@ class FirestoreActivityRepository implements ActivityRepository {
             return ((Number) value).longValue();
         }
         return 0L;
+    }
+
+    @Override
+    public Integer getCachedTravelMinutes(String activityId) {
+        return travelCache.get(activityId);
+    }
+
+    @Override
+    public void cacheTravelMinutes(String activityId, int minutes) {
+        travelCache.put(activityId, minutes);
     }
 }

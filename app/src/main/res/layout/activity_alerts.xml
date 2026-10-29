@@ -2,32 +2,37 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FF"
+    android:background="@color/brand_background"
     android:orientation="vertical">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="64dp"
+        android:layout_height="58dp"
         android:background="@android:color/white"
         android:gravity="center_vertical"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp">
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
+
         <ImageButton
             android:id="@+id/alerts_back_button"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
             android:background="@drawable/bg_icon_badge_square"
-            android:contentDescription="Back"
-            android:src="@drawable/ic_arrow_back" />
+            android:contentDescription="@string/go_back_short"
+            android:padding="9dp"
+            android:src="@drawable/ic_arrow_back"
+            android:tint="@color/brand_primary" />
+
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="10dp"
             android:layout_weight="1"
-            android:text="Alerts"
+            android:text="@string/alerts_title"
             android:textColor="@color/brand_dark"
-            android:textSize="22sp"
+            android:textSize="20sp"
             android:textStyle="bold" />
+
         <TextView
             android:id="@+id/alerts_unread_count"
             android:layout_width="wrap_content"
@@ -39,23 +44,58 @@
             android:paddingBottom="4dp"
             android:textColor="@color/brand_urgent_dark"
             android:textSize="10sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/alerts_mark_all_read"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="6dp"
+            android:text="@string/alerts_mark_all_read"
+            android:textColor="@color/brand_primary"
+            android:textSize="10sp"
             android:textStyle="bold" />
     </LinearLayout>
 
     <EditText
         android:id="@+id/alerts_search_input"
         android:layout_width="match_parent"
-        android:layout_height="46dp"
-        android:layout_margin="14dp"
+        android:layout_height="44dp"
+        android:layout_marginStart="14dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="14dp"
         android:background="@drawable/bg_login_field"
-        android:hint="Search alerts"
+        android:hint="@string/alerts_search_hint"
         android:inputType="text"
-        android:paddingStart="14dp"
-        android:paddingEnd="14dp" />
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:singleLine="true"
+        android:textSize="13sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="14dp"
+        android:background="@color/brand_chip_background"
+        android:orientation="horizontal"
+        android:padding="3dp">
+        <androidx.appcompat.widget.AppCompatButton android:id="@+id/priority_all" android:layout_width="0dp" android:layout_height="32dp" android:layout_weight="1" android:background="@drawable/bg_chip_selected" android:minWidth="0dp" android:text="@string/alerts_priority_all" android:textAllCaps="false" android:textColor="@color/brand_primary" android:textSize="10sp" android:textStyle="bold" />
+        <androidx.appcompat.widget.AppCompatButton android:id="@+id/priority_high" android:layout_width="0dp" android:layout_height="32dp" android:layout_marginStart="2dp" android:layout_weight="1" android:background="@drawable/bg_chip_unselected" android:minWidth="0dp" android:text="@string/alerts_priority_high" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" />
+        <androidx.appcompat.widget.AppCompatButton android:id="@+id/priority_medium" android:layout_width="0dp" android:layout_height="32dp" android:layout_marginStart="2dp" android:layout_weight="1" android:background="@drawable/bg_chip_unselected" android:minWidth="0dp" android:text="@string/alerts_priority_medium" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" />
+        <androidx.appcompat.widget.AppCompatButton android:id="@+id/priority_low" android:layout_width="0dp" android:layout_height="32dp" android:layout_marginStart="2dp" android:layout_weight="1" android:background="@drawable/bg_chip_unselected" android:minWidth="0dp" android:text="@string/alerts_priority_low" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" />
+    </LinearLayout>
 
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
         android:scrollbars="none">
         <LinearLayout
             android:layout_width="wrap_content"
@@ -63,34 +103,122 @@
             android:orientation="horizontal"
             android:paddingStart="14dp"
             android:paddingEnd="14dp">
-            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alerts_filter_all" android:layout_width="wrap_content" android:layout_height="36dp" android:background="@drawable/bg_chip_selected" android:text="All" android:textAllCaps="false" android:textColor="@color/brand_primary" android:textSize="11sp" />
-            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alerts_filter_invitations" android:layout_width="wrap_content" android:layout_height="36dp" android:layout_marginStart="6dp" android:background="@drawable/bg_chip_unselected" android:text="Invitations" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="11sp" />
-            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alerts_filter_schedule" android:layout_width="wrap_content" android:layout_height="36dp" android:layout_marginStart="6dp" android:background="@drawable/bg_chip_unselected" android:text="Schedule" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="11sp" />
-            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alerts_filter_groups" android:layout_width="wrap_content" android:layout_height="36dp" android:layout_marginStart="6dp" android:background="@drawable/bg_chip_unselected" android:text="Groups" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="11sp" />
-            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alerts_filter_unread" android:layout_width="wrap_content" android:layout_height="36dp" android:layout_marginStart="6dp" android:background="@drawable/bg_chip_unselected" android:text="Unread" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="11sp" />
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alerts_filter_all" android:layout_width="wrap_content" android:layout_height="34dp" android:background="@drawable/bg_chip_selected" android:minWidth="0dp" android:paddingStart="12dp" android:paddingEnd="12dp" android:text="@string/alerts_filter_all" android:textAllCaps="false" android:textColor="@color/brand_primary" android:textSize="10sp" />
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alerts_filter_priority" android:layout_width="wrap_content" android:layout_height="34dp" android:layout_marginStart="5dp" android:background="@drawable/bg_chip_unselected" android:minWidth="0dp" android:paddingStart="12dp" android:paddingEnd="12dp" android:text="@string/alerts_filter_priority" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" />
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alerts_filter_invitations" android:layout_width="wrap_content" android:layout_height="34dp" android:layout_marginStart="5dp" android:background="@drawable/bg_chip_unselected" android:minWidth="0dp" android:paddingStart="12dp" android:paddingEnd="12dp" android:text="@string/alerts_filter_invitations" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" />
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alerts_filter_schedule" android:layout_width="wrap_content" android:layout_height="34dp" android:layout_marginStart="5dp" android:background="@drawable/bg_chip_unselected" android:minWidth="0dp" android:paddingStart="12dp" android:paddingEnd="12dp" android:text="@string/alerts_filter_schedule" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" />
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alerts_filter_friends" android:layout_width="wrap_content" android:layout_height="34dp" android:layout_marginStart="5dp" android:background="@drawable/bg_chip_unselected" android:minWidth="0dp" android:paddingStart="12dp" android:paddingEnd="12dp" android:text="@string/alerts_filter_friends" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" />
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alerts_filter_groups" android:layout_width="wrap_content" android:layout_height="34dp" android:layout_marginStart="5dp" android:background="@drawable/bg_chip_unselected" android:minWidth="0dp" android:paddingStart="12dp" android:paddingEnd="12dp" android:text="@string/alerts_filter_groups" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" />
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alerts_filter_unread" android:layout_width="wrap_content" android:layout_height="34dp" android:layout_marginStart="5dp" android:background="@drawable/bg_chip_unselected" android:minWidth="0dp" android:paddingStart="12dp" android:paddingEnd="12dp" android:text="@string/alerts_filter_unread" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" />
         </LinearLayout>
     </HorizontalScrollView>
-
-    <TextView
-        android:id="@+id/alerts_state_text"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:padding="20dp"
-        android:textColor="@color/brand_slate"
-        android:textSize="13sp" />
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingBottom="8dp">
         <LinearLayout
-            android:id="@+id/alerts_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingStart="14dp"
+            android:paddingTop="12dp"
             android:paddingEnd="14dp"
-            android:paddingBottom="24dp" />
+            android:paddingBottom="16dp">
+
+            <ProgressBar
+                android:id="@+id/alerts_loading"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_gravity="center_horizontal"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/alerts_state_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:padding="12dp"
+                android:textColor="@color/brand_slate"
+                android:textSize="12sp"
+                android:visibility="gone" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/alerts_retry_button"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_gravity="center_horizontal"
+                android:background="@drawable/bg_light_blue"
+                android:text="@string/alerts_retry"
+                android:textAllCaps="false"
+                android:textColor="@color/brand_primary"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/reminders_heading"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/reminder_settings_title"
+                android:textColor="@color/brand_dark"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/reminders_state_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_dashboard_card"
+                android:padding="14dp"
+                android:textColor="@color/brand_slate"
+                android:textSize="12sp" />
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/reminders_retry_button"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_light_blue"
+                android:text="@string/alerts_retry"
+                android:textAllCaps="false"
+                android:textColor="@color/brand_primary"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/reminders_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView
+                android:id="@+id/alerts_section_heading"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:text="@string/alerts_recent_heading"
+                android:textColor="@color/brand_dark"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:id="@+id/alerts_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
     </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:background="@android:color/white"
+        android:gravity="center"
+        android:orientation="horizontal">
+        <TextView android:id="@+id/nav_home" android:clickable="true" android:focusable="true" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="⌂\nHome" android:textColor="@color/brand_slate" android:textSize="10sp" />
+        <TextView android:id="@+id/nav_groups" android:clickable="true" android:focusable="true" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="♧\nGroups" android:textColor="@color/brand_slate" android:textSize="10sp" />
+        <TextView android:id="@+id/nav_schedule" android:clickable="true" android:focusable="true" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="▣\nSchedule" android:textColor="@color/brand_slate" android:textSize="10sp" />
+        <TextView android:id="@+id/nav_alerts" android:clickable="true" android:focusable="true" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="♢\nAlerts" android:textColor="@color/brand_primary" android:textSize="10sp" android:textStyle="bold" />
+    </LinearLayout>
 </LinearLayout>
