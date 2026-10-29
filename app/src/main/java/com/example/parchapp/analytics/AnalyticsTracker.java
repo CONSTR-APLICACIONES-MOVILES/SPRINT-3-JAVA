@@ -7,6 +7,8 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.google.firebase.FirebaseApp;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -61,7 +63,9 @@ public final class AnalyticsTracker {
         }
         this.analyticsConsent = analyticsConsent;
         queue.attach(application);
-        sink = firebaseAvailable ? new FirebaseAnalyticsSink(application) : new LogcatSink();
+        AnalyticsSink analytics = firebaseAvailable ? new FirebaseAnalyticsSink(application) : new LogcatSink();
+// when firebase is started the events also go to firestore, so the team dashboard can count them
+        sink = FirebaseApp.getApps(application).isEmpty() ? analytics : new CompositeSink(analytics, new FirestoreSink());
         sink.setCollectionEnabled(analyticsConsent);
         if (!analyticsConsent) {
             queue.clear();
