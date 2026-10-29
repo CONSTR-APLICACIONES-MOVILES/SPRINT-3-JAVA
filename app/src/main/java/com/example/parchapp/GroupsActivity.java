@@ -52,21 +52,21 @@ public class GroupsActivity extends AppCompatActivity {
         UserProfile user = UserSession.getCurrentUser();
         ((TextView) findViewById(R.id.header_user_initials)).setText(user == null ? "" : user.getInitials());
         findViewById(R.id.header_search_btn).setOnClickListener(v -> toast("Search coming soon"));
-        findViewById(R.id.header_notif_btn).setOnClickListener(v -> {
-            tracker.trackFeature(AnalyticsEvents.FEATURE_ALERTS, SCREEN);
-            startActivity(new Intent(this, AlertsActivity.class));
-        });
+        findViewById(R.id.header_notif_btn).setOnClickListener(v ->
+                startActivity(new Intent(this, AlertsActivity.class)));
         findViewById(R.id.header_user_initials).setOnClickListener(v ->
                 startActivity(new Intent(this, ProfileActivity.class)));
 
+        // bq8: groups counts as used when this screen opens (not again on rotation)
+        if (savedInstanceState == null) {
+            tracker.trackFeature(AnalyticsEvents.FEATURE_GROUPS, "groups");
+        }
 // shared bottom bar, groups is the active tab
         BottomNav.setup(this, BottomNav.Tab.GROUPS);
 // below the cards, also when the user has no groups yet, so the first group can be created from here
         IconButtons.centerIconWithText(findViewById(R.id.create_group_from_list));
-        findViewById(R.id.create_group_from_list).setOnClickListener(v -> {
-            tracker.trackFeature(AnalyticsEvents.FEATURE_GROUPS, SCREEN);
-            startActivity(new Intent(this, CreateGroupActivity.class));
-        });
+        findViewById(R.id.create_group_from_list).setOnClickListener(v ->
+                startActivity(new Intent(this, CreateGroupActivity.class)));
     }
 
     @Override
@@ -167,11 +167,8 @@ public class GroupsActivity extends AppCompatActivity {
         card.findViewById(R.id.group_card_activity).setVisibility(View.INVISIBLE);
         bindSynced(card.findViewById(R.id.group_card_synced), group);
         bindAvatars(card.findViewById(R.id.group_card_avatars), group.getMembers());
-        card.setOnClickListener(v -> {
-            tracker.trackFeature(AnalyticsEvents.FEATURE_GROUPS, SCREEN);
-            startActivity(new Intent(this, GroupDetailActivity.class)
-                    .putExtra(GroupDetailActivity.EXTRA_GROUP_ID, group.getId()));
-        });
+        card.setOnClickListener(v -> startActivity(new Intent(this, GroupDetailActivity.class)
+                .putExtra(GroupDetailActivity.EXTRA_GROUP_ID, group.getId())));
     }
 
     /* Real number of members whose calendar for today the backend knows, the same count as Group Detail. */

@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
+import com.example.parchapp.analytics.ConfirmationTelemetry;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.data.TravelTimeService;
 import com.example.parchapp.domain.PlanContext;
@@ -194,6 +195,8 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
                 }
                 loadedActivities.clear();
                 loadedActivities.addAll(activities);
+                // bq9: plans confirmed on the backend are logged once as activity_confirmed
+                ConfirmationTelemetry.logNewlyConfirmed(DashboardActivity.this, activities);
                 bindActivities();
             }
 

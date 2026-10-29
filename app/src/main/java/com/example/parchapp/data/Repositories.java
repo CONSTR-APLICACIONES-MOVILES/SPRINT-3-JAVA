@@ -20,6 +20,7 @@ public final class Repositories {
     private static ActivityRepository activities;
     private static AlertsRepository alerts;
     private static InsightsRepository insights;
+    private static RecommendationDecisionRepository recommendationDecisions;
     private static CampusPlaceRepository places;
     private static AuthRepository auth;
     private static StatusService status;
@@ -62,6 +63,7 @@ public final class Repositories {
                     .setLocalCacheSettings(PersistentCacheSettings.newBuilder().build())
                     .build());
             groups = new FirestoreGroupRepository(db, functions);
+            recommendationDecisions = new FirebaseRecommendationDecisionRepository(functions);
             activities = new CompositeActivityRepository(
                     new FirestoreActivityRepository(db),
                     new FirebaseActivityRepository(functions));
@@ -109,6 +111,11 @@ public final class Repositories {
 
     public static AlertsRepository alerts() {
         return alerts;
+    }
+
+    /* null without Firebase: BQ3 decisions only exist on the backend */
+    public static RecommendationDecisionRepository recommendationDecisions() {
+        return recommendationDecisions;
     }
 
     public static InsightsRepository insights() {

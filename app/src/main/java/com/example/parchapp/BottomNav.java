@@ -8,8 +8,6 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.example.parchapp.analytics.AnalyticsEvents;
-import com.example.parchapp.analytics.AnalyticsTracker;
 
 // the bottom bar of view_bottom_nav.xml, every main screen calls setup with its own tab
 // so the bar looks and works the same everywhere
@@ -27,11 +25,11 @@ public final class BottomNav {
         mark(activity, R.id.nav_schedule_icon, R.id.nav_schedule_label, selected == Tab.SCHEDULE);
 
         activity.findViewById(R.id.nav_home).setOnClickListener(v ->
-                open(activity, DashboardActivity.class, null));
+                open(activity, DashboardActivity.class));
         activity.findViewById(R.id.nav_groups).setOnClickListener(v ->
-                open(activity, GroupsActivity.class, AnalyticsEvents.FEATURE_GROUPS));
+                open(activity, GroupsActivity.class));
         activity.findViewById(R.id.nav_schedule).setOnClickListener(v ->
-                open(activity, ScheduleActivity.class, AnalyticsEvents.FEATURE_SCHEDULE));
+                open(activity, ScheduleActivity.class));
     }
 
     private static void mark(Activity activity, int iconId, int labelId, boolean active) {
@@ -47,12 +45,10 @@ public final class BottomNav {
     }
 
 // if we are already on that screen we do nothing, from group details the groups tab goes back to the list
-    private static void open(Activity activity, Class<? extends Activity> screen, String feature) {
+    // the opened screen logs its own bq8 feature_used, so it counts the same from any entry point
+    private static void open(Activity activity, Class<? extends Activity> screen) {
         if (activity.getClass() == screen) {
             return;
-        }
-        if (feature != null) {
-            AnalyticsTracker.getInstance().trackFeature(feature, activity.getClass().getSimpleName());
         }
         activity.startActivity(new Intent(activity, screen)
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP));
