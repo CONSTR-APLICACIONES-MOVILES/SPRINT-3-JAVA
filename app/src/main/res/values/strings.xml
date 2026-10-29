@@ -38,6 +38,22 @@
     <!-- Groups -->
     <string name="your_active_groups">Your Active Groups</string>
     <string name="no_groups_yet">You are not in any group yet</string>
+    <string name="create_new_group">Create new group</string>
+    <string name="group_details_title">Group details</string>
+    <string name="group_unavailable_title">This group is no longer available</string>
+    <string name="group_unavailable_body">It was deleted or you are not a member anymore. Go back to see your groups.</string>
+    <string name="group_unavailable_badge">Not available</string>
+    <plurals name="group_member_count">
+        <item quantity="one">%d member</item>
+        <item quantity="other">%d members</item>
+    </plurals>
+    <string name="group_members_more">%1$s • %2$d more not shown</string>
+    <string name="group_next_plan">Next: %1$s</string>
+    <string name="group_next_plan_place">Next: %1$s • %2$s</string>
+    <string name="group_no_plan">No upcoming plan</string>
+    <string name="group_activity_most">Most Active</string>
+    <string name="group_activity_active">Active</string>
+    <string name="group_activity_low">Low Activity</string>
     <string name="view_all_groups">View all (%d)</string>
     <string name="open_chat">Open chat</string>
     <string name="view_status">View status</string>
@@ -137,6 +153,10 @@
     <string name="custom_duration">Custom</string>
     <string name="custom_duration_title">Meeting duration (minutes)</string>
     <string name="late_warning">⚠  You won\'t make it on time</string>
+    <string name="motion_detection_checking">Checking movement sensor…</string>
+    <string name="movement_detection_unavailable">Movement suggestions are unavailable: this device has no accelerometer.</string>
+    <string name="movement_detection_active">Movement detection is active while this sheet is open.</string>
+    <string name="movement_detection_failed">Could not start movement detection on this device.</string>
     <string name="offline_banner_message">You\'re offline. Saved groups and plans are shown; some actions need an internet connection.</string>
     <string name="compare_availability_title">Compare Availability</string>
     <string name="go_back_short">Back</string>
@@ -148,4 +168,18 @@
     <string name="free_until_not_set">Tap to set</string>
     <string name="invite_link_soon">Invite links are coming soon</string>
     <string name="groups_load_error">Could not load your groups. Check your connection and come back.</string>
+    <string name="activity_created_title">Activity created!</string>
+    <string name="activity_created_subtitle">Your activity is saved and visible to your group.</string>
+    <string name="activity_loading_details">Loading your saved activity…</string>
+    <string name="activity_unavailable_title">Activity unavailable</string>
+    <string name="activity_missing_id">This screen was opened without a saved activity.</string>
+    <string name="activity_load_error">We couldn\'t load this activity. Check your connection and try again.</string>
+    <string name="activity_incomplete_details">The saved activity details are incomplete.</string>
+    <string name="activity_retry">Try again</string>
+    <string name="activity_schedule_unspecified">Schedule not specified</string>
+    <string name="activity_duration_unavailable">Duration unavailable</string>
+    <string name="activity_duration_minutes">%1$d min</string>
+    <string name="activity_duration_hours">%1$d hr</string>
+    <string name="activity_duration_hours_minutes">%1$d hr %2$d min</string>
+    <string name="activity_reminder_requires_schedule">A complete scheduled time is required for a reminder.</string>
 </resources>

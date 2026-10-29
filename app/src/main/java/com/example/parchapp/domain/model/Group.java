@@ -13,9 +13,17 @@ public class Group {
     private final List<String> goingIds;
     private final List<String> maybeIds;
     private final List<String> pendingInvites;
+// id of the member who created the group, empty when the group does not say it
+    private final String ownerId;
 
     public Group(String id, String name, String icon, String planTitle, List<Member> members,
                  List<String> goingIds, List<String> maybeIds, List<String> pendingInvites) {
+        this(id, name, icon, planTitle, members, goingIds, maybeIds, pendingInvites, "");
+    }
+
+    public Group(String id, String name, String icon, String planTitle, List<Member> members,
+                 List<String> goingIds, List<String> maybeIds, List<String> pendingInvites, String ownerId) {
+        this.ownerId = ownerId == null ? "" : ownerId;
         this.id = id;
         this.name = name;
         this.icon = icon;
@@ -60,6 +68,15 @@ public class Group {
 
     public List<String> getPendingInvites() {
         return Collections.unmodifiableList(pendingInvites);
+    }
+
+    public String getOwnerId() {
+        return ownerId;
+    }
+
+// true when we know who created the group and it is this member
+    public boolean isOwner(String memberId) {
+        return !ownerId.isEmpty() && ownerId.equals(memberId);
     }
 
     public int getGoingCount() {
