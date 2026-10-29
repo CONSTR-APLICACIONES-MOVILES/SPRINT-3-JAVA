@@ -18,6 +18,7 @@ import androidx.annotation.Nullable;
 import com.example.parchapp.analytics.ActivityCreationTelemetry;
 import com.example.parchapp.analytics.AnalyticsEvents;
 import com.example.parchapp.analytics.AnalyticsTracker;
+import com.example.parchapp.analytics.CreationFlowTracker;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.domain.model.PlannedActivity;
 import com.example.parchapp.util.Callback;
@@ -49,9 +50,17 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
 // keys to keep the group picked in the chips when the phone turns
     private static final String STATE_PICKED_GROUP = "picked_group";
     private static final String STATE_PICKED_SIZE = "picked_size";
+// bq7: where the form was opened, and keys to keep the same flow when the phone turns
+    private static final String ARG_ENTRY_POINT = "arg_entry_point";
+    private static final String STATE_FLOW_ID = "flow_id";
+    private static final String STATE_FLOW_STARTED = "flow_started";
+    private static final String STATE_FLOW_STEPS = "flow_steps";
+    private static final String STATE_FLOW_FINISHED = "flow_finished";
 
     private String groupId;
     private int groupSize;
+// bq7: logs the steps the user reaches in this opening of the form
+    private CreationFlowTracker flow;
 
     public static CreateActivitySheet newInstance(String groupId, int groupSize, String slotTime,
                                                   int slotPosition) {
@@ -80,6 +89,14 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
             starts[i] = shown.get(i).getStartMinute();
         }
         args.putIntArray(ARG_SHOWN_STARTS, starts);
+        setArguments(args);
+        return this;
+    }
+
+// bq7: dashboard, group, slot or schedule, it goes in the creation_started event
+    public CreateActivitySheet withEntryPoint(String entryPoint) {
+        Bundle args = getArguments() == null ? new Bundle() : getArguments();
+        args.putString(ARG_ENTRY_POINT, entryPoint);
         setArguments(args);
         return this;
     }
@@ -149,6 +166,21 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         time.setFocusable(false);
         time.setOnClickListener(v -> pickTime(time));
 
+// bq7: one flow for each opening of the form, after the phone turns it is the same flow
+        if (savedInstanceState != null && savedInstanceState.getString(STATE_FLOW_ID) != null) {
+            flow = CreationFlowTracker.restore(savedInstanceState.getString(STATE_FLOW_ID),
+                    savedInstanceState.getLong(STATE_FLOW_STARTED),
+                    savedInstanceState.getStringArrayList(STATE_FLOW_STEPS),
+                    savedInstanceState.getBoolean(STATE_FLOW_FINISHED));
+        } else {
+            flow = CreationFlowTracker.start(args.getString(ARG_ENTRY_POINT,
+                    groupId != null ? AnalyticsEvents.ENTRY_GROUP : AnalyticsEvents.ENTRY_DASHBOARD));
+        }
+// a group that comes already picked means the user reached the group step when the form opened
+        if (groupId != null) {
+            flow.stepViewed(CreationFlowTracker.Step.GROUP);
+        }
+
         view.findViewById(R.id.sheet_close_btn).setOnClickListener(v -> dismiss());
         View createButton = view.findViewById(R.id.btn_create_activity);
         createButton.setEnabled(groupId != null && !groupId.trim().isEmpty());
@@ -165,10 +197,45 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         }
     }
 
+// bq7: the steps count when the user edits a field, we start listening after android puts back the texts
+// so the texts that come already filled or come back after the phone turns are not counted
+    @Override
+    public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+        View view = getView();
+        if (view == null) {
+            return;
+        }
+        countFirstEdit(view.findViewById(R.id.input_activity_title), CreationFlowTracker.Step.DETAILS);
+        countFirstEdit(view.findViewById(R.id.input_activity_duration), CreationFlowTracker.Step.DURATION);
+        countFirstEdit(view.findViewById(R.id.input_activity_date), CreationFlowTracker.Step.DATE_TIME);
+        countFirstEdit(view.findViewById(R.id.input_activity_time), CreationFlowTracker.Step.DATE_TIME);
+        countFirstEdit(view.findViewById(R.id.input_activity_location), CreationFlowTracker.Step.PLACE);
+    }
+
+// the first change of the field marks its step, the tracker logs each step only one time
+    private void countFirstEdit(EditText field, CreationFlowTracker.Step step) {
+        field.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { }
+
+            @Override public void afterTextChanged(android.text.Editable s) {
+                if (flow != null) flow.stepViewed(step);
+            }
+        });
+    }
+
 // the group picked in the chips is not in the arguments, so we save it before android makes the form again
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
+        if (flow != null) {
+            outState.putString(STATE_FLOW_ID, flow.getFlowId());
+            outState.putLong(STATE_FLOW_STARTED, flow.getStartedAt());
+            outState.putStringArrayList(STATE_FLOW_STEPS, flow.seenSteps());
+            outState.putBoolean(STATE_FLOW_FINISHED, flow.isFinished());
+        }
         boolean pickedInChips = getArguments() == null || getArguments().getString(ARG_GROUP_ID) == null;
         if (pickedInChips && groupId != null) {
             outState.putString(STATE_PICKED_GROUP, groupId);
@@ -213,6 +280,7 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
                     chip.setOnClickListener(v -> {
                         groupId = group.getId();
                         groupSize = group.getSize();
+                        flow.stepViewed(CreationFlowTracker.Step.GROUP);
                         for (TextView other : all) {
                             boolean on = other == chip;
                             other.setBackgroundResource(on ? R.drawable.bg_chip_selected : R.drawable.bg_chip_unselected);
@@ -236,6 +304,8 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
 
     private void publish(EditText titleInput, EditText dateInput, EditText timeInput,
                          EditText durationInput, EditText locationInput, View button) {
+// bq7: tapping create activity is the review step, even if a field is wrong and the form stays open
+        flow.stepViewed(CreationFlowTracker.Step.REVIEW);
         if (groupId == null || groupId.trim().isEmpty()) {
             Toast.makeText(requireContext(), "Choose a group before creating the activity", Toast.LENGTH_SHORT).show();
             return;
@@ -277,6 +347,8 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         ActivityCreationTelemetry.attempt(sessionId, "group_activity", groupSize);
         Repositories.activities().createActivity(activity, new Callback<PlannedActivity>() {
             @Override public void onSuccess(PlannedActivity saved) {
+// bq7: the activity was created, this flow is not an abandon
+                flow.finished();
                 ActivityCreationTelemetry.result(sessionId, "group_activity",
                         System.currentTimeMillis() - startedAt, true, saved.getId(), null);
                 Map<String, Object> event = new HashMap<>();

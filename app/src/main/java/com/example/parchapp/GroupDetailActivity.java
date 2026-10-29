@@ -362,6 +362,7 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
             return;
         }
         CreateActivitySheet.newInstance(currentGroup.getId(), currentGroup.getSize(), null, -1)
+                .withEntryPoint(com.example.parchapp.analytics.AnalyticsEvents.ENTRY_GROUP)
                 .show(getSupportFragmentManager(), "create_activity");
     }
 
