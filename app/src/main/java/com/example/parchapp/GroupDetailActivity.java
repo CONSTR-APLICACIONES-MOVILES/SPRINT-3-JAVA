@@ -10,6 +10,7 @@ import android.location.Location;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -27,6 +28,7 @@ import com.example.parchapp.domain.model.Group;
 import com.example.parchapp.domain.model.Member;
 import com.example.parchapp.domain.model.PlannedActivity;
 import com.example.parchapp.util.Callback;
+import com.example.parchapp.util.ExternalActions;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 import com.google.android.gms.tasks.CancellationTokenSource;
@@ -36,7 +38,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
-/** Group screen shell. Group membership and Firestore behavior are restored on its feature branch. */
+// f6: screen with the details of one group, it listens to the group in real time and shows the members, the next plan and the actions
 public class GroupDetailActivity extends AppCompatActivity implements GroupListener {
     public static final String EXTRA_GROUP_ID = "extra_group_id";
 // f1: code to know which permission answer is ours
@@ -51,6 +53,8 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
     private PlannedActivity groupPlan;
 // true when the group was deleted or the user can not read it
     private boolean groupUnavailable;
+// last version of the group, the plan buttons need its id and size
+    private Group currentGroup;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,16 +91,26 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
                 CompareAvailabilitySheet.newInstance(id).show(getSupportFragmentManager(), "compare_availability");
             }
         });
-        findViewById(R.id.plan_details_button).setEnabled(false);
-        findViewById(R.id.add_calendar_button).setEnabled(false);
-        findViewById(R.id.refresh_roommates_button).setEnabled(false);
-// f6: propose plan opens the create group form
-        findViewById(R.id.propose_plan_button).setOnClickListener(v ->
-                startActivity(new Intent(this, CreateGroupActivity.class)));
-        findViewById(R.id.sync_schedules_button).setEnabled(false);
-        findViewById(R.id.house_chat_button).setEnabled(false);
+// the plan card buttons use the plan that is on the card
+        findViewById(R.id.plan_details_button).setOnClickListener(v -> openPlanDetails());
+        findViewById(R.id.add_calendar_button).setOnClickListener(v -> addPlanToCalendar());
+// refresh asks again how many members have their calendar synced and the next plan
+        findViewById(R.id.refresh_roommates_button).setOnClickListener(v -> refresh());
+// propose plan and create plan open the form to make a plan for this group
+        findViewById(R.id.propose_plan_button).setOnClickListener(v -> openCreatePlan());
+        findViewById(R.id.create_plan_button).setOnClickListener(v -> openCreatePlan());
+// they wait until the group is loaded, the form needs its id and size
+        setPlanButtonsEnabled(false);
+// sync schedules opens compare availability with this group
+        findViewById(R.id.sync_schedules_button).setOnClickListener(v -> {
+            String id = getIntent().getStringExtra(EXTRA_GROUP_ID);
+            if (id != null) {
+                startActivity(CompareAvailabilityActivity.intent(this, id));
+            }
+        });
+// the app has no chat yet, so we say it instead of doing nothing
+        findViewById(R.id.house_chat_button).setOnClickListener(v -> toast(R.string.group_chat_coming_soon));
         findViewById(R.id.view_all_activities).setEnabled(false);
-        findViewById(R.id.create_plan_button).setEnabled(false);
 
 // shared bottom bar, groups is the active tab and it goes back to the list of groups
         BottomNav.setup(this, BottomNav.Tab.GROUPS);
@@ -105,9 +119,8 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         campusText = findViewById(R.id.campus_status_text);
         loadPlanContext();
 
-// f3: we look for the next plan of this group to show it with the travel time
+// f3: service for the travel time of the next plan, the plan loads when the screen starts
         travelTime = new TravelTimeService(this);
-        loadGroupPlan();
     }
 
 // f6: when the screen is visible we listen to the group, so changes from other people appear at once
@@ -118,6 +131,8 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         String groupId = getIntent().getStringExtra(EXTRA_GROUP_ID);
         if (groupId != null) {
             Repositories.groups().observeGroup(groupId, this);
+// f3: we look for the next plan every time the screen shows, so a plan made from here appears when the user comes back
+            loadGroupPlan();
         } else {
 // without a group id there is nothing to load, so we say it instead of loading forever
             onGroupUnavailable(null);
@@ -141,7 +156,8 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         for (int card : new int[]{R.id.member_card_0, R.id.member_card_1, R.id.member_card_2, R.id.member_card_3}) {
             findViewById(card).setVisibility(View.GONE);
         }
-        findViewById(R.id.propose_plan_button).setEnabled(false);
+        currentGroup = null;
+        setPlanButtonsEnabled(false);
     }
 
 // f6: we stop listening when the screen is not visible, so we do not leak the screen
@@ -161,6 +177,8 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         if (isFinishing() || isDestroyed()) {
             return;
         }
+        currentGroup = group;
+        setPlanButtonsEnabled(true);
         int size = group.getSize();
         String members = size == 1 ? "1 member" : size + " members";
         ((TextView) findViewById(R.id.top_group_name_text)).setText(group.getName());
@@ -329,6 +347,56 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
                 }
             }
         });
+    }
+
+// turns on or off the two buttons that make a plan, when they are off they look lighter
+    private void setPlanButtonsEnabled(boolean enabled) {
+        findViewById(R.id.propose_plan_button).setEnabled(enabled);
+        findViewById(R.id.create_plan_button).setEnabled(enabled);
+        findViewById(R.id.create_plan_button).setAlpha(enabled ? 1f : 0.5f);
+    }
+
+// opens the form to create a plan with this group already picked
+    private void openCreatePlan() {
+        if (currentGroup == null || getSupportFragmentManager().findFragmentByTag("create_activity") != null) {
+            return;
+        }
+        CreateActivitySheet.newInstance(currentGroup.getId(), currentGroup.getSize(), null, -1)
+                .show(getSupportFragmentManager(), "create_activity");
+    }
+
+// shows all the data of the plan that is on the card
+    private void openPlanDetails() {
+        if (groupPlan == null) {
+            return;
+        }
+        PlanDetailsSheet.newInstance(groupPlan.getTitle(), groupPlan.getStatus(),
+                groupPlan.getDate(), groupPlan.getTime(), groupPlan.getLocation())
+                .show(getSupportFragmentManager(), "plan_details");
+    }
+
+// opens the calendar app of the phone with the plan already filled
+    private void addPlanToCalendar() {
+        if (groupPlan == null) {
+            return;
+        }
+        if (!ExternalActions.openCalendar(this, groupPlan.getTitle(), groupPlan.getDate(),
+                groupPlan.getTime(), groupPlan.getLocation())) {
+            toast(R.string.group_no_calendar_app);
+        }
+    }
+
+// asks again for the synced calendars of the members and for the next plan
+    private void refresh() {
+        if (currentGroup != null) {
+            loadSyncedCount(currentGroup);
+        }
+        loadGroupPlan();
+    }
+
+// short message at the bottom of the screen with a text of strings.xml
+    private void toast(int message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
 //f1: if we have the location permission we read the location, if not we ask the user for it

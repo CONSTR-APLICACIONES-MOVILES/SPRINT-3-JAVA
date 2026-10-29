@@ -54,6 +54,17 @@
     <string name="group_activity_most">Most Active</string>
     <string name="group_activity_active">Active</string>
     <string name="group_activity_low">Low Activity</string>
+    <string name="group_name_counter">%1$d/%2$d</string>
+    <string name="group_name_invalid">Use %1$d to %2$d characters with at least 2 letters or numbers</string>
+    <string name="group_email_empty">Enter an email</string>
+    <string name="group_email_invalid">Enter a valid email</string>
+    <string name="group_email_repeated">This email is already in the list</string>
+    <string name="group_email_yourself">You are already in the group</string>
+    <string name="group_invites_limit">You can invite up to %d people</string>
+    <string name="group_invite_pending">%1$s   •   Pending   ×</string>
+    <string name="group_time_past">Pick a time later than now</string>
+    <string name="group_created">Group created</string>
+    <string name="group_create_failed">Could not create the group. Try again.</string>
     <string name="view_all_groups">View all (%d)</string>
     <string name="open_chat">Open chat</string>
     <string name="view_status">View status</string>
@@ -262,6 +273,8 @@
     <string name="creating_account">Creating account…</string>
     <string name="cd_profile">Profile</string>
     <string name="search_coming_soon">Search coming soon</string>
+    <string name="group_chat_coming_soon">Group chat coming soon</string>
+    <string name="group_no_calendar_app">There is no calendar app on this phone</string>
     <string name="schedule_calendar_title">Google Calendar · Bogotá</string>
     <string name="schedule_import_idle">Sync busy periods without sharing event details.</string>
     <string name="schedule_import_busy">Syncing your busy periods…</string>
