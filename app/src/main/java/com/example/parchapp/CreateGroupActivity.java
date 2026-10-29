@@ -47,10 +47,8 @@ public class CreateGroupActivity extends AppCompatActivity {
         findViewById(R.id.copy_group_link_button).setEnabled(false);
         findViewById(R.id.share_group_link_button).setEnabled(false);
         findViewById(R.id.show_qr_button).setEnabled(false);
-        findViewById(R.id.header_notif_btn).setOnClickListener(v ->
-                startActivity(new Intent(this, AlertsActivity.class)));
-        findViewById(R.id.header_profile_btn).setOnClickListener(v ->
-                startActivity(new Intent(this, ProfileActivity.class)));
+        // shared top bar with the logo, search, alerts and the user initials
+        TopHeader.setup(this);
 // shared bottom bar, groups is the active tab
         BottomNav.setup(this, BottomNav.Tab.GROUPS);
 

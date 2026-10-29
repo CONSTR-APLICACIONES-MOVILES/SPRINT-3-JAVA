@@ -260,4 +260,6 @@
     <string name="activity_reminder_requires_schedule">A complete scheduled time is required for a reminder.</string>
     <string name="signing_in">Signing in…</string>
     <string name="creating_account">Creating account…</string>
+    <string name="cd_profile">Profile</string>
+    <string name="search_coming_soon">Search coming soon</string>
 </resources>

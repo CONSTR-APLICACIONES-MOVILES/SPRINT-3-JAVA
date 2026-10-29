@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- logo inside the white card used on welcome and sign in -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:left="10dp" android:right="10dp" android:top="8dp" android:bottom="8dp">
         <shape android:shape="rectangle">
@@ -7,13 +8,10 @@
             <stroke android:width="1dp" android:color="#E2E8F0" />
         </shape>
     </item>
-    <item android:left="17dp" android:right="27dp" android:top="16dp" android:bottom="16dp">
-        <shape android:shape="rectangle"><solid android:color="#2563EB" /><corners android:radius="5dp" /></shape>
-    </item>
-    <item android:left="27dp" android:right="17dp" android:top="16dp" android:bottom="16dp">
-        <shape android:shape="rectangle"><solid android:color="#10B981" /><corners android:radius="5dp" /></shape>
-    </item>
-    <item android:left="25dp" android:right="25dp" android:top="15dp" android:bottom="15dp">
-        <shape android:shape="rectangle"><solid android:color="#0D9488" /><corners android:radius="4dp" /></shape>
-    </item>
+    <item
+        android:drawable="@drawable/ic_parchapp_mark"
+        android:left="16dp"
+        android:right="16dp"
+        android:top="14dp"
+        android:bottom="14dp" />
 </layer-list>

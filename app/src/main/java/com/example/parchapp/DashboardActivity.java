@@ -54,12 +54,8 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         displayFreeUntil = findViewById(R.id.display_free_until);
         displayNextActivity = findViewById(R.id.display_next_activity);
 
-        findViewById(R.id.header_search_btn).setOnClickListener(v -> toast("Search coming soon"));
-        findViewById(R.id.header_notif_btn).setOnClickListener(v -> {
-            startActivity(new Intent(this, AlertsActivity.class));
-        });
-        findViewById(R.id.header_user_initials).setOnClickListener(v ->
-                startActivity(new Intent(this, ProfileActivity.class)));
+        // shared top bar with the logo, search, alerts and the user initials
+        TopHeader.setup(this);
 
         // invite links are not built yet: the box says so and the button looks disabled
         View copyLink = findViewById(R.id.copy_link_button);
