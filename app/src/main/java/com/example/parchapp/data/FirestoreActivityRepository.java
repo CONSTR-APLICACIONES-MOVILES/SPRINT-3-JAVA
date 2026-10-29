@@ -65,12 +65,16 @@ class FirestoreActivityRepository implements ActivityPlanRepository {
         boolean comparisonUsed = context != null && Boolean.TRUE.equals(context.get("comparisonUsed"));
         String areaId = context != null && context.get("locationAreaId") != null
                 ? context.get("locationAreaId").toString() : PlannedActivity.UNKNOWN_AREA;
+        Object rawReminder = snapshot.get("reminderMinutesBefore");
+        Integer reminder = rawReminder instanceof Number ? ((Number) rawReminder).intValue() : null;
         return new PlannedActivity(snapshot.getId(),
                 stringValue(snapshot.get("groupId")), stringValue(snapshot.get("title")),
                 stringValue(snapshot.get("category")), stringValue(snapshot.get("date")),
                 stringValue(snapshot.get("time")), stringValue(snapshot.get("location")),
                 stringValue(snapshot.get("status")), timestampMillis(snapshot.get("createdAt")),
-                groupSize, comparisonUsed, areaId);
+                groupSize, comparisonUsed, stringValue(snapshot.get("startTime")),
+                stringValue(snapshot.get("endTime")), areaId,
+                stringValue(snapshot.get("createdBy")), reminder);
     }
 
     private static String stringValue(Object value) {
