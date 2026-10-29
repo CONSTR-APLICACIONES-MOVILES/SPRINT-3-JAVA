@@ -41,6 +41,8 @@ public final class AnalyticsEvents {
     public static final String PARAM_CATEGORY = "category";
     public static final String PARAM_CLIENT_TS = "client_ts";
     public static final String PARAM_ACTIVITY_ID = "activity_id";
+    // bq9: id of the backend planning comparison, the same param the Flutter app sends
+    public static final String PARAM_COMPARISON_ID = "comparison_id";
     public static final String PARAM_RECOMMENDATION_ID = "recommendation_id";
     public static final String PARAM_SLOT_POSITION = "slot_position";
     public static final String PARAM_MODIFIED = "modified";
