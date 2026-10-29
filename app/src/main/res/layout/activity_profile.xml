@@ -26,7 +26,7 @@
         </LinearLayout>
         <TextView android:id="@+id/profile_academic_card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:background="@drawable/bg_dashboard_card" android:padding="16dp" android:textColor="@color/brand_dark" android:textSize="13sp" />
         <TextView android:id="@+id/profile_groups_card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/bg_dashboard_card" android:padding="16dp" android:textColor="@color/brand_dark" android:textSize="13sp" />
-        <TextView android:id="@+id/profile_calendar_card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/bg_dashboard_card" android:padding="16dp" android:textColor="@color/brand_dark" android:textSize="13sp" />
+        <TextView android:id="@+id/profile_calendar_card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/bg_dashboard_card" android:clickable="true" android:focusable="true" android:padding="16dp" android:textColor="@color/brand_dark" android:textSize="13sp" />
         <androidx.appcompat.widget.AppCompatButton android:id="@+id/profile_logout_button" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="20dp" android:background="@drawable/bg_red_chip" android:text="Log out" android:textAllCaps="false" android:textColor="@color/brand_urgent_dark" android:textStyle="bold" />
     </LinearLayout>
 </ScrollView>
