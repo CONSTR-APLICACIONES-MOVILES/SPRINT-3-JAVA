@@ -1,5 +1,7 @@
 package com.example.parchapp;
 
+import com.example.parchapp.analytics.AnalyticsTracker;
+import com.example.parchapp.analytics.AnalyticsEvents;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Patterns;
@@ -95,6 +97,8 @@ public class CreateGroupActivity extends AppCompatActivity {
             return;
         }
         invites.add(email);
+        // bq8: adding an invite is a use of the invitations feature
+        AnalyticsTracker.getInstance().trackFeature(AnalyticsEvents.FEATURE_INVITATIONS, "create_group");
         emailInput.setText("");
         renderInvites();
     }
