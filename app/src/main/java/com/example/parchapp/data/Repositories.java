@@ -18,6 +18,7 @@ public final class Repositories {
     private static boolean firebaseAvailable;
     private static GroupRepository groups;
     private static ActivityRepository activities;
+    private static AlertsRepository alerts;
     private static InsightsRepository insights;
     private static CampusPlaceRepository places;
     private static AuthRepository auth;
@@ -64,6 +65,7 @@ public final class Repositories {
             activities = new CompositeActivityRepository(
                     new FirestoreActivityRepository(db),
                     new FirebaseActivityRepository(functions));
+            alerts = new FirebaseAlertsRepository(functions);
             insights = new FirestoreInsightsRepository(db);
             places = new FirestoreCampusPlaceRepository(db);
             // schedules come from the backend callables getScheduleFriends and getScheduleDay
@@ -72,6 +74,7 @@ public final class Repositories {
             auth = new DisabledAuthRepository();
             groups = new EmptyGroupRepository();
             activities = new DisabledActivityRepository();
+            alerts = new DisabledAlertsRepository();
             insights = callback -> MainThread.post(() ->
                     callback.onSuccess(InsightsRepository.DEFAULT_RECOMMENDED_POSITION));
             // without a backend there is no place data, so the card says travel time is unavailable
@@ -102,6 +105,10 @@ public final class Repositories {
 
     public static ActivityRepository activities() {
         return activities;
+    }
+
+    public static AlertsRepository alerts() {
+        return alerts;
     }
 
     public static InsightsRepository insights() {

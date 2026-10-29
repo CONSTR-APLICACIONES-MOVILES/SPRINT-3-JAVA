@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/alert_card"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="8dp"
+    android:background="@drawable/bg_dashboard_card"
+    android:clickable="true"
+    android:focusable="true"
+    android:orientation="horizontal">
+
+    <View
+        android:id="@+id/alert_priority_accent"
+        android:layout_width="4dp"
+        android:layout_height="match_parent"
+        android:background="@color/brand_border" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:padding="13dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <ImageView
+                android:id="@+id/alert_icon"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_icon_badge_square"
+                android:padding="9dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_notifications"
+                android:tint="@color/brand_primary" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="9dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical">
+                    <TextView
+                        android:id="@+id/alert_category"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_light_blue"
+                        android:paddingStart="6dp"
+                        android:paddingTop="3dp"
+                        android:paddingEnd="6dp"
+                        android:paddingBottom="3dp"
+                        android:textColor="@color/brand_primary"
+                        android:textSize="9sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/alert_priority"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="5dp"
+                        android:layout_weight="1"
+                        android:textColor="@color/brand_slate"
+                        android:textSize="9sp" />
+                    <View
+                        android:id="@+id/alert_unread_dot"
+                        android:layout_width="7dp"
+                        android:layout_height="7dp"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_oval_solid"
+                        android:backgroundTint="@color/brand_primary" />
+                </LinearLayout>
+                <TextView
+                    android:id="@+id/alert_timestamp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:textColor="@color/brand_slate"
+                    android:textSize="10sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/alert_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="9dp"
+            android:textColor="@color/brand_dark"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/alert_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:textColor="@color/brand_slate"
+            android:textSize="11sp" />
+        <TextView
+            android:id="@+id/alert_response_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="7dp"
+            android:textColor="@color/brand_success_dark"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/alert_actions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal"
+            android:visibility="gone">
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alert_accept_button" android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1" android:background="@drawable/bg_primary_pill" android:minWidth="0dp" android:text="@string/alerts_accept" android:textAllCaps="false" android:textColor="@android:color/white" android:textSize="10sp" />
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alert_maybe_button" android:layout_width="0dp" android:layout_height="34dp" android:layout_marginStart="5dp" android:layout_weight="1" android:background="@drawable/bg_light_blue" android:minWidth="0dp" android:text="@string/alerts_maybe" android:textAllCaps="false" android:textColor="@color/brand_primary" android:textSize="10sp" />
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alert_decline_button" android:layout_width="wrap_content" android:layout_height="34dp" android:layout_marginStart="5dp" android:background="@drawable/bg_chip_unselected" android:minWidth="0dp" android:paddingStart="9dp" android:paddingEnd="9dp" android:text="@string/alerts_decline" android:textAllCaps="false" android:textColor="@color/brand_slate" android:textSize="10sp" />
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/alert_mark_read_button" android:layout_width="wrap_content" android:layout_height="34dp" android:layout_marginStart="5dp" android:background="@drawable/bg_light_blue" android:minWidth="0dp" android:paddingStart="9dp" android:paddingEnd="9dp" android:text="@string/alerts_mark_read" android:textAllCaps="false" android:textColor="@color/brand_primary" android:textSize="10sp" android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
