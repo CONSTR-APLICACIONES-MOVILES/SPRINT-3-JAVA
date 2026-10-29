@@ -18,6 +18,7 @@ import com.example.parchapp.domain.availability.SlotRanker;
 import com.example.parchapp.domain.availability.SoonestRanking;
 import com.example.parchapp.domain.model.Group;
 import com.example.parchapp.domain.model.Member;
+import com.example.parchapp.domain.model.SlotAcceptanceInsight;
 import com.example.parchapp.domain.model.TimeSlot;
 import com.example.parchapp.util.Callback;
 
@@ -54,6 +55,8 @@ final class CompareAvailabilityController {
     private int recommendedPosition = InsightsRepository.DEFAULT_RECOMMENDED_POSITION;
 
     private final TextView statusText;
+// bq3: the answer of the question, shown on top of the slots
+    private final TextView bq3InsightText;
     private final View bestSlotCard;
     private final LinearLayout alternativeSlots;
     private final Button scheduleButton;
@@ -72,6 +75,7 @@ final class CompareAvailabilityController {
         AnalyticsTracker.getInstance().trackFeature(AnalyticsEvents.FEATURE_COMPARE_AVAILABILITY, source);
 
         statusText = root.findViewById(R.id.slots_status_text);
+        bq3InsightText = root.findViewById(R.id.bq3_insight_text);
         bestSlotCard = root.findViewById(R.id.best_slot_card);
         alternativeSlots = root.findViewById(R.id.alternative_slots);
         scheduleButton = root.findViewById(R.id.btn_schedule_in_slot);
@@ -87,10 +91,15 @@ final class CompareAvailabilityController {
         preferenceChip.setOnClickListener(v -> useRanker(new PreferenceRanking()));
         soonestChip.setOnClickListener(v -> useRanker(new SoonestRanking()));
 
-        Repositories.insights().getRecommendedSlotPosition(new Callback<Integer>() {
+// bq3: one read gives the recommended position for the badge and the text with the percent
+        Repositories.insights().getSlotAcceptance(new Callback<SlotAcceptanceInsight>() {
             @Override
-            public void onSuccess(Integer position) {
-                recommendedPosition = position;
+            public void onSuccess(SlotAcceptanceInsight insight) {
+                if (!host.isAlive()) {
+                    return;
+                }
+                recommendedPosition = insight.getRecommendedPosition();
+                showSlotAcceptance(insight);
                 // the slots can arrive before or after this answer, so we redraw if they are already there
                 if (host.isAlive() && !rankedSlots.isEmpty()) {
                     renderSlots();
@@ -101,6 +110,21 @@ final class CompareAvailabilityController {
             public void onError(Exception error) {
             }
         });
+    }
+
+// bq3: with enough slots it says the percent and the best position, if not it says why the first slot is recommended
+    private void showSlotAcceptance(SlotAcceptanceInsight insight) {
+        int position = insight.getRecommendedPosition() + 1;
+        if (!insight.hasEnoughData()) {
+            bq3InsightText.setText(context.getString(R.string.bq3_insight_no_data, SlotAcceptanceInsight.MIN_SAMPLE));
+        } else if (insight.noneAcceptedUnchanged()) {
+// with 0 percent there is no best position, so we do not say that one works best
+            bq3InsightText.setText(context.getString(R.string.bq3_insight_all_changed, insight.getSampleSize()));
+        } else {
+            bq3InsightText.setText(context.getString(R.string.bq3_insight,
+                    insight.roundedPercent(), position, insight.getSampleSize()));
+        }
+        bq3InsightText.setVisibility(View.VISIBLE);
     }
 
     void loadGroup(String groupId) {
