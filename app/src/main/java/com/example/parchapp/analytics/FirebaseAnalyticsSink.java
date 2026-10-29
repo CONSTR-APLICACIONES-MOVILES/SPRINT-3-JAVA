@@ -21,4 +21,9 @@ class FirebaseAnalyticsSink implements AnalyticsSink {
     public void setUserId(String anonymousId) {
         firebaseAnalytics.setUserId(anonymousId);
     }
+
+    @Override
+    public void setCollectionEnabled(boolean enabled) {
+        firebaseAnalytics.setAnalyticsCollectionEnabled(enabled);
+    }
 }
