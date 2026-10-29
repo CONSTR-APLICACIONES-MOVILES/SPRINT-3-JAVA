@@ -219,12 +219,19 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         host.startActivity(result);
     }
 
+    // the picked values are Bogota time, so they must be written in Bogota time too, not in the phone's time zone
+    private static SimpleDateFormat bogotaFormat(String pattern) {
+        SimpleDateFormat format = new SimpleDateFormat(pattern, Locale.US);
+        format.setTimeZone(TimeZone.getTimeZone("America/Bogota"));
+        return format;
+    }
+
     private void pickDate(EditText field) {
         Calendar today = Calendar.getInstance(TimeZone.getTimeZone("America/Bogota"));
         new DatePickerDialog(requireContext(), (picker, year, month, day) -> {
             Calendar chosen = Calendar.getInstance(TimeZone.getTimeZone("America/Bogota"));
             chosen.set(year, month, day);
-            field.setText(new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(chosen.getTime()));
+            field.setText(bogotaFormat("yyyy-MM-dd").format(chosen.getTime()));
         }, today.get(Calendar.YEAR), today.get(Calendar.MONTH), today.get(Calendar.DAY_OF_MONTH)).show();
     }
 
@@ -234,7 +241,7 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
             Calendar chosen = Calendar.getInstance(TimeZone.getTimeZone("America/Bogota"));
             chosen.set(Calendar.HOUR_OF_DAY, hour);
             chosen.set(Calendar.MINUTE, minute);
-            field.setText(new SimpleDateFormat("HH:mm", Locale.US).format(chosen.getTime()));
+            field.setText(bogotaFormat("HH:mm").format(chosen.getTime()));
         }, now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE), true).show();
     }
 
