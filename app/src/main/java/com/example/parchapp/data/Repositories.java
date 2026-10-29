@@ -18,10 +18,12 @@ public final class Repositories {
     private static boolean firebaseAvailable;
     private static GroupRepository groups;
     private static ActivityRepository activities;
+    private static AlertsRepository alerts;
     private static InsightsRepository insights;
     private static RecommendationDecisionRepository recommendationDecisions;
     private static CampusPlaceRepository places;
     private static AuthRepository auth;
+    private static PrivacySettingsRepository privacySettings;
     private static StatusService status;
     private static ScheduleRepository schedules;
 
@@ -53,6 +55,7 @@ public final class Repositories {
                 firebaseAuth.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 9099);
             }
             auth = new FirebaseAuthRepository(firebaseAuth);
+            privacySettings = new FirebasePrivacySettingsRepository(context, functions);
             FirebaseFirestore db = FirebaseFirestore.getInstance();
             if (BuildConfig.USE_FIREBASE_EMULATORS) {
                 db.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 8080);
@@ -66,14 +69,17 @@ public final class Repositories {
             activities = new CompositeActivityRepository(
                     new FirestoreActivityRepository(db),
                     new FirebaseActivityRepository(functions));
+            alerts = new FirebaseAlertsRepository(functions);
             insights = new FirestoreInsightsRepository(db);
             places = new FirestoreCampusPlaceRepository(db);
             // schedules come from the backend callables getScheduleFriends and getScheduleDay
             schedules = new FunctionsScheduleRepository(functions);
         } else {
             auth = new DisabledAuthRepository();
+            privacySettings = new DisabledPrivacySettingsRepository(context);
             groups = new EmptyGroupRepository();
             activities = new DisabledActivityRepository();
+            alerts = new DisabledAlertsRepository();
             insights = callback -> MainThread.post(() ->
                     callback.onSuccess(InsightsRepository.DEFAULT_RECOMMENDED_POSITION));
             // without a backend there is no place data, so the card says travel time is unavailable
@@ -106,6 +112,8 @@ public final class Repositories {
         return activities;
     }
 
+    public static AlertsRepository alerts() {
+        return alerts;
     /* null without Firebase: BQ3 decisions only exist on the backend */
     public static RecommendationDecisionRepository recommendationDecisions() {
         return recommendationDecisions;
@@ -121,6 +129,10 @@ public final class Repositories {
 
     public static AuthRepository auth() {
         return auth;
+    }
+
+    public static PrivacySettingsRepository privacySettings() {
+        return privacySettings;
     }
 
     public static ScheduleRepository schedules() {

@@ -64,8 +64,8 @@ public final class FirebaseActivityRepository implements ActivityActionsReposito
                             string(data.get("groupId")), string(data.get("title")),
                             string(data.get("category")), string(data.get("date")),
                             string(data.get("time")), string(data.get("location")),
-                            string(data.get("status")), string(data.get("startTime")),
-                            string(data.get("endTime")), reminder);
+                             string(data.get("status")), string(data.get("startTime")),
+                             string(data.get("endTime")), reminder, string(data.get("createdBy")));
                     MainThread.post(() -> callback.onSuccess(details));
                 })
                 .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));

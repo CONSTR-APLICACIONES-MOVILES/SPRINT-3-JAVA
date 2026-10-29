@@ -94,6 +94,11 @@ class EventQueue {
         return drained;
     }
 
+    synchronized void clear() {
+        events.clear();
+        trimAndPersist();
+    }
+
     synchronized int size() {
         return events.size();
     }
