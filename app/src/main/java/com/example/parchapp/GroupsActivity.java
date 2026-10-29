@@ -49,13 +49,8 @@ public class GroupsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_groups);
         groupsList = findViewById(R.id.groups_list);
 
-        UserProfile user = UserSession.getCurrentUser();
-        ((TextView) findViewById(R.id.header_user_initials)).setText(user == null ? "" : user.getInitials());
-        findViewById(R.id.header_search_btn).setOnClickListener(v -> toast("Search coming soon"));
-        findViewById(R.id.header_notif_btn).setOnClickListener(v ->
-                startActivity(new Intent(this, AlertsActivity.class)));
-        findViewById(R.id.header_user_initials).setOnClickListener(v ->
-                startActivity(new Intent(this, ProfileActivity.class)));
+        // shared top bar with the logo, search, alerts and the user initials
+        TopHeader.setup(this);
 
         // bq8: groups counts as used when this screen opens (not again on rotation)
         if (savedInstanceState == null) {

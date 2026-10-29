@@ -95,14 +95,8 @@ public class ScheduleActivity extends AppCompatActivity {
         friendsHeader = findViewById(R.id.schedule_friends_header);
         stateMessage = findViewById(R.id.schedule_state_message);
 
-        UserProfile currentUser = UserSession.getCurrentUser();
-        ((TextView) findViewById(R.id.schedule_profile_btn)).setText(
-                currentUser == null ? "" : currentUser.getInitials());
-        findViewById(R.id.schedule_profile_btn).setOnClickListener(v ->
-                new AvailabilityStatusSheet().show(getSupportFragmentManager(), "availability_status"));
-        findViewById(R.id.schedule_search_btn).setOnClickListener(v -> toast("Search coming soon"));
-        findViewById(R.id.schedule_notif_btn).setOnClickListener(v ->
-                startActivity(new Intent(this, AlertsActivity.class)));
+        // shared top bar with the logo, search, alerts and the user initials
+        TopHeader.setup(this);
         compareButton.setOnClickListener(v -> toggleCompare());
         findViewById(R.id.schedule_summary).setOnClickListener(v -> openSlotsSheet());
         findViewById(R.id.schedule_fab).setOnClickListener(v ->
