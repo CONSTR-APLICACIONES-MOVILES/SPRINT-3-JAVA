@@ -31,7 +31,7 @@ public final class AnalyticsTracker {
 
     private static volatile AnalyticsTracker instance;
 
-    private final EventQueue queue = new EventQueue();
+    private final EventQueue queue;
     private final List<ConnectivityListener> connectivityListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
     private AnalyticsSink sink;
     private ConnectivityMonitor connectivity;
@@ -39,6 +39,11 @@ public final class AnalyticsTracker {
     private volatile boolean analyticsConsent;
 
     private AnalyticsTracker() {
+        this(new EventQueue());
+    }
+
+    AnalyticsTracker(EventQueue queue) {
+        this.queue = queue;
     }
 
     public static AnalyticsTracker getInstance() {

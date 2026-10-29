@@ -8,6 +8,7 @@ import com.google.firebase.functions.FirebaseFunctions;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -60,12 +61,27 @@ public final class FirebaseActivityRepository implements ActivityActionsReposito
                     Map<?, ?> data = map(result.getData());
                     Object rawReminder = data.get("reminderMinutesBefore");
                     Integer reminder = rawReminder instanceof Number ? ((Number) rawReminder).intValue() : null;
+                    Object rawDuration = data.get("durationMinutes");
+                    Integer duration = rawDuration instanceof Number ? ((Number) rawDuration).intValue() : null;
+                    int totalParticipants = 0;
+                    int acceptedParticipants = 0;
+                    Object rawParticipants = data.get("participants");
+                    if (rawParticipants instanceof List) {
+                        for (Object rawParticipant : (List<?>) rawParticipants) {
+                            if (!(rawParticipant instanceof Map)) continue;
+                            totalParticipants++;
+                            Object response = ((Map<?, ?>) rawParticipant).get("activityRsvpStatus");
+                            if ("accepted".equals(response)) acceptedParticipants++;
+                        }
+                    }
                     ActivityDetails details = new ActivityDetails(string(data.get("id")),
                             string(data.get("groupId")), string(data.get("title")),
                             string(data.get("category")), string(data.get("date")),
                             string(data.get("time")), string(data.get("location")),
                              string(data.get("status")), string(data.get("startTime")),
-                             string(data.get("endTime")), reminder, string(data.get("createdBy")));
+                             string(data.get("endTime")), reminder, string(data.get("createdBy")),
+                            duration, Boolean.TRUE.equals(data.get("cancelled")),
+                            totalParticipants, acceptedParticipants);
                     MainThread.post(() -> callback.onSuccess(details));
                 })
                 .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));

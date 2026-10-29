@@ -26,8 +26,12 @@ public final class AnalyticsEvents {
     public static final String CREATION_STARTED = "creation_started";
     public static final String CREATION_STEP_VIEWED = "creation_step_viewed";
     public static final String CREATION_FINISHED = "creation_finished";
+    /* BQ5: response timing by activity group size. */
+    public static final String RSVP_SUBMITTED = "rsvp_submitted";
 
     public static final String PARAM_GROUP_SIZE = "group_size";
+    public static final String PARAM_RESPONSE_MS = "response_ms";
+    public static final String PARAM_RESPONSE = "response";
     public static final String PARAM_DURATION_MS = "duration_ms";
     public static final String PARAM_SLOT_COUNT = "slot_count";
     public static final String PARAM_RANKER = "ranker";

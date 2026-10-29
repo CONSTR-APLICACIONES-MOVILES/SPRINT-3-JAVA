@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.content.res.ColorStateList;
 import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.analytics.AnalyticsEvents;
+import com.example.parchapp.analytics.RsvpTelemetry;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -300,9 +301,13 @@ public class AlertsActivity extends AppCompatActivity {
 
     private void respondToActivityInvitation(AlertItem alert, String response, View actions) {
         setActionEnabled(actions, false);
+        long respondedAtMillis = System.currentTimeMillis();
         Repositories.alerts().respondToActivityInvitation(alert.getActivityId(), response, new Callback<Void>() {
             @Override public void onSuccess(Void ignored) {
-                if (!isFinishing() && !isDestroyed()) loadAlerts();
+                if (!isFinishing() && !isDestroyed()) {
+                    RsvpTelemetry.recordSubmitted(alert, response, respondedAtMillis);
+                    loadAlerts();
+                }
             }
             @Override public void onError(Exception error) {
                 if (!isFinishing() && !isDestroyed()) actionFailed(actions);

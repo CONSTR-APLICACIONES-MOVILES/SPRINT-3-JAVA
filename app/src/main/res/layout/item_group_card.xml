@@ -25,6 +25,54 @@
         <TextView android:id="@+id/group_card_next" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1" android:ellipsize="end" android:singleLine="true" android:textColor="@color/brand_dark" android:textSize="12sp" />
     </LinearLayout>
 
+    <LinearLayout
+        android:id="@+id/group_card_rsvp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical">
+            <TextView
+                android:id="@+id/group_card_rsvp_label"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Activity RSVP"
+                android:textColor="@color/brand_slate"
+                android:textSize="11sp" />
+            <TextView
+                android:id="@+id/group_card_rsvp_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/brand_slate"
+                android:textSize="11sp" />
+        </LinearLayout>
+        <ProgressBar
+            android:id="@+id/group_card_rsvp_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="7dp"
+            android:layout_marginTop="6dp"
+            android:max="100"
+            android:progressTint="@color/brand_success"
+            android:progressBackgroundTint="@color/brand_card_stroke" />
+        <TextView
+            android:id="@+id/group_card_response_time"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="7dp"
+            android:drawableStart="@drawable/ic_calendar"
+            android:drawablePadding="6dp"
+            android:drawableTint="@color/brand_slate"
+            android:textColor="@color/brand_slate"
+            android:textSize="11sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="center_vertical" android:orientation="horizontal">
         <LinearLayout android:id="@+id/group_card_avatars" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="horizontal" />
         <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_green_chip" android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="10dp" android:paddingTop="5dp" android:paddingEnd="10dp" android:paddingBottom="5dp">

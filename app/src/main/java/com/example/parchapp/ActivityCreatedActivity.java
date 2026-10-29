@@ -52,6 +52,7 @@ public class ActivityCreatedActivity extends AppCompatActivity {
 
         reminderButton = findViewById(R.id.reminder_button);
         reminderStatus = findViewById(R.id.reminder_status);
+        findViewById(R.id.suggested_times_button).setVisibility(View.GONE);
         findViewById(R.id.close_created_button).setOnClickListener(v -> finish());
         findViewById(R.id.copy_invite_button).setEnabled(false);
         findViewById(R.id.whatsapp_button).setEnabled(false);
@@ -118,6 +119,14 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         showSuccessContent();
         bindSummary(details.getTitle(), details.getDate(), details.getTime(), details.getLocation(),
                 categoryLabel(details.getCategory()), statusLabel(details.getStatus()), durationLabel(details));
+        View suggestedTimes = findViewById(R.id.suggested_times_button);
+        UserProfile currentUser = UserSession.getCurrentUser();
+        boolean canSuggest = !details.isCancelled() && currentUser != null
+                && currentUser.getId().equals(details.getCreatedBy())
+                && Repositories.recommendationDecisions() != null;
+        suggestedTimes.setVisibility(canSuggest ? View.VISIBLE : View.GONE);
+        suggestedTimes.setOnClickListener(v -> startActivity(
+                SuggestedTimesActivity.intent(this, details.getId())));
         if (!hasCompleteSchedule(details)) {
             reminderButton.setText("Reminder unavailable");
             reminderStatus.setText(R.string.activity_reminder_requires_schedule);
