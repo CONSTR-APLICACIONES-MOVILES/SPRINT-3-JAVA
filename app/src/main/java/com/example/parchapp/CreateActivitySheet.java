@@ -160,7 +160,10 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
                 event.put(AnalyticsEvents.PARAM_CREATION_SESSION_ID, sessionId);
                 event.put(AnalyticsEvents.PARAM_CATEGORY, saved.getCategory());
                 event.put(AnalyticsEvents.PARAM_GROUP_SIZE, groupSize);
-                event.put(AnalyticsEvents.PARAM_SOURCE, "group_activity");
+                // bq9: a plan made from a Compare Availability slot was created after comparing
+                boolean fromCompare = getArguments() != null && getArguments().getInt(ARG_SLOT_POSITION, -1) >= 0;
+                event.put(AnalyticsEvents.PARAM_SOURCE, fromCompare
+                        ? AnalyticsEvents.SOURCE_SUGGESTED_SLOT : AnalyticsEvents.SOURCE_GROUP_ACTIVITY);
                 AnalyticsTracker.getInstance().track(AnalyticsEvents.ACTIVITY_CREATED, event);
                 if (!isAdded()) return;
                 Intent result = new Intent(requireContext(), ActivityCreatedActivity.class);
