@@ -15,4 +15,10 @@ public interface ScheduleRepository {
 
     /* The current user's schedule first, then one per friend, for a Bogotá date "yyyy-MM-dd". And it works */
     void getDay(String date, List<String> friendIds, Callback<List<DaySchedule>> callback);
+
+    /* Before planning on a common slot the backend checks it is still free for everyone compared (validatePlanningSlot, like the Flutter app). The callback gets the comparison id, valid for 5 minutes. Times are UTC ISO strings at minute precision. */
+    void validatePlanningSlot(List<String> participantIds, String startTime, String endTime, Callback<String> callback);
+
+    /* Google Calendar import: replaces my busy intervals from startDate (today in Bogota) for the next days. Each interval is {startIso, endIso}; only free/busy travels, never titles. The callback gets how many intervals were sent. */
+    void importCalendarAvailability(String startDate, int days, List<String[]> intervals, Callback<Integer> callback);
 }

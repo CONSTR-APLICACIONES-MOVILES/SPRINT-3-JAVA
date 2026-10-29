@@ -73,7 +73,8 @@ public final class Repositories {
             insights = new FirestoreInsightsRepository(db);
             places = new FirestoreCampusPlaceRepository(db);
             // schedules come from the backend callables getScheduleFriends and getScheduleDay
-            schedules = new FunctionsScheduleRepository(functions);
+            // like the Flutter app, the last friends and days are kept on the phone and shown when offline
+            schedules = new OfflineScheduleRepository(context, new FunctionsScheduleRepository(functions));
         } else {
             auth = new DisabledAuthRepository();
             privacySettings = new DisabledPrivacySettingsRepository(context);

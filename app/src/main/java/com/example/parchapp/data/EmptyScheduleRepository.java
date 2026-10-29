@@ -16,4 +16,12 @@ class EmptyScheduleRepository implements ScheduleRepository {
     @Override public void getDay(String date, List<String> friendIds, Callback<List<DaySchedule>> callback) {
         MainThread.post(() -> callback.onSuccess(Collections.emptyList()));
     }
+    @Override public void validatePlanningSlot(List<String> participantIds, String startTime, String endTime,
+                                               Callback<String> callback) {
+        MainThread.post(() -> callback.onError(new UnsupportedOperationException("Validating a slot needs the backend")));
+    }
+    @Override public void importCalendarAvailability(String startDate, int days, List<String[]> intervals,
+                                                     Callback<Integer> callback) {
+        MainThread.post(() -> callback.onError(new UnsupportedOperationException("Importing a calendar needs the backend")));
+    }
 }

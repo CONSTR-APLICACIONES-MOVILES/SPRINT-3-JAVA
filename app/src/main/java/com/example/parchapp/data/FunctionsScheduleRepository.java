@@ -55,6 +55,38 @@ class FunctionsScheduleRepository implements ScheduleRepository {
                 .addOnFailureListener(callback::onError);
     }
 
+    @Override
+    public void validatePlanningSlot(List<String> participantIds, String startTime, String endTime,
+                                     Callback<String> callback) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("participantIds", new ArrayList<>(participantIds));
+        request.put("startTime", startTime);
+        request.put("endTime", endTime);
+        request.put("timeZone", "America/Bogota");
+        functions.getHttpsCallable("validatePlanningSlot").call(request)
+                .addOnSuccessListener(result -> callback.onSuccess(asString(asMap(result.getData()).get("comparisonId"))))
+                .addOnFailureListener(callback::onError);
+    }
+
+    @Override
+    public void importCalendarAvailability(String startDate, int days, List<String[]> intervals,
+                                           Callback<Integer> callback) {
+        List<Map<String, Object>> raw = new ArrayList<>();
+        for (String[] interval : intervals) {
+            Map<String, Object> block = new HashMap<>();
+            block.put("start", interval[0]);
+            block.put("end", interval[1]);
+            raw.add(block);
+        }
+        Map<String, Object> request = new HashMap<>();
+        request.put("startDate", startDate);
+        request.put("days", days);
+        request.put("intervals", raw);
+        functions.getHttpsCallable("importCalendarAvailability").call(request)
+                .addOnSuccessListener(result -> callback.onSuccess(intervals.size()))
+                .addOnFailureListener(callback::onError);
+    }
+
     @SuppressWarnings("unchecked")
     private static Map<String, Object> asMap(Object value) {
         return value instanceof Map ? (Map<String, Object>) value : Collections.emptyMap();
