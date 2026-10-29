@@ -65,11 +65,24 @@
                 android:layout_marginTop="6dp"
                 android:background="@drawable/bg_login_field"
                 android:hint="e.g. Bowling Night"
+                android:imeOptions="actionNext"
+                android:inputType="textCapSentences"
+                android:maxLength="80"
+                android:maxLines="1"
                 android:paddingStart="14dp"
                 android:paddingEnd="14dp"
                 android:textColor="@color/brand_dark"
                 android:textColorHint="@color/brand_slate"
                 android:textSize="13sp" />
+            <TextView
+                android:id="@+id/group_name_counter"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="end"
+                android:text="0/80"
+                android:textColor="@color/brand_slate"
+                android:textSize="11sp" />
 
             <!-- Date / Time -->
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="Activity Date &amp; Time" android:textColor="@color/brand_dark" android:textSize="13sp" android:textStyle="bold" />
@@ -84,7 +97,10 @@
                     android:drawableStart="@drawable/ic_calendar"
                     android:drawablePadding="8dp"
                     android:drawableTint="@color/brand_slate"
+                    android:cursorVisible="false"
+                    android:focusable="false"
                     android:hint="Select a date"
+                    android:inputType="none"
                     android:paddingStart="12dp"
                     android:textColor="@color/brand_dark"
                     android:textSize="11sp" />
@@ -98,7 +114,10 @@
                     android:drawableStart="@drawable/ic_clock"
                     android:drawablePadding="8dp"
                     android:drawableTint="@color/brand_slate"
+                    android:cursorVisible="false"
+                    android:focusable="false"
                     android:hint="Select a time"
+                    android:inputType="none"
                     android:paddingStart="12dp"
                     android:textColor="@color/brand_dark"
                     android:textSize="11sp" />
@@ -238,7 +257,10 @@
                     android:drawablePadding="8dp"
                     android:drawableTint="@color/brand_slate"
                     android:hint="name@university.edu"
+                    android:imeOptions="actionDone"
                     android:inputType="textEmailAddress"
+                    android:maxLength="100"
+                    android:maxLines="1"
                     android:paddingStart="12dp"
                     android:textColor="@color/brand_dark"
                     android:textSize="11sp" />
