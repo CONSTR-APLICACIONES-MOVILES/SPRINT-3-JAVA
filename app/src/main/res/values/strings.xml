@@ -128,6 +128,9 @@
     <string name="calculating_slots">Calculating common free slots…</string>
     <string name="no_common_slots">No common free slot of at least 1 hour today.</string>
     <string name="recommended">Recommended</string>
+    <string name="bq3_insight">★ Organizers accept %1$d%% of suggested slots without changes. Position %2$d works best, based on %3$d slots.</string>
+    <string name="bq3_insight_all_changed">★ Organizers changed every suggested slot so far, based on %1$d slots. The first slot is recommended for now.</string>
+    <string name="bq3_insight_no_data">★ Not enough data yet, we need %1$d suggested slots. The first slot is recommended for now.</string>
     <string name="welcome_wordmark">PARCHAPP</string>
     <string name="welcome_headline">Find the time\nyou share.</string>
     <string name="welcome_value_proposition">Find when everyone is free, make the plan, and spend less time coordinating.</string>

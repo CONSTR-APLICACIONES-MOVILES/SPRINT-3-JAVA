@@ -1,5 +1,6 @@
 package com.example.parchapp.data;
 
+import com.example.parchapp.domain.model.SlotAcceptanceInsight;
 import com.example.parchapp.util.Callback;
 
 /* Results that the analytics pipeline writes back for the app to use (Type 2 feedback loop).*/
@@ -8,4 +9,20 @@ public interface InsightsRepository {
 
     /* F2 (BQ3): position in the ranked list of the slot that organisers accept most often without changes. The Compare Availability sheet marks that slot as Recommended. It never fails, it falls back to {@link #DEFAULT_RECOMMENDED_POSITION}. */
     void getRecommendedSlotPosition(Callback<Integer> callback);
+
+// bq3: the whole result, position, percent accepted without changes and number of slots
+// it never fails, a repository that only knows the position gives it without data
+    default void getSlotAcceptance(Callback<SlotAcceptanceInsight> callback) {
+        getRecommendedSlotPosition(new Callback<Integer>() {
+            @Override
+            public void onSuccess(Integer position) {
+                callback.onSuccess(SlotAcceptanceInsight.withoutData(position));
+            }
+
+            @Override
+            public void onError(Exception error) {
+                callback.onSuccess(SlotAcceptanceInsight.withoutData(DEFAULT_RECOMMENDED_POSITION));
+            }
+        });
+    }
 }
