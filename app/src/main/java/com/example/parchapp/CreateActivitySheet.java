@@ -37,6 +37,8 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
     private static final String ARG_GROUP_SIZE = "arg_group_size";
     private static final String ARG_SLOT_TIME = "arg_slot_time";
     private static final String ARG_SLOT_DATE = "arg_slot_date";
+    // bq3: position of the slot picked in Compare Availability, -1 when the form was opened without one
+    private static final String ARG_SLOT_POSITION = "arg_slot_position";
 
     private String groupId;
     private int groupSize;
@@ -48,6 +50,7 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         args.putString(ARG_GROUP_ID, groupId);
         args.putInt(ARG_GROUP_SIZE, groupSize);
         args.putString(ARG_SLOT_TIME, slotTime);
+        args.putInt(ARG_SLOT_POSITION, slotPosition);
         sheet.setArguments(args);
         return sheet;
     }
@@ -162,8 +165,14 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
                 if (!isAdded()) return;
                 Intent result = new Intent(requireContext(), ActivityCreatedActivity.class);
                 result.putExtra(ActivityCreatedActivity.EXTRA_ACTIVITY_ID, saved.getId());
-                dismiss();
-                startActivity(result);
+                int slotPosition = getArguments() == null ? -1 : getArguments().getInt(ARG_SLOT_POSITION, -1);
+                if (slotPosition < 0 || Repositories.recommendationDecisions() == null) {
+                    dismiss();
+                    startActivity(result);
+                    return;
+                }
+                prepareRecommendationOutcome(saved.getId(), dateInput.getText().toString().trim(), durationMinutes,
+                        slotPosition, start, end, startIso, endIso, result);
             }
 
             @Override public void onError(Exception error) {
@@ -176,12 +185,53 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         });
     }
 
+    /* bq3: the plan came from a Compare slot, so Activity Created records whether the organizer kept the backend's suggestion. If the backend has nothing to compare with (another day, someone busy) the screen opens without it. */
+    private void prepareRecommendationOutcome(String activityId, String date, int durationMinutes, int slotPosition,
+                                              Calendar start, Calendar end, String startIso, String endIso,
+                                              Intent result) {
+        androidx.fragment.app.FragmentActivity host = requireActivity();
+        Repositories.recommendationDecisions().prepareDecision(activityId, date, durationMinutes, slotPosition,
+                start.getTimeInMillis(), end.getTimeInMillis(),
+                new Callback<com.example.parchapp.data.RecommendationDecisionRepository.PreparedDecision>() {
+                    @Override
+                    public void onSuccess(com.example.parchapp.data.RecommendationDecisionRepository.PreparedDecision decision) {
+                        if (decision != null) {
+                            result.putExtra(ActivityCreatedActivity.EXTRA_RECOMMENDATION_ID, decision.recommendationId);
+                            result.putExtra(ActivityCreatedActivity.EXTRA_WAS_MODIFIED, decision.wasModified);
+                            result.putExtra(ActivityCreatedActivity.EXTRA_SLOT_POSITION, decision.position);
+                            result.putExtra(ActivityCreatedActivity.EXTRA_SELECTED_START_TIME, startIso);
+                            result.putExtra(ActivityCreatedActivity.EXTRA_SELECTED_END_TIME, endIso);
+                            result.putExtra(ActivityCreatedActivity.EXTRA_GROUP_SIZE, groupSize);
+                        }
+                        open(host, result);
+                    }
+
+                    @Override
+                    public void onError(Exception error) {
+                        open(host, result);
+                    }
+                });
+    }
+
+    private void open(androidx.fragment.app.FragmentActivity host, Intent result) {
+        if (host.isFinishing() || host.isDestroyed()) return;
+        if (isAdded()) dismiss();
+        host.startActivity(result);
+    }
+
+    // the picked values are Bogota time, so they must be written in Bogota time too, not in the phone's time zone
+    private static SimpleDateFormat bogotaFormat(String pattern) {
+        SimpleDateFormat format = new SimpleDateFormat(pattern, Locale.US);
+        format.setTimeZone(TimeZone.getTimeZone("America/Bogota"));
+        return format;
+    }
+
     private void pickDate(EditText field) {
         Calendar today = Calendar.getInstance(TimeZone.getTimeZone("America/Bogota"));
         new DatePickerDialog(requireContext(), (picker, year, month, day) -> {
             Calendar chosen = Calendar.getInstance(TimeZone.getTimeZone("America/Bogota"));
             chosen.set(year, month, day);
-            field.setText(new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(chosen.getTime()));
+            field.setText(bogotaFormat("yyyy-MM-dd").format(chosen.getTime()));
         }, today.get(Calendar.YEAR), today.get(Calendar.MONTH), today.get(Calendar.DAY_OF_MONTH)).show();
     }
 
@@ -191,7 +241,7 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
             Calendar chosen = Calendar.getInstance(TimeZone.getTimeZone("America/Bogota"));
             chosen.set(Calendar.HOUR_OF_DAY, hour);
             chosen.set(Calendar.MINUTE, minute);
-            field.setText(new SimpleDateFormat("HH:mm", Locale.US).format(chosen.getTime()));
+            field.setText(bogotaFormat("HH:mm").format(chosen.getTime()));
         }, now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE), true).show();
     }
 
