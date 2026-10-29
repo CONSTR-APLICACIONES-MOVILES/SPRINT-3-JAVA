@@ -1,6 +1,8 @@
 package com.example.parchapp.data;
 
 import com.example.parchapp.domain.SlotDecision;
+import com.example.parchapp.domain.model.RecommendedSlot;
+import com.example.parchapp.domain.model.SlotRecommendationBatch;
 import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.MainThread;
 import com.google.firebase.functions.FirebaseFunctions;
@@ -8,7 +10,9 @@ import com.google.firebase.functions.FirebaseFunctions;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -24,6 +28,83 @@ public final class FirebaseRecommendationDecisionRepository implements Recommend
 
     // the backend allows up to 10 suggestions; enough to find the saved time among them
     private static final int SUGGESTION_LIMIT = 10;
+
+    @Override
+    public void getRecommendedSlots(String activityId, int durationMinutes,
+                                    Callback<SlotRecommendationBatch> callback) {
+        Map<String, Object> input = new HashMap<>();
+        input.put("activityId", activityId);
+        input.put("durationMinutes", durationMinutes);
+        input.put("limit", SUGGESTION_LIMIT);
+        functions.getHttpsCallable("getActivityRecommendations").call(input)
+                .addOnSuccessListener(result -> {
+                    try {
+                        SlotRecommendationBatch batch = parseBatch(result.getData());
+                        MainThread.post(() -> callback.onSuccess(batch));
+                    } catch (Exception error) {
+                        MainThread.post(() -> callback.onError(error));
+                    }
+                })
+                .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+    }
+
+    @Override
+    public void markRecommendationsShown(String activityId, List<String> recommendationIds,
+                                         Callback<Void> callback) {
+        if (recommendationIds == null || recommendationIds.isEmpty()
+                || recommendationIds.size() > SUGGESTION_LIMIT
+                || new HashSet<>(recommendationIds).size() != recommendationIds.size()) {
+            MainThread.post(() -> callback.onError(
+                    new IllegalArgumentException("Select distinct recommendations that were shown.")));
+            return;
+        }
+        Map<String, Object> input = new HashMap<>();
+        input.put("activityId", activityId);
+        input.put("recommendationIds", new ArrayList<>(recommendationIds));
+        functions.getHttpsCallable("presentActivityRecommendations").call(input)
+                .addOnSuccessListener(result -> {
+                    Map<?, ?> data = map(result.getData());
+                    Object presented = data.get("presented");
+                    if (!(presented instanceof Number)
+                            || ((Number) presented).intValue() != recommendationIds.size()) {
+                        MainThread.post(() -> callback.onError(new IllegalStateException(
+                                "The backend did not acknowledge all displayed suggestions.")));
+                    } else {
+                        MainThread.post(() -> callback.onSuccess(null));
+                    }
+                })
+                .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+    }
+
+    static SlotRecommendationBatch parseBatch(Object value) {
+        Map<?, ?> data = map(value);
+        Object raw = data.get("recommendations");
+        List<RecommendedSlot> slots = new ArrayList<>();
+        if (raw instanceof List) {
+            for (Object item : (List<?>) raw) {
+                if (!(item instanceof Map)) continue;
+                Map<?, ?> row = (Map<?, ?>) item;
+                Long start = parseIso(row.get("startTime"));
+                Long end = parseIso(row.get("endTime"));
+                Object available = row.get("availableParticipants");
+                Object total = row.get("totalParticipants");
+                if (row.get("id") == null || start == null || end == null
+                        || !(available instanceof Number) || !(total instanceof Number)) continue;
+                List<String> reasons = new ArrayList<>();
+                Object rawReasons = row.get("reasons");
+                if (rawReasons instanceof List) {
+                    for (Object reason : (List<?>) rawReasons) {
+                        if (reason != null) reasons.add(reason.toString());
+                    }
+                }
+                slots.add(new RecommendedSlot(row.get("id").toString(), start, end,
+                        ((Number) available).intValue(), ((Number) total).intValue(), reasons));
+            }
+        }
+        return new SlotRecommendationBatch(string(data.get("batchId")),
+                string(data.get("activityId")), string(data.get("date")),
+                string(data.get("timeZone")), slots);
+    }
 
     @Override
     public void prepareDecision(String activityId, String date, int durationMinutes, int slotPosition,
@@ -83,6 +164,14 @@ public final class FirebaseRecommendationDecisionRepository implements Recommend
         } catch (ParseException error) {
             return null;
         }
+    }
+
+    private static String string(Object value) {
+        return value == null ? "" : value.toString();
+    }
+
+    private static Map<?, ?> map(Object value) {
+        return value instanceof Map ? (Map<?, ?>) value : Collections.emptyMap();
     }
 
     @Override

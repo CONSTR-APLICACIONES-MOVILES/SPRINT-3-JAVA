@@ -75,6 +75,7 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
 
         findViewById(R.id.plan_card_study).setOnClickListener(v -> openPlanDetails());
         findViewById(R.id.plan_details_button).setOnClickListener(v -> openPlanDetails());
+        findViewById(R.id.dashboard_suggested_times_button).setOnClickListener(v -> openSuggestedTimes());
 
         findViewById(R.id.going_button).setEnabled(false);
         findViewById(R.id.maybe_button).setEnabled(false);
@@ -223,6 +224,9 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
             return;
         }
         findViewById(R.id.plan_card_study).setVisibility(View.VISIBLE);
+        View suggestedTimes = findViewById(R.id.dashboard_suggested_times_button);
+        suggestedTimes.setVisibility(shown.getId() == null || shown.getId().trim().isEmpty()
+                ? View.GONE : View.VISIBLE);
         ((TextView) findViewById(R.id.plan_status_text)).setText(shown.getStatus());
         ((TextView) findViewById(R.id.plan_title_text)).setText(shown.getTitle());
         ((TextView) findViewById(R.id.plan_time_text)).setText(joinNonEmpty(shown.getDate(), shown.getTime()));
@@ -371,6 +375,14 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         PlanDetailsSheet.newInstance(latestActivity.getTitle(), latestActivity.getStatus(),
                 latestActivity.getDate(), latestActivity.getTime(), latestActivity.getLocation())
                 .show(getSupportFragmentManager(), "plan_details");
+    }
+
+    private void openSuggestedTimes() {
+        if (latestActivity == null || latestActivity.getId() == null || latestActivity.getId().trim().isEmpty()) {
+            toast("No activity data is available");
+            return;
+        }
+        startActivity(SuggestedTimesActivity.intent(this, latestActivity.getId()));
     }
 
     private String joinNonEmpty(String first, String second) {

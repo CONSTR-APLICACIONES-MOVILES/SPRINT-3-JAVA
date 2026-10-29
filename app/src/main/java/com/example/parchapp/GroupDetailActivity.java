@@ -309,6 +309,11 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         }
         groupPlan = plan;
         findViewById(R.id.group_plan_section).setVisibility(View.VISIBLE);
+        View suggestedTimes = findViewById(R.id.group_suggested_times_button);
+        suggestedTimes.setVisibility(plan.getId() == null || plan.getId().trim().isEmpty()
+                ? View.GONE : View.VISIBLE);
+        suggestedTimes.setOnClickListener(v -> startActivity(
+                SuggestedTimesActivity.intent(this, plan.getId())));
         ((TextView) findViewById(R.id.next_plan_header)).setText("Next Group Plan");
         ((TextView) findViewById(R.id.next_plan_status)).setText(plan.getStatus());
         ((TextView) findViewById(R.id.plan_title_text)).setText(plan.getTitle());
