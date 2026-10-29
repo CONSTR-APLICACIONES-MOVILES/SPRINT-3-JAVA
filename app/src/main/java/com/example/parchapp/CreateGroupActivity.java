@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.util.Callback;
+import com.example.parchapp.util.IconButtons;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +25,8 @@ public class CreateGroupActivity extends AppCompatActivity {
 // f6: the backend accepts names between 2 and 80 characters
     private static final int MIN_NAME_LENGTH = 2;
     private static final int MAX_NAME_LENGTH = 80;
+// key to save the emails when the phone turns
+    private static final String STATE_INVITES = "invites";
 
 // f6: emails the user added, they become the pending invites of the group
     private final List<String> invites = new ArrayList<>();
@@ -55,9 +58,25 @@ public class CreateGroupActivity extends AppCompatActivity {
         emailChips = findViewById(R.id.email_chips);
         emailChips.setOrientation(LinearLayout.VERTICAL);
         createButton = findViewById(R.id.create_group_button);
+// the icon goes next to the text, both in the middle of the button
+        IconButtons.centerIconWithText((TextView) createButton);
         findViewById(R.id.add_email_button).setOnClickListener(v -> addEmail());
         createButton.setOnClickListener(v -> createGroup());
+// when the phone turns android makes the screen again, so we bring back the emails we saved
+        if (savedInstanceState != null) {
+            ArrayList<String> saved = savedInstanceState.getStringArrayList(STATE_INVITES);
+            if (saved != null) {
+                invites.addAll(saved);
+            }
+        }
         renderInvites();
+    }
+
+// we save the emails before android makes the screen again, the name field saves itself
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putStringArrayList(STATE_INVITES, new ArrayList<>(invites));
     }
 
 // f6: checks the email and adds it to the list if it is new

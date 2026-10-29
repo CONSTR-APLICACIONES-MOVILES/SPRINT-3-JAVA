@@ -110,12 +110,17 @@ class FirestoreGroupRepository extends BaseGroupRepository {
     @Override
     protected void startObserving(String groupId) {
         ListenerRegistration registration = collection.document(groupId).addSnapshotListener((snapshot, error) -> {
+// an error here usually means the user can not read the group anymore
             if (error != null) {
                 Log.w(TAG, "Listening to group " + groupId + " failed", error);
+                notifyUnavailable(groupId);
                 return;
             }
             if (snapshot != null && snapshot.exists()) {
                 notifyListeners(fromSnapshot(snapshot));
+// the document does not exist, for example it was deleted while the screen was open
+            } else if (snapshot != null && !snapshot.getMetadata().isFromCache()) {
+                notifyUnavailable(groupId);
             }
         });
         registrations.put(groupId, registration);
@@ -170,7 +175,8 @@ class FirestoreGroupRepository extends BaseGroupRepository {
         }
         return new Group(snapshot.getId(), asString(snapshot.get("name")), asString(snapshot.get("icon")),
                 asString(snapshot.get("planTitle")), members, stringList(snapshot.get("goingIds")),
-                stringList(snapshot.get("maybeIds")), stringList(snapshot.get("pendingInvites")));
+                stringList(snapshot.get("maybeIds")), stringList(snapshot.get("pendingInvites")),
+                asString(snapshot.get("ownerId")));
     }
 
     private static int asInt(Object value) {
