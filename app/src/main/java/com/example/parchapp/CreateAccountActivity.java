@@ -6,6 +6,7 @@ import android.text.method.HideReturnsTransformationMethod;
 import android.text.method.PasswordTransformationMethod;
 import android.util.Patterns;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -57,6 +58,18 @@ public class CreateAccountActivity extends AppCompatActivity {
         setupVisibilityToggle(findViewById(R.id.toggle_password), passwordInput);
         setupVisibilityToggle(findViewById(R.id.toggle_confirm_password), confirmInput);
         createButton.setOnClickListener(v -> createAccount());
+        // Done on the last field creates the account, Next on the others moves down the form
+        // (done in code because the eye buttons next to the passwords took the focus instead)
+        moveOnNext(nameInput, emailInput);
+        moveOnNext(emailInput, passwordInput);
+        moveOnNext(passwordInput, confirmInput);
+        confirmInput.setOnEditorActionListener((field, action, event) -> {
+            if (action == EditorInfo.IME_ACTION_DONE) {
+                createAccount();
+                return true;
+            }
+            return false;
+        });
     }
 
     private void bindRememberedGoogleAccount() {
@@ -74,6 +87,16 @@ public class CreateAccountActivity extends AppCompatActivity {
         findViewById(R.id.use_another_google_account).setOnClickListener(v -> googleSignIn.startWithAnotherAccount());
     }
 
+    private static void moveOnNext(EditText field, EditText next) {
+        field.setOnEditorActionListener((view, action, event) -> {
+            if (action == EditorInfo.IME_ACTION_NEXT) {
+                next.requestFocus();
+                return true;
+            }
+            return false;
+        });
+    }
+
     private void setupVisibilityToggle(ImageButton toggle, EditText field) {
         toggle.setOnClickListener(v -> {
             boolean hidden = field.getTransformationMethod() instanceof PasswordTransformationMethod;
@@ -83,6 +106,12 @@ public class CreateAccountActivity extends AppCompatActivity {
             toggle.setImageResource(hidden ? R.drawable.ic_visibility_off : R.drawable.ic_visibility);
             field.setSelection(field.getText().length());
         });
+    }
+
+    // loading state: the button says what is happening and cannot be pressed twice
+    private void setCreating(boolean creating) {
+        createButton.setEnabled(!creating);
+        ((TextView) createButton).setText(creating ? R.string.creating_account : R.string.continue_label);
     }
 
     private void createAccount() {
@@ -111,11 +140,11 @@ public class CreateAccountActivity extends AppCompatActivity {
             return;
         }
 
-        createButton.setEnabled(false);
+        setCreating(true);
         auth.register(fullName, email, password, new OpenDashboardCallback() {
             @Override
             public void onError(Exception error) {
-                createButton.setEnabled(true);
+                setCreating(false);
                 Toast.makeText(CreateAccountActivity.this,
                         "Could not create the account: " + error.getLocalizedMessage(),
                         Toast.LENGTH_LONG).show();

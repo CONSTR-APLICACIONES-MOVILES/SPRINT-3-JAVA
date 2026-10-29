@@ -26,6 +26,7 @@ public class StatusService implements SensorEventListener {
     private static final String KEY_NEXT_ACTIVITY = "next_activity";
     private static final String KEY_AVAILABILITY = "availability";
     private static final String KEY_DURATION = "availability_duration";
+    private static final String KEY_AUTO_SYNC = "availability_auto_sync";
     // f1: true when the status came from the motion sensor suggestion, the sensor feature writes it when the user accepts
     static final String KEY_FROM_MOTION = "availability_from_motion";
     private static final long SUGGESTION_COOLDOWN_MS = 10 * 60 * 1000L;
@@ -62,6 +63,14 @@ public class StatusService implements SensorEventListener {
 
     public String getAvailabilityDuration() {
         return prefs.getString(KEY_DURATION, "For 1 hour");
+    }
+
+    public boolean isAutoSyncEnabled() {
+        return prefs.getBoolean(KEY_AUTO_SYNC, true);
+    }
+
+    public void setAutoSyncEnabled(boolean enabled) {
+        prefs.edit().putBoolean(KEY_AUTO_SYNC, enabled).apply();
     }
 
     /** In the following code the empty values keep the current one, matching the quick status sheet. */
