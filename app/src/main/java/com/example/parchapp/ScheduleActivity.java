@@ -1016,6 +1016,7 @@ public class ScheduleActivity extends AppCompatActivity {
         if (selectedSlot < 0) {
             // Java team: without a slot you can still plan on this day, choosing the time yourself
             new CreateActivitySheet().withSuggestedDate(dateKey(selectedDay))
+                    .withEntryPoint(com.example.parchapp.analytics.AnalyticsEvents.ENTRY_SCHEDULE)
                     .show(getSupportFragmentManager(), "create_activity");
             return;
         }
@@ -1034,6 +1035,7 @@ public class ScheduleActivity extends AppCompatActivity {
                             return;
                         }
                         CreateActivitySheet.newInstance(null, schedules.size(), slot.formatRange(), -1)
+                                .withEntryPoint(com.example.parchapp.analytics.AnalyticsEvents.ENTRY_SCHEDULE)
                                 .withSuggestedDate(dateKey(selectedDay))
                                 .withSuggestedDuration(slot.getDurationMinutes())
                                 .show(getSupportFragmentManager(), "create_activity");

@@ -75,7 +75,9 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
 // when the form closes, onStart loads the plans again and the new plan shows on this screen
         findViewById(R.id.new_activity_button).setOnClickListener(v -> {
             if (getSupportFragmentManager().findFragmentByTag("create_activity") == null) {
-                new CreateActivitySheet().show(getSupportFragmentManager(), "create_activity");
+                new CreateActivitySheet()
+                        .withEntryPoint(com.example.parchapp.analytics.AnalyticsEvents.ENTRY_DASHBOARD)
+                        .show(getSupportFragmentManager(), "create_activity");
             }
         });
 

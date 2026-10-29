@@ -84,6 +84,7 @@ public class CompareAvailabilitySheet extends BottomSheetDialogFragment implemen
     public void onSlotChosen(Group group, TimeSlot slot, int position, List<TimeSlot> shown) {
         CreateActivitySheet.newInstance(group.getId(), group.getSize(), slot.formatRange(), position)
                 .withShownSlots(shown)
+                .withEntryPoint(com.example.parchapp.analytics.AnalyticsEvents.ENTRY_SLOT)
                 .show(getParentFragmentManager(), "create_activity");
         dismiss();
     }

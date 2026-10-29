@@ -21,6 +21,11 @@ public final class AnalyticsEvents {
     /* BQ2: activity creation reliability and latency. */
     public static final String ACTIVITY_CREATE_ATTEMPT = "activity_create_attempt";
     public static final String ACTIVITY_CREATE_RESULT = "activity_create_result";
+// bq7: the new activity form was opened, a step of the form was reached, the activity was created
+// a flow with creation_started and without creation_finished is an abandon, its last step says where
+    public static final String CREATION_STARTED = "creation_started";
+    public static final String CREATION_STEP_VIEWED = "creation_step_viewed";
+    public static final String CREATION_FINISHED = "creation_finished";
     /* BQ5: response timing by activity group size. */
     public static final String RSVP_SUBMITTED = "rsvp_submitted";
 
@@ -43,6 +48,18 @@ public final class AnalyticsEvents {
     public static final String PARAM_RESULT = "result";
     public static final String PARAM_ERROR_CODE = "error_code";
     public static final String PARAM_LOCATION_AREA_ID = "location_area_id";
+// bq7: one id for each time the form is opened, the step, its order, where the form was opened and the total time
+    public static final String PARAM_FLOW_ID = "flow_id";
+    public static final String PARAM_STEP_NAME = "step_name";
+    public static final String PARAM_STEP_INDEX = "step_index";
+    public static final String PARAM_ENTRY_POINT = "entry_point";
+    public static final String PARAM_TOTAL_MS = "total_ms";
+
+// bq7: places that open the new activity form
+    public static final String ENTRY_DASHBOARD = "dashboard";
+    public static final String ENTRY_GROUP = "group";
+    public static final String ENTRY_SLOT = "slot";
+    public static final String ENTRY_SCHEDULE = "schedule";
 
     // activity_created sources: bq9 counts suggested_slot as created after comparing availability
     public static final String SOURCE_SUGGESTED_SLOT = "suggested_slot";

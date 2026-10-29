@@ -149,6 +149,7 @@ public class CompareAvailabilityActivity extends AppCompatActivity implements Co
     public void onSlotChosen(Group group, TimeSlot slot, int position, List<TimeSlot> shown) {
         CreateActivitySheet.newInstance(group.getId(), group.getSize(), slot.formatRange(), position)
                 .withShownSlots(shown)
+                .withEntryPoint(com.example.parchapp.analytics.AnalyticsEvents.ENTRY_SLOT)
                 .show(getSupportFragmentManager(), "create_activity");
     }
 
