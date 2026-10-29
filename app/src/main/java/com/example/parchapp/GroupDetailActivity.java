@@ -19,6 +19,7 @@ import com.example.parchapp.data.Repositories;
 import com.example.parchapp.data.SyncedCalendars;
 import com.example.parchapp.data.TravelTimeService;
 import com.example.parchapp.domain.CampusArea;
+import com.example.parchapp.domain.GroupPlans;
 import com.example.parchapp.domain.PlanContext;
 import com.example.parchapp.domain.model.Group;
 import com.example.parchapp.domain.model.Member;
@@ -46,6 +47,8 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
     private final OfflineBannerController offlineBanner = new OfflineBannerController();
 // f3: next plan of this group, null when the group has no plan
     private PlannedActivity groupPlan;
+// true when the group was deleted or the user can not read it
+    private boolean groupUnavailable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,7 +112,30 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         String groupId = getIntent().getStringExtra(EXTRA_GROUP_ID);
         if (groupId != null) {
             Repositories.groups().observeGroup(groupId, this);
+        } else {
+// without a group id there is nothing to load, so we say it instead of loading forever
+            onGroupUnavailable(null);
         }
+    }
+
+// the group was deleted, the user left it or can not read it, so we stop showing old data
+    @Override
+    public void onGroupUnavailable(String groupId) {
+        if (isFinishing() || isDestroyed()) {
+            return;
+        }
+        groupUnavailable = true;
+        ((TextView) findViewById(R.id.top_group_name_text)).setText(R.string.group_details_title);
+        ((TextView) findViewById(R.id.top_group_subtitle_text)).setText("");
+        ((TextView) findViewById(R.id.group_name_text)).setText(R.string.group_unavailable_title);
+        ((TextView) findViewById(R.id.group_description_text)).setText(R.string.group_unavailable_body);
+        ((TextView) findViewById(R.id.group_synced_badge)).setText(R.string.group_unavailable_badge);
+        findViewById(R.id.group_plan_section).setVisibility(View.GONE);
+        findViewById(R.id.group_members_header).setVisibility(View.GONE);
+        for (int card : new int[]{R.id.member_card_0, R.id.member_card_1, R.id.member_card_2, R.id.member_card_3}) {
+            findViewById(card).setVisibility(View.GONE);
+        }
+        findViewById(R.id.propose_plan_button).setEnabled(false);
     }
 
 // f6: we stop listening when the screen is not visible, so we do not leak the screen
@@ -138,7 +164,7 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         ((TextView) findViewById(R.id.group_description_text)).setText(invites == 0 ? members
                 : members + " • " + invites + (invites == 1 ? " pending invite" : " pending invites"));
         loadSyncedCount(group);
-        bindMembers(group.getMembers());
+        bindMembers(group);
     }
 
 // "N/M Synced": members whose calendar for today is known to the backend (getScheduleDay), not just the group size
@@ -174,16 +200,31 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         return key.format(new java.util.Date());
     }
 
-// f6: shows up to four members with their initials and name
-    private void bindMembers(List<Member> members) {
+// f6: shows up to four members with their initials and name, the creator goes first with the leader badge
+    private void bindMembers(Group group) {
+        List<Member> members = new ArrayList<>(group.getMembers());
+        int ownerIndex = -1;
+        for (int i = 0; i < members.size(); i++) {
+            if (group.isOwner(members.get(i).getId())) {
+                ownerIndex = i;
+            }
+        }
+        if (ownerIndex > 0) {
+            members.add(0, members.remove(ownerIndex));
+        }
+// the badge is only shown when the group says who created it
+        findViewById(R.id.member_leader_0).setVisibility(ownerIndex >= 0 ? View.VISIBLE : View.GONE);
         int[] cards = {R.id.member_card_0, R.id.member_card_1, R.id.member_card_2, R.id.member_card_3};
         int[] initials = {R.id.member_initials_0, R.id.member_initials_1, R.id.member_initials_2, R.id.member_initials_3};
         int[] names = {R.id.member_name_0, R.id.member_name_1, R.id.member_name_2, R.id.member_name_3};
         int[] summaries = {R.id.member_summary_0, R.id.member_summary_1, R.id.member_summary_2, R.id.member_summary_3};
         int[] statuses = {R.id.member_status_0, R.id.member_status_1, R.id.member_status_2, R.id.member_status_3};
         findViewById(R.id.group_members_header).setVisibility(members.isEmpty() ? View.GONE : View.VISIBLE);
-        ((TextView) findViewById(R.id.member_summary_text)).setText(
-                members.size() == 1 ? "1 member" : members.size() + " members");
+// when there are more members than cards we say how many are not shown
+        int hidden = Math.max(0, members.size() - cards.length);
+        String count = getResources().getQuantityString(R.plurals.group_member_count, members.size(), members.size());
+        ((TextView) findViewById(R.id.member_summary_text)).setText(hidden == 0 ? count
+                : getString(R.string.group_members_more, count, hidden));
         for (int i = 0; i < cards.length; i++) {
             if (i >= members.size()) {
                 findViewById(cards[i]).setVisibility(View.GONE);
@@ -221,19 +262,9 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
                 if (isFinishing() || isDestroyed()) {
                     return;
                 }
-                List<PlannedActivity> groupPlans = new ArrayList<>();
-                for (PlannedActivity activity : activities) {
-                    if (groupId.equals(activity.getGroupId())) {
-                        groupPlans.add(activity);
-                    }
-                }
-                Calendar now = Calendar.getInstance(PlanContext.bogota());
-                int nowMinute = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE);
-                PlannedActivity next = PlanContext.nextPlan(groupPlans, now, nowMinute);
-// f3: when no plan is coming we show the newest one, like the dashboard card
-                if (next == null && !groupPlans.isEmpty()) {
-                    next = groupPlans.get(0);
-                }
+// f3: the same rule as the groups list, the next plan or the newest one when nothing is coming
+                PlannedActivity next = GroupPlans.nextFor(groupId, activities,
+                        Calendar.getInstance(PlanContext.bogota()));
                 if (next != null) {
                     showGroupPlan(next);
                 }
@@ -248,6 +279,10 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
 
 // f3: shows the plan card with the title, the time and the place
     private void showGroupPlan(PlannedActivity plan) {
+// the plan can arrive after we know the group is not available, then we do not show it
+        if (groupUnavailable) {
+            return;
+        }
         groupPlan = plan;
         findViewById(R.id.group_plan_section).setVisibility(View.VISIBLE);
         ((TextView) findViewById(R.id.next_plan_header)).setText("Next Group Plan");

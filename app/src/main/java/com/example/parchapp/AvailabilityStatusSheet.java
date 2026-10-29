@@ -1,10 +1,10 @@
 package com.example.parchapp;
 
 import android.os.Bundle;
+import android.app.Dialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -12,9 +12,12 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.SwitchCompat;
 
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.domain.StatusService;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 
 public class AvailabilityStatusSheet extends BottomSheetDialogFragment implements StatusService.Listener {
@@ -47,9 +50,6 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment implement
         setupStatusRow(view, R.id.status_focus, R.id.check_focus, "Deep Focus");
         setupStatusRow(view, R.id.status_busy, R.id.check_busy, "Busy / Personal");
         setupStatusRow(view, R.id.status_transit, R.id.check_transit, "Commute / In Transit");
-        // the xml starts with commute highlighted, so we treat it as the selected row and selecting the saved status clears it
-        selectedStatusRow = view.findViewById(R.id.status_transit);
-        selectedStatusCheck = view.findViewById(R.id.check_transit);
         selectSavedStatus(view, statusService.getAvailability());
 
         TextView[] durationChips = {
@@ -59,7 +59,6 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment implement
                 view.findViewById(R.id.duration_manual)
         };
         String[] durationShortLabels = {"1h", "Until 6PM", "Until tomorrow", "Manual"};
-        selectedDurationChip = durationChips[0];
         TextView durationSelectedLabel = view.findViewById(R.id.duration_selected_label);
         for (int i = 0; i < durationChips.length; i++) {
             TextView chip = durationChips[i];
@@ -67,9 +66,15 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment implement
             chip.setOnClickListener(v -> {
                 selectDurationChip(chip);
                 durationSelectedLabel.setText("◷ " + shortLabel + " selected");
-                selectedDurationName = chip.getText().toString();
             });
         }
+        int savedDurationIndex = findDurationIndex(durationChips, statusService.getAvailabilityDuration());
+        selectDurationChip(durationChips[savedDurationIndex]);
+        durationSelectedLabel.setText("◷ " + durationShortLabels[savedDurationIndex] + " selected");
+
+        SwitchCompat autoSyncToggle = view.findViewById(R.id.auto_sync_toggle);
+        autoSyncToggle.setChecked(statusService.isAutoSyncEnabled());
+        autoSyncToggle.setOnCheckedChangeListener((button, enabled) -> statusService.setAutoSyncEnabled(enabled));
 
         view.findViewById(R.id.save_status_button).setOnClickListener(v -> {
             Repositories.status().setAvailability(selectedStatusName, selectedDurationName);
@@ -81,13 +86,22 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment implement
     @Override
     public void onStart() {
         super.onStart();
-        if (statusService == null) return;
+        Dialog dialog = getDialog();
+        if (dialog instanceof BottomSheetDialog) {
+            BottomSheetBehavior<?> behavior = ((BottomSheetDialog) dialog).getBehavior();
+            behavior.setSkipCollapsed(true);
+            behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+        }
+        if (statusService == null) {
+            motionDetectionMessage.setText(R.string.movement_detection_failed);
+            return;
+        }
         statusService.addListener(this);
         boolean started = statusService.startMotionDetection();
         motionDetectionMessage.setText(!statusService.isMotionDetectionAvailable()
-                ? "Movement suggestions are unavailable: this device has no accelerometer."
-                : started ? "Movement detection is active while this sheet is open."
-                : "Could not start movement detection on this device.");
+                ? R.string.movement_detection_unavailable
+                : started ? R.string.movement_detection_active
+                : R.string.movement_detection_failed);
     }
 
     @Override
@@ -112,7 +126,10 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment implement
                 .setPositiveButton("Set status", (dialog, which) -> {
                     selectStatus(getView(), R.id.status_transit, R.id.check_transit,
                             "Commute / In Transit");
-                    selectedDurationName = "For 1 hour";
+                    TextView oneHourChip = getView().findViewById(R.id.duration_1h);
+                    selectDurationChip(oneHourChip);
+                    ((TextView) getView().findViewById(R.id.duration_selected_label))
+                            .setText("◷ 1h selected");
                     status.setAvailabilityFromMotion(selectedStatusName, selectedDurationName);
                     Toast.makeText(requireContext(), "Commute status saved", Toast.LENGTH_SHORT).show();
                 })
@@ -174,5 +191,15 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment implement
         chip.setBackgroundResource(R.drawable.bg_chip_selected);
         chip.setTextColor(requireContext().getColor(R.color.brand_primary));
         selectedDurationChip = chip;
+        selectedDurationName = chip.getText().toString();
+    }
+
+    private int findDurationIndex(TextView[] chips, String savedDuration) {
+        for (int i = 0; i < chips.length; i++) {
+            if (chips[i].getText().toString().equals(savedDuration)) {
+                return i;
+            }
+        }
+        return 0;
     }
 }

@@ -17,14 +17,20 @@ import com.example.parchapp.analytics.AnalyticsEvents;
 import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.data.SyncedCalendars;
+import com.example.parchapp.domain.GroupPlans;
 import com.example.parchapp.domain.PlanContext;
 import com.example.parchapp.domain.model.Group;
 import com.example.parchapp.domain.model.Member;
+import com.example.parchapp.domain.model.PlannedActivity;
 import com.example.parchapp.util.Callback;
+import com.example.parchapp.util.IconButtons;
 
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /* Groups tab. Home's "View all" opens this same screen, so both show the groups the same way. */
 public class GroupsActivity extends AppCompatActivity {
@@ -55,6 +61,12 @@ public class GroupsActivity extends AppCompatActivity {
 
 // shared bottom bar, groups is the active tab
         BottomNav.setup(this, BottomNav.Tab.GROUPS);
+// below the cards, also when the user has no groups yet, so the first group can be created from here
+        IconButtons.centerIconWithText(findViewById(R.id.create_group_from_list));
+        findViewById(R.id.create_group_from_list).setOnClickListener(v -> {
+            tracker.trackFeature(AnalyticsEvents.FEATURE_GROUPS, SCREEN);
+            startActivity(new Intent(this, CreateGroupActivity.class));
+        });
     }
 
     @Override
@@ -92,22 +104,68 @@ public class GroupsActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.groups_title)).setText(
                 getString(R.string.your_active_groups) + " (" + groups.size() + ")");
         LayoutInflater inflater = LayoutInflater.from(this);
+        Map<String, View> cards = new HashMap<>();
         for (Group group : groups) {
             View card = inflater.inflate(R.layout.item_group_card, groupsList, false);
             bindCard(card, group);
             groupsList.addView(card);
+            cards.put(group.getId(), card);
+        }
+        loadPlans(cards);
+    }
+
+// the next plan and the activity of each card come from the real plans, like group details
+    private void loadPlans(Map<String, View> cards) {
+        UserProfile user = UserSession.getCurrentUser();
+        if (user == null || cards.isEmpty()) {
+            return;
+        }
+        Repositories.activities().getActivities(user.getId(), new Callback<List<PlannedActivity>>() {
+            @Override
+            public void onSuccess(List<PlannedActivity> plans) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                Calendar now = Calendar.getInstance(PlanContext.bogota());
+                for (Map.Entry<String, View> entry : cards.entrySet()) {
+                    bindNextPlan(entry.getValue(), GroupPlans.nextFor(entry.getKey(), plans, now));
+                    bindActivityLevel(entry.getValue(), GroupPlans.activityOf(entry.getKey(), plans));
+                }
+            }
+
+// without plans we can not say what is next, so the card says there is no plan
+            @Override
+            public void onError(Exception error) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                for (View card : cards.values()) {
+                    bindNextPlan(card, null);
+                }
+            }
+        });
+    }
+
+    private void bindNextPlan(View card, PlannedActivity plan) {
+        TextView next = card.findViewById(R.id.group_card_next);
+        if (plan == null) {
+            next.setText(R.string.group_no_plan);
+        } else if (plan.getLocation().isEmpty()) {
+            next.setText(getString(R.string.group_next_plan, plan.getTitle()));
+        } else {
+            next.setText(getString(R.string.group_next_plan_place, plan.getTitle(), plan.getLocation()));
         }
     }
 
     private void bindCard(View card, Group group) {
         ((TextView) card.findViewById(R.id.group_card_title)).setText(group.getName());
         int size = group.getSize();
-        ((TextView) card.findViewById(R.id.group_card_members)).setText("• " + size + (size == 1 ? " member" : " members"));
-        ((TextView) card.findViewById(R.id.group_card_next)).setText(group.getPlanTitle().isEmpty()
-                ? "No upcoming plan"
-                : "Next: " + group.getPlanTitle());
+        ((TextView) card.findViewById(R.id.group_card_members)).setText(
+                "• " + getResources().getQuantityString(R.plurals.group_member_count, size, size));
+// the plan and the activity wait for the plans, so we do not show a wrong value first
+        ((TextView) card.findViewById(R.id.group_card_next)).setText("");
+        card.findViewById(R.id.group_card_activity).setVisibility(View.INVISIBLE);
         bindSynced(card.findViewById(R.id.group_card_synced), group);
-        bindActivityLevel(card, group);
         bindAvatars(card.findViewById(R.id.group_card_avatars), group.getMembers());
         card.setOnClickListener(v -> {
             tracker.trackFeature(AnalyticsEvents.FEATURE_GROUPS, SCREEN);
@@ -148,30 +206,30 @@ public class GroupsActivity extends AppCompatActivity {
                 });
     }
 
-    /* The share of members who said they are going decides how active the group looks. */
-    private void bindActivityLevel(View card, Group group) {
-        float ratio = group.getGoingCount() / (float) Math.max(1, group.getRsvpTotal());
+// how many plans the group has decides how active it looks, the going answers are reset for every new plan
+    private void bindActivityLevel(View card, GroupPlans.Activity level) {
         String label;
         int text;
         int background;
         int dot;
-        if (ratio >= 0.75f) {
-            label = "Most Active";
+        if (level == GroupPlans.Activity.MOST_ACTIVE) {
+            label = getString(R.string.group_activity_most);
             text = R.color.brand_success_dark;
             background = R.color.brand_success_background;
             dot = R.color.brand_success;
-        } else if (ratio >= 0.4f) {
-            label = "Active";
+        } else if (level == GroupPlans.Activity.ACTIVE) {
+            label = getString(R.string.group_activity_active);
             text = R.color.brand_primary;
             background = R.color.brand_chip_background;
             dot = R.color.brand_primary;
         } else {
-            label = "Low Activity";
+            label = getString(R.string.group_activity_low);
             text = R.color.brand_slate;
             background = R.color.brand_card_stroke;
             dot = R.color.brand_border;
         }
         TextView chip = card.findViewById(R.id.group_card_activity);
+        chip.setVisibility(View.VISIBLE);
         chip.setText(label);
         chip.setTextColor(getColor(text));
         chip.setBackgroundResource(R.drawable.bg_light_blue);

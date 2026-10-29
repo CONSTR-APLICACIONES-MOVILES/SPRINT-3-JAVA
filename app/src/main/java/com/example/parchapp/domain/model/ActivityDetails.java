@@ -13,10 +13,18 @@ public final class ActivityDetails {
     private final String startTime;
     private final String endTime;
     private final Integer reminderMinutesBefore;
+    private final String createdBy;
 
     public ActivityDetails(String id, String groupId, String title, String category, String date,
                            String time, String location, String status, String startTime,
                            String endTime, Integer reminderMinutesBefore) {
+        this(id, groupId, title, category, date, time, location, status, startTime, endTime,
+                reminderMinutesBefore, "");
+    }
+
+    public ActivityDetails(String id, String groupId, String title, String category, String date,
+                           String time, String location, String status, String startTime,
+                           String endTime, Integer reminderMinutesBefore, String createdBy) {
         this.id = id;
         this.groupId = groupId;
         this.title = title;
@@ -28,6 +36,7 @@ public final class ActivityDetails {
         this.startTime = startTime;
         this.endTime = endTime;
         this.reminderMinutesBefore = reminderMinutesBefore;
+        this.createdBy = createdBy;
     }
 
     public String getId() { return id; }
@@ -41,6 +50,9 @@ public final class ActivityDetails {
     public String getStartTime() { return startTime; }
     public String getEndTime() { return endTime; }
     public Integer getReminderMinutesBefore() { return reminderMinutesBefore; }
+    public String getCreatedBy() { return createdBy; }
 
-    public boolean hasScheduledTime() { return startTime != null && !startTime.isEmpty(); }
+    public boolean hasScheduledTime() {
+        return startTime != null && !startTime.isEmpty() && endTime != null && !endTime.isEmpty();
+    }
 }

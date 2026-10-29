@@ -52,6 +52,18 @@ abstract class BaseGroupRepository implements GroupRepository {
         }
     }
 
+// tells every screen that observes the group that it is not available anymore
+    protected final void notifyUnavailable(String groupId) {
+        List<GroupListener> listeners = listenersByGroup.get(groupId);
+        if (listeners == null) {
+            return;
+        }
+        latestByGroup.remove(groupId);
+        for (GroupListener listener : new ArrayList<>(listeners)) {
+            listener.onGroupUnavailable(groupId);
+        }
+    }
+
     protected final void notifyListeners(Group group) {
         List<GroupListener> listeners = listenersByGroup.get(group.getId());
         if (listeners == null) {
