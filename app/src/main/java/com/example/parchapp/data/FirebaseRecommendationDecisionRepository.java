@@ -27,7 +27,13 @@ public final class FirebaseRecommendationDecisionRepository implements Recommend
 
     @Override
     public void prepareDecision(String activityId, String date, int durationMinutes, int slotPosition,
-                                long chosenStartMs, long chosenEndMs, Callback<PreparedDecision> callback) {
+                                long chosenStartMs, long chosenEndMs, int[] shownStartMinutes,
+                                Callback<PreparedDecision> callback) {
+        if (shownStartMinutes != null && shownStartMinutes.length > 0) {
+            prepareOnShownSlots(activityId, durationMinutes, slotPosition, chosenStartMs, chosenEndMs,
+                    shownStartMinutes, callback);
+            return;
+        }
         Map<String, Object> input = new HashMap<>();
         input.put("activityId", activityId);
         input.put("date", date);
@@ -57,6 +63,64 @@ public final class FirebaseRecommendationDecisionRepository implements Recommend
                     }
                     // only the suggestions the organizer could see count as presented, so positions are not inflated
                     present(activityId, ids.subList(0, SlotDecision.presentedCount(ids.size(), decision)),
+                            new PreparedDecision(ids.get(decision.position), decision.modified, decision.position),
+                            callback);
+                })
+                .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+    }
+
+// bq3: sends the slots the organizer saw in compare availability, the backend keeps that order
+// compare availability is always for today in bogota, so the slots are for today
+// minimum notice is 0 because the organizer already picked the time in the form
+    private void prepareOnShownSlots(String activityId, int durationMinutes, int slotPosition,
+                                     long chosenStartMs, long chosenEndMs, int[] shownStartMinutes,
+                                     Callback<PreparedDecision> callback) {
+        java.util.Calendar today = java.util.Calendar.getInstance(TimeZone.getTimeZone("America/Bogota"));
+        SimpleDateFormat day = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        day.setTimeZone(TimeZone.getTimeZone("America/Bogota"));
+        today.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        today.set(java.util.Calendar.MINUTE, 0);
+        today.set(java.util.Calendar.SECOND, 0);
+        today.set(java.util.Calendar.MILLISECOND, 0);
+        List<long[]> shown = SlotDecision.shownSlots(shownStartMinutes, today.getTimeInMillis(), durationMinutes);
+        SlotDecision decision = SlotDecision.onShownSlots(shown, chosenStartMs, chosenEndMs, slotPosition);
+        if (decision == null) {
+            MainThread.post(() -> callback.onSuccess(null));
+            return;
+        }
+        SimpleDateFormat iso = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+        iso.setTimeZone(TimeZone.getTimeZone("UTC"));
+        List<Map<String, Object>> candidates = new ArrayList<>();
+        for (long[] slot : shown) {
+            Map<String, Object> candidate = new HashMap<>();
+            candidate.put("startTime", iso.format(new java.util.Date(slot[0])));
+            candidate.put("endTime", iso.format(new java.util.Date(slot[1])));
+            candidates.add(candidate);
+        }
+        Map<String, Object> input = new HashMap<>();
+        input.put("activityId", activityId);
+        input.put("date", day.format(today.getTime()));
+        input.put("durationMinutes", durationMinutes);
+        input.put("minimumNoticeMinutes", 0);
+        input.put("candidates", candidates);
+        functions.getHttpsCallable("getActivityRecommendations").call(input)
+                .addOnSuccessListener(result -> {
+                    List<String> ids = new ArrayList<>();
+                    Object data = result.getData();
+                    Object raw = data instanceof Map ? ((Map<?, ?>) data).get("recommendations") : null;
+                    if (raw instanceof List) {
+                        for (Object item : (List<?>) raw) {
+                            Object id = item instanceof Map ? ((Map<?, ?>) item).get("id") : null;
+                            if (id != null) ids.add(id.toString());
+                        }
+                    }
+// the backend gives one id per slot in the same order, if not we do not record a wrong position
+                    if (ids.size() != shown.size()) {
+                        MainThread.post(() -> callback.onSuccess(null));
+                        return;
+                    }
+// every slot sent was on the screen, so all of them count as presented
+                    present(activityId, ids,
                             new PreparedDecision(ids.get(decision.position), decision.modified, decision.position),
                             callback);
                 })

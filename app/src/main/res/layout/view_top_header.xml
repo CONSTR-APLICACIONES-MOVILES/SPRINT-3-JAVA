@@ -48,14 +48,6 @@
             android:padding="11dp"
             android:src="@drawable/ic_notifications"
             android:tint="@color/brand_dark" />
-        <View
-            android:layout_width="8dp"
-            android:layout_height="8dp"
-            android:layout_gravity="top|end"
-            android:layout_marginTop="6dp"
-            android:layout_marginEnd="6dp"
-            android:background="@drawable/bg_oval_solid"
-            android:backgroundTint="@color/brand_rose" />
     </FrameLayout>
 
     <TextView

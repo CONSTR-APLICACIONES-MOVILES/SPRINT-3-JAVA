@@ -44,6 +44,11 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
     private static final String ARG_DURATION = "arg_duration";
     // bq3: position of the slot picked in Compare Availability, -1 when the form was opened without one
     private static final String ARG_SLOT_POSITION = "arg_slot_position";
+// bq3: start minute of each slot the organizer saw in compare availability, in the same order
+    private static final String ARG_SHOWN_STARTS = "arg_shown_starts";
+// keys to keep the group picked in the chips when the phone turns
+    private static final String STATE_PICKED_GROUP = "picked_group";
+    private static final String STATE_PICKED_SIZE = "picked_size";
 
     private String groupId;
     private int groupSize;
@@ -63,6 +68,18 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
     public CreateActivitySheet withSuggestedDate(String date) {
         Bundle args = getArguments() == null ? new Bundle() : getArguments();
         args.putString(ARG_SLOT_DATE, date);
+        setArguments(args);
+        return this;
+    }
+
+// bq3: keeps the slots the organizer saw, so the backend measures the same list and the same positions
+    public CreateActivitySheet withShownSlots(java.util.List<com.example.parchapp.domain.model.TimeSlot> shown) {
+        Bundle args = getArguments() == null ? new Bundle() : getArguments();
+        int[] starts = new int[shown.size()];
+        for (int i = 0; i < starts.length; i++) {
+            starts[i] = shown.get(i).getStartMinute();
+        }
+        args.putIntArray(ARG_SHOWN_STARTS, starts);
         setArguments(args);
         return this;
     }
@@ -137,12 +154,30 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         createButton.setEnabled(groupId != null && !groupId.trim().isEmpty());
         createButton.setOnClickListener(v -> publish(title, date, time, duration, location, createButton));
         if (groupId == null) {
-            showGroupChoices(groupChip, createButton);
+// when the phone turns we bring back the group the user picked before
+            String picked = savedInstanceState == null ? null : savedInstanceState.getString(STATE_PICKED_GROUP);
+            if (picked != null) {
+                groupId = picked;
+                groupSize = savedInstanceState.getInt(STATE_PICKED_SIZE, 0);
+                createButton.setEnabled(true);
+            }
+            showGroupChoices(groupChip, createButton, picked);
+        }
+    }
+
+// the group picked in the chips is not in the arguments, so we save it before android makes the form again
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        boolean pickedInChips = getArguments() == null || getArguments().getString(ARG_GROUP_ID) == null;
+        if (pickedInChips && groupId != null) {
+            outState.putString(STATE_PICKED_GROUP, groupId);
+            outState.putInt(STATE_PICKED_SIZE, groupSize);
         }
     }
 
     /* Opened without a group (from Schedule): the organizer picks one of their groups, the plan is published for it. */
-    private void showGroupChoices(TextView placeholder, View createButton) {
+    private void showGroupChoices(TextView placeholder, View createButton, String pickedGroupId) {
         UserProfile user = UserSession.getCurrentUser();
         if (user == null) {
             placeholder.setText("Sign in to choose a group");
@@ -166,7 +201,8 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
                 java.util.List<TextView> all = new java.util.ArrayList<>();
                 for (com.example.parchapp.domain.model.Group group : groups) {
                     TextView chip = new TextView(requireContext());
-                    chip.setText(group.getIcon().isEmpty() ? group.getName() : group.getIcon() + "  " + group.getName());
+// only the name of the group, without the emoji
+                    chip.setText(group.getName());
                     chip.setTextSize(12);
                     chip.setGravity(android.view.Gravity.CENTER);
                     int padding = Math.round(14 * getResources().getDisplayMetrics().density);
@@ -184,8 +220,9 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
                         }
                         createButton.setEnabled(true);
                     });
-                    chip.setBackgroundResource(R.drawable.bg_chip_unselected);
-                    chip.setTextColor(requireContext().getColor(R.color.brand_dark));
+                    boolean picked = group.getId().equals(pickedGroupId);
+                    chip.setBackgroundResource(picked ? R.drawable.bg_chip_selected : R.drawable.bg_chip_unselected);
+                    chip.setTextColor(requireContext().getColor(picked ? R.color.brand_primary : R.color.brand_dark));
                     all.add(chip);
                     chips.addView(chip, params);
                 }
@@ -280,8 +317,9 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
                                               Calendar start, Calendar end, String startIso, String endIso,
                                               Intent result) {
         androidx.fragment.app.FragmentActivity host = requireActivity();
+        int[] shownStarts = getArguments() == null ? null : getArguments().getIntArray(ARG_SHOWN_STARTS);
         Repositories.recommendationDecisions().prepareDecision(activityId, date, durationMinutes, slotPosition,
-                start.getTimeInMillis(), end.getTimeInMillis(),
+                start.getTimeInMillis(), end.getTimeInMillis(), shownStarts,
                 new Callback<com.example.parchapp.data.RecommendationDecisionRepository.PreparedDecision>() {
                     @Override
                     public void onSuccess(com.example.parchapp.data.RecommendationDecisionRepository.PreparedDecision decision) {

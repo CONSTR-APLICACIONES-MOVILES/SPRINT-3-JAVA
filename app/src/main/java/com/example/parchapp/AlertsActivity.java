@@ -1,7 +1,6 @@
 package com.example.parchapp;
 
 import android.app.AlertDialog;
-import android.content.Intent;
 import android.content.res.ColorStateList;
 import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.analytics.AnalyticsEvents;
@@ -84,9 +83,8 @@ public class AlertsActivity extends AppCompatActivity {
             @Override public void afterTextChanged(Editable s) { }
         });
 
-        findViewById(R.id.nav_home).setOnClickListener(v -> openScreen(DashboardActivity.class));
-        findViewById(R.id.nav_groups).setOnClickListener(v -> openScreen(GroupsActivity.class));
-        findViewById(R.id.nav_schedule).setOnClickListener(v -> openScreen(ScheduleActivity.class));
+// shared bottom bar, no tab is marked because alerts opens from the bell
+        BottomNav.setup(this, null);
     }
 
     @Override
@@ -483,12 +481,6 @@ public class AlertsActivity extends AppCompatActivity {
                     : getString(minutes == 15 ? R.string.reminder_option_15 : R.string.reminder_option_30);
             setting.setText(getString(R.string.reminder_settings_value, value));
         }
-    }
-
-    private void openScreen(Class<? extends AppCompatActivity> screen) {
-        if (getClass() == screen) return;
-        startActivity(new Intent(this, screen)
-                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP));
     }
 
     private String categoryLabel(AlertItem alert) {
