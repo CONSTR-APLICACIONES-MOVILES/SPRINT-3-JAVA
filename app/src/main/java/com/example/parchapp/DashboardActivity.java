@@ -71,7 +71,13 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         findViewById(R.id.calendar_button).setOnClickListener(v -> {
             startActivity(new Intent(this, ScheduleActivity.class));
         });
-        findViewById(R.id.new_activity_button).setEnabled(false);
+// new activity opens the same form of schedule, from home there is no group yet so the user picks one
+// when the form closes, onStart loads the plans again and the new plan shows on this screen
+        findViewById(R.id.new_activity_button).setOnClickListener(v -> {
+            if (getSupportFragmentManager().findFragmentByTag("create_activity") == null) {
+                new CreateActivitySheet().show(getSupportFragmentManager(), "create_activity");
+            }
+        });
 
         findViewById(R.id.plan_card_study).setOnClickListener(v -> openPlanDetails());
         findViewById(R.id.plan_details_button).setOnClickListener(v -> openPlanDetails());
@@ -333,7 +339,8 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         ((TextView) findViewById(titleId)).setText(group.getName());
         int size = group.getSize();
         ((TextView) findViewById(subtitleId)).setText(size == 1 ? "1 member" : size + " members");
-        ((TextView) findViewById(iconId)).setText(group.getIcon());
+// the cards show only the name, without the emoji of the group
+        findViewById(iconId).setVisibility(View.GONE);
     }
 
     private void hideGroupCards() {

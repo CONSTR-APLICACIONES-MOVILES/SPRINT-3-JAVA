@@ -1,6 +1,7 @@
 package com.example.parchapp;
 
 import android.content.Context;
+import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -38,7 +39,8 @@ final class CompareAvailabilityController {
         void onGroupError();
 
         /* the organiser picked a slot: open New Activity for it */
-        void onSlotChosen(Group group, TimeSlot slot, int position);
+// bq3: shown are the slots the organizer saw, in the same order, so the backend measures that list
+        void onSlotChosen(Group group, TimeSlot slot, int position, List<TimeSlot> shown);
     }
 
     private final Context context;
@@ -51,6 +53,11 @@ final class CompareAvailabilityController {
     private Group group;
     private List<TimeSlot> rankedSlots = new ArrayList<>();
     private int selectedPosition;
+// keys to keep the ranking and the picked slot when the phone turns
+    private static final String STATE_RANKER = "compare_ranker";
+    private static final String STATE_POSITION = "compare_position";
+// slot to pick again when the slots come back after the phone turns, -1 when there is none
+    private int restoredPosition = -1;
     // f2: which position gets the Recommended badge, it comes from the BQ3 result in firestore
     private int recommendedPosition = InsightsRepository.DEFAULT_RECOMMENDED_POSITION;
 
@@ -166,6 +173,26 @@ final class CompareAvailabilityController {
         host.onGroupError();
     }
 
+// the host calls this before android makes the screen again
+    void saveState(Bundle outState) {
+        outState.putString(STATE_RANKER, engine.getRanker().getName());
+        outState.putInt(STATE_POSITION, selectedPosition);
+    }
+
+// the host calls this after making the controller again, before the group loads
+    void restoreState(Bundle savedState) {
+        if (savedState == null) {
+            return;
+        }
+        String ranker = savedState.getString(STATE_RANKER);
+        if ("preference".equals(ranker)) {
+            useRanker(new PreferenceRanking());
+        } else if ("soonest".equals(ranker)) {
+            useRanker(new SoonestRanking());
+        }
+        restoredPosition = savedState.getInt(STATE_POSITION, -1);
+    }
+
     private void useRanker(SlotRanker ranker) {
         if (ranker.getName().equals(engine.getRanker().getName())) {
             return;
@@ -199,7 +226,11 @@ final class CompareAvailabilityController {
                     return;
                 }
                 rankedSlots = slots;
-                selectedPosition = 0;
+// after the phone turns we pick again the slot the user had, if it is still on the screen
+                boolean restore = restoredPosition >= 0 && restoredPosition < slots.size()
+                        && restoredPosition <= maxAlternatives;
+                selectedPosition = restore ? restoredPosition : 0;
+                restoredPosition = -1;
                 renderSlots();
             }
 
@@ -290,7 +321,12 @@ final class CompareAvailabilityController {
         params.put(AnalyticsEvents.PARAM_SLOT_POSITION, selectedPosition);
         params.put(AnalyticsEvents.PARAM_GROUP_SIZE, group.getSize());
         AnalyticsTracker.getInstance().track(AnalyticsEvents.SLOT_SELECTED, params);
-        host.onSlotChosen(group, slot, selectedPosition);
+        host.onSlotChosen(group, slot, selectedPosition, shownSlots());
+    }
+
+// the best slot and the alternatives that are on the screen, the same ones renderSlots draws
+    private List<TimeSlot> shownSlots() {
+        return new ArrayList<>(rankedSlots.subList(0, Math.min(rankedSlots.size(), maxAlternatives + 1)));
     }
 
     private String freeMemberNames(TimeSlot slot) {

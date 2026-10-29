@@ -59,7 +59,10 @@ public class AllGroupsSheet extends BottomSheetDialogFragment {
             }
             Group group = groups.get(i);
             view.findViewById(rows[i]).setVisibility(View.VISIBLE);
-            ((android.widget.TextView) view.findViewById(icons[i])).setText(group.getIcon());
+// the circle shows the first letter of the group instead of an emoji
+            String name = group.getName().trim();
+            ((android.widget.TextView) view.findViewById(icons[i])).setText(
+                    name.isEmpty() ? "" : name.substring(0, 1).toUpperCase());
             ((android.widget.TextView) view.findViewById(titles[i])).setText(group.getName());
             ((android.widget.TextView) view.findViewById(subtitles[i])).setText(group.getSize() + " members");
             setRowListener(view, rows[i], group.getId());

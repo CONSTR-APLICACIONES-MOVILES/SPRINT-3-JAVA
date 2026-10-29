@@ -42,6 +42,8 @@ public class ActivityCreatedActivity extends AppCompatActivity {
     private String activityId;
     private AppCompatButton reminderButton;
     private TextView reminderStatus;
+// key to keep the bq3 message when the phone turns
+    private static final String STATE_OUTCOME = "recommendation_outcome";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,7 +69,17 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         });
 
         activityId = getIntent().getStringExtra(EXTRA_ACTIVITY_ID);
-        if (savedInstanceState == null) persistRecommendationOutcome();
+        if (savedInstanceState == null) {
+            persistRecommendationOutcome();
+        } else {
+// bq3: the decision is saved only one time, after the phone turns we only show its message again
+            String outcome = savedInstanceState.getString(STATE_OUTCOME);
+            if (outcome != null) {
+                TextView outcomeView = findViewById(R.id.recommendation_outcome_text);
+                outcomeView.setText(outcome);
+                outcomeView.setVisibility(View.VISIBLE);
+            }
+        }
         if (isBlank(activityId)) {
             String title = getIntent().getStringExtra(EXTRA_TITLE);
             if (isBlank(title)) {
@@ -279,6 +291,16 @@ public class ActivityCreatedActivity extends AppCompatActivity {
     }
 
     /** Persists was_modified as the backend's authoritative BQ3 recommendation outcome. */
+// keeps the bq3 message when the phone turns
+    @Override
+    protected void onSaveInstanceState(@androidx.annotation.NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        TextView outcomeView = findViewById(R.id.recommendation_outcome_text);
+        if (outcomeView.getVisibility() == View.VISIBLE && outcomeView.getText().length() > 0) {
+            outState.putString(STATE_OUTCOME, outcomeView.getText().toString());
+        }
+    }
+
     private void persistRecommendationOutcome() {
         String activityId = getIntent().getStringExtra(EXTRA_ACTIVITY_ID);
         String recommendationId = getIntent().getStringExtra(EXTRA_RECOMMENDATION_ID);

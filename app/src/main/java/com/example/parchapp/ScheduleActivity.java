@@ -99,10 +99,41 @@ public class ScheduleActivity extends AppCompatActivity {
     private BottomSheetDialog slotsSheet;
     private Runnable refreshSlotsSheet;
 
+// in landscape the controls on top took all the height and the hours had no space
+// so in landscape the controls and the hours scroll together, and the hours keep the height of the screen
+// in portrait nothing changes
+    private void fitLandscape() {
+        if (getResources().getConfiguration().orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
+            return;
+        }
+        LinearLayout root = (LinearLayout) ((ViewGroup) findViewById(android.R.id.content)).getChildAt(0);
+        LinearLayout column = new LinearLayout(this);
+        column.setOrientation(LinearLayout.VERTICAL);
+// the header is the first view and the bottom bar the last one, everything between them moves to the column
+        while (root.getChildCount() > 2) {
+            View child = root.getChildAt(1);
+            root.removeViewAt(1);
+            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) child.getLayoutParams();
+            if (params.weight > 0) {
+// the hours used the free height, now they use the height of the screen
+                params.height = getResources().getDisplayMetrics().heightPixels;
+                params.weight = 0;
+            }
+            column.addView(child, params);
+        }
+        androidx.core.widget.NestedScrollView scroll = new androidx.core.widget.NestedScrollView(this);
+        scroll.addView(column, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        root.addView(scroll, 1, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+// the hours have their own scroll, it works together with the scroll of the screen
+        findViewById(R.id.schedule_scroll).setNestedScrollingEnabled(true);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_schedule);
+        fitLandscape();
         // bq8: schedule counts as used when this screen opens (not again on rotation)
         if (savedInstanceState == null) {
             AnalyticsTracker.getInstance().trackFeature(AnalyticsEvents.FEATURE_SCHEDULE, "schedule");
