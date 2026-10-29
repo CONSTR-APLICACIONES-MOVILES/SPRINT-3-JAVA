@@ -287,4 +287,17 @@
     <string name="schedule_try_other">Try another duration or friend selection.</string>
     <string name="schedule_friends_subtitle">Choose who to include in the mutual availability comparison.</string>
     <string name="schedule_shared_privately">Availability shared privately</string>
+    <string name="profile_photo_content_description">Profile photo</string>
+    <string name="profile_photo_edit_title">Change profile photo</string>
+    <string name="profile_photo_selfie">Take a selfie</string>
+    <string name="profile_photo_rear_camera">Rear camera</string>
+    <string name="profile_photo_permission_denied">Camera permission was denied. Allow camera access to take a profile photo.</string>
+    <string name="profile_photo_backend_unavailable">Profile photos need a signed-in backend connection.</string>
+    <string name="profile_photo_saving">Saving profile photo…</string>
+    <string name="profile_photo_save_error">Could not save the photo. Your current profile photo was kept.</string>
+    <string name="profile_photo_cache_error">Photo synced, but could not be stored on this device.</string>
+    <string name="profile_photo_load_error">Could not load your saved profile photo.</string>
+    <string name="profile_photo_updated">Profile photo updated.</string>
+    <string name="profile_camera_error">Camera unavailable. Check camera access and try again.</string>
+    <string name="profile_camera_take_photo">Take photo</string>
 </resources>
