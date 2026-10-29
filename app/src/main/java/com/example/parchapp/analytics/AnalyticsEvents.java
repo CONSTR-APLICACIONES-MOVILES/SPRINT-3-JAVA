@@ -21,6 +21,9 @@ public final class AnalyticsEvents {
     /* BQ2: activity creation reliability and latency. */
     public static final String ACTIVITY_CREATE_ATTEMPT = "activity_create_attempt";
     public static final String ACTIVITY_CREATE_RESULT = "activity_create_result";
+    /* BQ6: pair reminder delivery with a later invitation response. */
+    public static final String REMINDER_SENT = "reminder_sent";
+    public static final String RSVP_SUBMITTED = "rsvp_submitted";
 
     public static final String PARAM_GROUP_SIZE = "group_size";
     public static final String PARAM_DURATION_MS = "duration_ms";
@@ -39,6 +42,11 @@ public final class AnalyticsEvents {
     public static final String PARAM_RESULT = "result";
     public static final String PARAM_ERROR_CODE = "error_code";
     public static final String PARAM_LOCATION_AREA_ID = "location_area_id";
+    public static final String PARAM_REMINDER_ID = "reminder_id";
+    public static final String PARAM_REMINDER_SENT_AT_MS = "reminder_sent_at_ms";
+    public static final String PARAM_REMINDER_STRATEGY = "strategy";
+    public static final String PARAM_REMINDER_SEQUENCE = "sequence";
+    public static final String PARAM_RESPONSE = "response";
 
     // activity_created sources: bq9 counts suggested_slot as created after comparing availability
     public static final String SOURCE_SUGGESTED_SLOT = "suggested_slot";

@@ -11,9 +11,17 @@ public final class AlertItem {
     private final String response;
     private final String activityId;
     private final String groupId;
+    private final String strategy;
+    private final int sequence;
 
     public AlertItem(String id, String kind, String title, String description, String createdAt,
                      boolean read, String response, String activityId, String groupId) {
+        this(id, kind, title, description, createdAt, read, response, activityId, groupId, null, 0);
+    }
+
+    public AlertItem(String id, String kind, String title, String description, String createdAt,
+                     boolean read, String response, String activityId, String groupId,
+                     String strategy, int sequence) {
         this.id = id;
         this.kind = kind;
         this.title = title;
@@ -23,6 +31,8 @@ public final class AlertItem {
         this.response = response;
         this.activityId = activityId;
         this.groupId = groupId;
+        this.strategy = strategy;
+        this.sequence = sequence;
     }
 
     public String getId() { return id; }
@@ -34,6 +44,8 @@ public final class AlertItem {
     public String getResponse() { return response; }
     public String getActivityId() { return activityId; }
     public String getGroupId() { return groupId; }
+    public String getStrategy() { return strategy; }
+    public int getSequence() { return sequence; }
 
     public String getCategoryKey() {
         switch (kind) {

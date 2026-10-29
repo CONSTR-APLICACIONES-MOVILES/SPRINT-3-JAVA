@@ -28,11 +28,13 @@ final class FirebaseAlertsRepository implements AlertsRepository {
                     if (rawAlerts instanceof List) {
                         for (Object raw : (List<?>) rawAlerts) {
                             Map<?, ?> data = map(raw);
+                            Object rawSequence = data.get("sequence");
                             alerts.add(new AlertItem(string(data.get("id")), string(data.get("kind")),
                                     string(data.get("title")), string(data.get("description")),
                                     string(data.get("createdAt")), Boolean.TRUE.equals(data.get("isRead")),
                                     nullableString(data.get("response")), string(data.get("studySessionId")),
-                                    string(data.get("groupId"))));
+                                    string(data.get("groupId")), nullableString(data.get("strategy")),
+                                    rawSequence instanceof Number ? ((Number) rawSequence).intValue() : 0));
                         }
                     }
                     MainThread.post(() -> callback.onSuccess(alerts));

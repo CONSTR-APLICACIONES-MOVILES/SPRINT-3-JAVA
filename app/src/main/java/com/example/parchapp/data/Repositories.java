@@ -114,6 +114,8 @@ public final class Repositories {
 
     public static AlertsRepository alerts() {
         return alerts;
+    }
+
     /* null without Firebase: BQ3 decisions only exist on the backend */
     public static RecommendationDecisionRepository recommendationDecisions() {
         return recommendationDecisions;

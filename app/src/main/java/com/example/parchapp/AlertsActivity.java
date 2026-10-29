@@ -25,6 +25,7 @@ import com.example.parchapp.data.Repositories;
 import com.example.parchapp.domain.PlanContext;
 import com.example.parchapp.domain.model.AlertItem;
 import com.example.parchapp.domain.model.PlannedActivity;
+import com.example.parchapp.analytics.ReminderTelemetry;
 import com.example.parchapp.util.Callback;
 
 import java.text.ParsePosition;
@@ -168,6 +169,7 @@ public class AlertsActivity extends AppCompatActivity {
                 alertsLoading.setVisibility(View.GONE);
                 alerts.clear();
                 alerts.addAll(result);
+                ReminderTelemetry.recordReminderAlerts(AlertsActivity.this, result);
                 renderAlerts();
             }
 
@@ -304,7 +306,10 @@ public class AlertsActivity extends AppCompatActivity {
         setActionEnabled(actions, false);
         Repositories.alerts().respondToActivityInvitation(alert.getActivityId(), response, new Callback<Void>() {
             @Override public void onSuccess(Void ignored) {
-                if (!isFinishing() && !isDestroyed()) loadAlerts();
+                if (!isFinishing() && !isDestroyed()) {
+                    ReminderTelemetry.recordInvitationResponse(alert.getActivityId(), response);
+                    loadAlerts();
+                }
             }
             @Override public void onError(Exception error) {
                 if (!isFinishing() && !isDestroyed()) actionFailed(actions);
