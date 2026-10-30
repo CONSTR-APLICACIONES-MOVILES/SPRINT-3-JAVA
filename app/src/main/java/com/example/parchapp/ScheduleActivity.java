@@ -675,7 +675,11 @@ public class ScheduleActivity extends AppCompatActivity {
 
         boolean saved = repository instanceof OfflineScheduleRepository && ((OfflineScheduleRepository) repository).isShowingSaved();
         if (status == Status.READY && saved) {
-            showState("Offline · showing your saved schedule. Planning needs a connection.");
+            // local storage: say how old the copy is, so the user knows it may not be up to date
+            long savedAt = ((OfflineScheduleRepository) repository).getShownSavedAt();
+            String when = savedAt > 0 ? " from " + android.text.format.DateFormat.getTimeFormat(this)
+                    .format(new java.util.Date(savedAt)) : "";
+            showState("Offline · showing your schedule saved" + when + ". Planning needs a connection.");
         } else if (status == Status.READY && !warnings.isEmpty()) {
             showState("No synced calendar for " + String.join(", ", warnings)
                     + " on this day. Unknown is not counted as free.");
