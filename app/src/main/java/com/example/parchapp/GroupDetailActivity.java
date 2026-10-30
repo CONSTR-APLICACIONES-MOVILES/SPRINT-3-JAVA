@@ -100,8 +100,6 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         findViewById(R.id.member_card_3).setVisibility(View.GONE);
         findViewById(R.id.group_recent_activity).setVisibility(View.GONE);
 
-        findViewById(R.id.share_button).setEnabled(false);
-        findViewById(R.id.more_options_button).setEnabled(false);
         // f4: quick compare of this group in the sheet, without leaving the group
         findViewById(R.id.compare_roommates_button).setOnClickListener(v -> {
             String id = getIntent().getStringExtra(EXTRA_GROUP_ID);
@@ -126,8 +124,6 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
                 startActivity(CompareAvailabilityActivity.intent(this, id));
             }
         });
-// the app has no chat yet, so we say it instead of doing nothing
-        findViewById(R.id.house_chat_button).setOnClickListener(v -> toast(R.string.group_chat_coming_soon));
         findViewById(R.id.view_all_activities).setEnabled(false);
 
 // shared bottom bar, groups is the active tab and it goes back to the list of groups

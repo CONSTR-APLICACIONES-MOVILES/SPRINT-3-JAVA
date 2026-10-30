@@ -261,6 +261,15 @@
     <string name="invite_confirm_body">The group members will see your name and your shared availability.</string>
     <string name="invite_join_button">Join</string>
     <string name="invite_joining">Joining the group…</string>
+    <string name="group_created_invite_title">Group created</string>
+    <string name="group_created_invite_body">Your invitation is ready. Share it so your friends can join. It works for 7 days.</string>
+    <string name="group_created_invite_share">Share</string>
+    <string name="group_created_invite_later">Later</string>
+    <string name="invite_plan_message">You are invited to %1$s on ParchApp (%2$s). Open Alerts to answer.</string>
+    <string name="invite_plan_code_message">You are invited to %1$s (%2$s) with my group %3$s on ParchApp.
+Open Groups, tap Join with invite and paste this code:
+%4$s
+It works for 7 days.</string>
     <string name="groups_load_error">Could not load your groups. Check your connection and come back.</string>
     <string name="privacy_title">Privacy and settings</string>
     <string name="privacy_subtitle">Control your data and availability</string>
@@ -300,8 +309,6 @@
     <string name="signing_in">Signing in…</string>
     <string name="creating_account">Creating account…</string>
     <string name="cd_profile">Profile</string>
-    <string name="search_coming_soon">Search coming soon</string>
-    <string name="group_chat_coming_soon">Group chat coming soon</string>
     <string name="group_no_calendar_app">There is no calendar app on this phone</string>
     <string name="schedule_calendar_title">Google Calendar · Bogotá</string>
     <string name="schedule_import_idle">Sync busy periods without sharing event details.</string>
