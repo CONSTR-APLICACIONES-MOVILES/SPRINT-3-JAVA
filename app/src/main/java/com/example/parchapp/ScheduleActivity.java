@@ -1036,6 +1036,8 @@ public class ScheduleActivity extends AppCompatActivity {
                         }
                         CreateActivitySheet.newInstance(null, schedules.size(), slot.formatRange(), -1)
                                 .withEntryPoint(com.example.parchapp.analytics.AnalyticsEvents.ENTRY_SCHEDULE)
+                                // bq9: only a slot shared with friends counts as planned after comparing
+                                .withComparisonId(participants.isEmpty() ? null : comparisonId)
                                 .withSuggestedDate(dateKey(selectedDay))
                                 .withSuggestedDuration(slot.getDurationMinutes())
                                 .show(getSupportFragmentManager(), "create_activity");

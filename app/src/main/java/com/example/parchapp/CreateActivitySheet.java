@@ -52,6 +52,8 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
     private static final String STATE_PICKED_SIZE = "picked_size";
 // bq7: where the form was opened, and keys to keep the same flow when the phone turns
     private static final String ARG_ENTRY_POINT = "arg_entry_point";
+    // bq9: the plan comes from a slot of a friends comparison in Schedule
+    private static final String ARG_COMPARISON_ID = "arg_comparison_id";
     private static final String STATE_FLOW_ID = "flow_id";
     private static final String STATE_FLOW_STARTED = "flow_started";
     private static final String STATE_FLOW_STEPS = "flow_steps";
@@ -94,6 +96,13 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
     }
 
 // bq7: dashboard, group, slot or schedule, it goes in the creation_started event
+    public CreateActivitySheet withComparisonId(@Nullable String comparisonId) {
+        Bundle args = getArguments() == null ? new Bundle() : getArguments();
+        args.putString(ARG_COMPARISON_ID, comparisonId);
+        setArguments(args);
+        return this;
+    }
+
     public CreateActivitySheet withEntryPoint(String entryPoint) {
         Bundle args = getArguments() == null ? new Bundle() : getArguments();
         args.putString(ARG_ENTRY_POINT, entryPoint);
@@ -106,6 +115,11 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         args.putInt(ARG_DURATION, minutes);
         setArguments(args);
         return this;
+    }
+
+    /* BQ9: true when the plan was made after comparing, from a Compare Availability slot or a Schedule comparison. */
+    static boolean madeAfterComparing(int slotPosition, @Nullable String comparisonId) {
+        return slotPosition >= 0 || (comparisonId != null && !comparisonId.isEmpty());
     }
 
     @Nullable
@@ -356,10 +370,15 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
                 event.put(AnalyticsEvents.PARAM_CREATION_SESSION_ID, sessionId);
                 event.put(AnalyticsEvents.PARAM_CATEGORY, saved.getCategory());
                 event.put(AnalyticsEvents.PARAM_GROUP_SIZE, groupSize);
-                // bq9: a plan made from a Compare Availability slot was created after comparing
-                boolean fromCompare = getArguments() != null && getArguments().getInt(ARG_SLOT_POSITION, -1) >= 0;
-                event.put(AnalyticsEvents.PARAM_SOURCE, fromCompare
-                        ? AnalyticsEvents.SOURCE_SUGGESTED_SLOT : AnalyticsEvents.SOURCE_GROUP_ACTIVITY);
+                // bq9: a plan made from a Compare Availability slot or a Schedule comparison was created after comparing
+                Bundle created = getArguments() == null ? new Bundle() : getArguments();
+                String comparisonId = created.getString(ARG_COMPARISON_ID);
+                if (comparisonId != null && !comparisonId.isEmpty()) {
+                    event.put(AnalyticsEvents.PARAM_COMPARISON_ID, comparisonId);
+                }
+                event.put(AnalyticsEvents.PARAM_SOURCE,
+                        madeAfterComparing(created.getInt(ARG_SLOT_POSITION, -1), comparisonId)
+                                ? AnalyticsEvents.SOURCE_SUGGESTED_SLOT : AnalyticsEvents.SOURCE_GROUP_ACTIVITY);
                 AnalyticsTracker.getInstance().track(AnalyticsEvents.ACTIVITY_CREATED, event);
                 if (!isAdded()) return;
                 Intent result = new Intent(requireContext(), ActivityCreatedActivity.class);
