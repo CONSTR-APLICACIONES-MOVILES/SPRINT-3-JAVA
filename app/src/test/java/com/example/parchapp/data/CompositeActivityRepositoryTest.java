@@ -30,6 +30,10 @@ public class CompositeActivityRepositoryTest {
         repository.setActivityReminder("activity", 15, voidCallback);
         repository.cacheTravelMinutes("activity", 12);
         assertEquals(Integer.valueOf(12), repository.getCachedTravelMinutes("activity"));
+        repository.cacheTravelMinutesForPlace("activity", 14, 4.6, -74.0, "library");
+        assertEquals(Integer.valueOf(14), repository.getCachedTravelMinutesForDestination("activity", "library"));
+        assertEquals(Integer.valueOf(14), repository.getCachedTravelMinutesNear(
+                "activity", 4.6005, -74.0005, "library", 300));
 
         assertEquals(1, backend.createCalls);
         assertEquals(activityCallback, backend.lastActivityCallback);
@@ -44,6 +48,10 @@ public class CompositeActivityRepositoryTest {
         assertEquals(listCallback, firestore.lastListCallback);
         assertEquals(1, firestore.cacheWrites);
         assertEquals(1, firestore.cacheReads);
+        assertEquals(2, firestore.contextualCacheReads);
+        assertEquals(1, firestore.contextualCacheWrites);
+        assertEquals(0, backend.contextualCacheReads);
+        assertEquals(0, backend.contextualCacheWrites);
         assertEquals(0, firestore.createCalls);
         assertEquals(0, firestore.detailsCalls);
         assertEquals(0, firestore.reminderCalls);
@@ -63,6 +71,8 @@ public class CompositeActivityRepositoryTest {
         int reminderCalls;
         int cacheReads;
         int cacheWrites;
+        int contextualCacheReads;
+        int contextualCacheWrites;
         Callback<PlannedActivity> lastActivityCallback;
         Callback<List<PlannedActivity>> lastListCallback;
         Callback<ActivityDetails> lastDetailsCallback;
@@ -96,6 +106,23 @@ public class CompositeActivityRepositoryTest {
 
         @Override public void cacheTravelMinutes(String activityId, int minutes) {
             cacheWrites++;
+            cachedMinutes = minutes;
+        }
+
+        @Override public Integer getCachedTravelMinutesForDestination(String activityId, String destinationId) {
+            contextualCacheReads++;
+            return "library".equals(destinationId) ? 14 : null;
+        }
+
+        @Override public Integer getCachedTravelMinutesNear(String activityId, double latitude, double longitude,
+                                                            String destinationId, double radiusMeters) {
+            contextualCacheReads++;
+            return "library".equals(destinationId) && radiusMeters == 300 ? 14 : null;
+        }
+
+        @Override public void cacheTravelMinutesForPlace(String activityId, int minutes, double latitude,
+                                                         double longitude, String destinationId) {
+            contextualCacheWrites++;
             cachedMinutes = minutes;
         }
     }

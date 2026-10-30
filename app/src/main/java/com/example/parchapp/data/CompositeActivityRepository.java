@@ -55,4 +55,23 @@ final class CompositeActivityRepository implements ActivityRepository {
     public void cacheTravelMinutes(String activityId, int minutes) {
         firestore.cacheTravelMinutes(activityId, minutes);
     }
+
+    @Nullable
+    @Override
+    public Integer getCachedTravelMinutesForDestination(String activityId, String destinationId) {
+        return firestore.getCachedTravelMinutesForDestination(activityId, destinationId);
+    }
+
+    @Nullable
+    @Override
+    public Integer getCachedTravelMinutesNear(String activityId, double latitude, double longitude,
+                                              String destinationId, double radiusMeters) {
+        return firestore.getCachedTravelMinutesNear(activityId, latitude, longitude, destinationId, radiusMeters);
+    }
+
+    @Override
+    public void cacheTravelMinutesForPlace(String activityId, int minutes, double latitude,
+                                           double longitude, String destinationId) {
+        firestore.cacheTravelMinutesForPlace(activityId, minutes, latitude, longitude, destinationId);
+    }
 }
