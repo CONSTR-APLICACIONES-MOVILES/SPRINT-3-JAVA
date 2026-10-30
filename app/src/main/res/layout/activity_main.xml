@@ -15,6 +15,13 @@
         android:paddingEnd="24dp"
         android:paddingBottom="24dp">
 
+        <!-- eventual connectivity: tells the user before they try to sign in without network -->
+        <include
+            layout="@layout/view_offline_banner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp" />
+
         <ImageView
             android:layout_width="80dp"
             android:layout_height="80dp"
