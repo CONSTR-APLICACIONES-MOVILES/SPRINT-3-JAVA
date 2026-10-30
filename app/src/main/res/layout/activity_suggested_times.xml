@@ -32,6 +32,8 @@
         <View android:layout_width="38dp" android:layout_height="38dp" />
     </LinearLayout>
 
+    <!-- eventual connectivity: the shared offline banner, shown while there is no network -->
+    <include layout="@layout/view_offline_banner" />
     <ScrollView
         android:id="@+id/suggested_times_scroll"
         android:layout_width="match_parent"

@@ -343,6 +343,11 @@ public class ScheduleActivity extends AppCompatActivity {
         if (importStatus == Import.IMPORTING) {
             return;
         }
+        // eventual connectivity: importing talks to Google Calendar and the backend, so offline we say it
+        // before opening Google; the saved schedule stays on screen
+        if (OfflineGuard.blockIfOffline(this, "import your Google Calendar")) {
+            return;
+        }
         importStatus = Import.IMPORTING;
         importMessage = null;
         renderImport();

@@ -8,6 +8,8 @@
     <!-- Header -->
     <include layout="@layout/view_top_header" />
 
+    <!-- eventual connectivity: the shared offline banner, shown while there is no network -->
+    <include layout="@layout/view_offline_banner" />
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"

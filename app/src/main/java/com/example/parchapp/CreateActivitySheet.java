@@ -408,6 +408,11 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
                 locationInput.getText().toString().trim(), PlannedActivity.STATUS_PROPOSED,
                 System.currentTimeMillis(), groupSize, false).withSchedule(startIso, endIso);
 
+        // eventual connectivity: publishing invites the group through the backend, so offline we do not try;
+        // the sheet stays open with everything the user wrote, and the next tap works once the network is back
+        if (OfflineGuard.blockIfOffline(requireContext(), "create the activity", "Your form stays as you left it.")) {
+            return;
+        }
         button.setEnabled(false);
         String sessionId = UUID.randomUUID().toString();
         long startedAt = System.currentTimeMillis();
@@ -456,7 +461,9 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
                         System.currentTimeMillis() - startedAt, false, null,
                         error.getClass().getSimpleName());
                 button.setEnabled(true);
-                Toast.makeText(requireContext(), "Could not create the activity", Toast.LENGTH_SHORT).show();
+                // the connection dropped while publishing: say so, instead of a generic failure
+                Toast.makeText(requireContext(), OfflineGuard.failureMessage(error, "create the activity",
+                        "Could not create the activity. Please try again."), Toast.LENGTH_LONG).show();
             }
         });
     }
