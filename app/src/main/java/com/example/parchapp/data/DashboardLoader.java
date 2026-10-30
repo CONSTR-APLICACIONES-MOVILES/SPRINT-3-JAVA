@@ -42,6 +42,12 @@ public final class DashboardLoader {
         submit("activities", userId, Repositories.activities()::loadActivities, activities, started, pending, busyNanos);
     }
 
+    /* only the plans, cache then network, for screens that already have their groups (Groups list) */
+    public void loadPlans(String userId, Listener<PlannedActivity> activities) {
+        submit("plans", userId, Repositories.activities()::loadActivities, activities, System.nanoTime(),
+                new AtomicInteger(1), new AtomicLong());
+    }
+
     private <T> void submit(String name, String userId, Load<T> load, Listener<T> listener, long started,
                             AtomicInteger pending, AtomicLong busyNanos) {
         POOL.execute(() -> {
