@@ -28,7 +28,6 @@
 
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:orientation="horizontal">
         <androidx.appcompat.widget.AppCompatButton android:id="@+id/btn_plan_close" android:layout_width="0dp" android:layout_height="48dp" android:layout_marginEnd="4dp" android:layout_weight="1" android:background="@drawable/bg_light_blue" android:text="@string/close" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="12sp" android:textStyle="bold" />
-        <androidx.appcompat.widget.AppCompatButton android:id="@+id/btn_open_map" android:layout_width="0dp" android:layout_height="48dp" android:layout_marginStart="2dp" android:layout_marginEnd="2dp" android:layout_weight="1" android:background="@drawable/bg_light_blue" android:text="Maps" android:textAllCaps="false" android:textColor="@color/brand_primary" android:textSize="12sp" android:textStyle="bold" />
         <androidx.appcompat.widget.AppCompatButton android:id="@+id/btn_add_to_calendar" android:layout_width="0dp" android:layout_height="48dp" android:layout_marginStart="4dp" android:layout_weight="1" android:background="@drawable/bg_primary_pill" android:text="@string/add_to_calendar" android:textAllCaps="false" android:textColor="@android:color/white" android:textSize="12sp" android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>

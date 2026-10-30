@@ -15,6 +15,7 @@ import com.example.parchapp.data.FirebaseRecommendationDecisionRepository;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.domain.model.ActivityDetails;
 import com.example.parchapp.util.Callback;
+import com.example.parchapp.util.IconButtons;
 import com.google.firebase.functions.FirebaseFunctions;
 
 import java.text.ParsePosition;
@@ -54,11 +55,10 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         reminderStatus = findViewById(R.id.reminder_status);
         findViewById(R.id.suggested_times_button).setVisibility(View.GONE);
         findViewById(R.id.close_created_button).setOnClickListener(v -> finish());
-        findViewById(R.id.copy_invite_button).setEnabled(false);
-        findViewById(R.id.whatsapp_button).setEnabled(false);
-        findViewById(R.id.calendar_toggle).setEnabled(false);
-        ((androidx.appcompat.widget.SwitchCompat) findViewById(R.id.calendar_toggle)).setChecked(false);
-        findViewById(R.id.view_schedule_button).setEnabled(false);
+        IconButtons.centerIconWithText(findViewById(R.id.copy_invite_button));
+        IconButtons.centerIconWithText(findViewById(R.id.whatsapp_button));
+        findViewById(R.id.copy_invite_button).setOnClickListener(v -> InviteActions.inviteToPlan(this, activity, false, v));
+        findViewById(R.id.whatsapp_button).setOnClickListener(v -> InviteActions.inviteToPlan(this, activity, true, v));
         findViewById(R.id.retry_activity_button).setOnClickListener(v -> {
             if (!isBlank(activityId)) loadActivity(activityId);
         });
@@ -189,7 +189,6 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         findViewById(R.id.activity_error_state).setVisibility(View.GONE);
         findViewById(R.id.activity_success_header).setVisibility(View.GONE);
         findViewById(R.id.activity_summary_card).setVisibility(View.GONE);
-        findViewById(R.id.attendees_card).setVisibility(View.GONE);
         findViewById(R.id.activity_utilities_card).setVisibility(View.GONE);
         reminderButton.setEnabled(false);
         reminderButton.setText(R.string.activity_loading_details);
@@ -201,7 +200,6 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         findViewById(R.id.activity_error_state).setVisibility(View.GONE);
         findViewById(R.id.activity_success_header).setVisibility(View.VISIBLE);
         findViewById(R.id.activity_summary_card).setVisibility(View.VISIBLE);
-        findViewById(R.id.attendees_card).setVisibility(View.GONE);
         findViewById(R.id.activity_utilities_card).setVisibility(View.VISIBLE);
     }
 
@@ -209,7 +207,6 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         findViewById(R.id.activity_loading_state).setVisibility(View.GONE);
         findViewById(R.id.activity_success_header).setVisibility(View.GONE);
         findViewById(R.id.activity_summary_card).setVisibility(View.GONE);
-        findViewById(R.id.attendees_card).setVisibility(View.GONE);
         findViewById(R.id.activity_utilities_card).setVisibility(View.GONE);
         findViewById(R.id.activity_error_state).setVisibility(View.VISIBLE);
         ((TextView) findViewById(R.id.activity_error_message)).setText(message);

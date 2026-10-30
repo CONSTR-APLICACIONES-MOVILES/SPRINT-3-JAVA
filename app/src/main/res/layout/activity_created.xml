@@ -140,51 +140,26 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Attendees card -->
-            <LinearLayout android:id="@+id/attendees_card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/bg_dashboard_card" android:orientation="vertical" android:padding="14dp">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="INVITED FRIENDS (4)" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1 host • 3 pending" android:textColor="@color/brand_slate" android:textSize="9sp" />
-                </LinearLayout>
-
+            <!-- Utilities card -->
+            <LinearLayout android:id="@+id/activity_utilities_card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/bg_dashboard_card" android:orientation="vertical" android:padding="14dp" android:visibility="gone">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:gravity="center_vertical">
-                    <TextView android:layout_width="30dp" android:layout_height="30dp" android:background="@drawable/bg_oval_solid" android:backgroundTint="@color/brand_primary" android:gravity="center" android:text="AV" android:textColor="@android:color/white" android:textSize="10sp" android:textStyle="bold" />
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Alex Valenzuela" android:textColor="@color/brand_dark" android:textSize="11sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Organizer (You)" android:textColor="@color/brand_slate" android:textSize="9sp" />
-                    </LinearLayout>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_green_chip" android:paddingStart="8dp" android:paddingTop="3dp" android:paddingEnd="8dp" android:paddingBottom="3dp" android:text="Ready" android:textColor="@color/brand_success_dark" android:textSize="9sp" android:textStyle="bold" />
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="⚡  Reminder alert:" android:textColor="@color/brand_slate" android:textSize="11sp" />
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/reminder_button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
+                        android:background="@drawable/bg_light_blue"
+                        android:minWidth="0dp"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:text="15 min before ⌄"
+                        android:textAllCaps="false"
+                        android:textColor="@color/brand_primary"
+                        android:textSize="10sp"
+                        android:textStyle="bold" />
                 </LinearLayout>
-
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:gravity="center_vertical">
-                    <TextView android:layout_width="30dp" android:layout_height="30dp" android:background="@drawable/bg_oval_solid" android:backgroundTint="@color/brand_rose" android:gravity="center" android:text="SG" android:textColor="@android:color/white" android:textSize="10sp" android:textStyle="bold" />
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Sofia Gómez" android:textColor="@color/brand_dark" android:textSize="11sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="sofia.g@unal.edu.co" android:textColor="@color/brand_slate" android:textSize="9sp" />
-                    </LinearLayout>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_pill_neutral" android:paddingStart="8dp" android:paddingTop="3dp" android:paddingEnd="8dp" android:paddingBottom="3dp" android:text="Invited" android:textColor="@color/brand_slate" android:textSize="9sp" android:textStyle="bold" />
-                </LinearLayout>
-
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:gravity="center_vertical">
-                    <TextView android:layout_width="30dp" android:layout_height="30dp" android:background="@drawable/bg_oval_solid" android:backgroundTint="@color/brand_success" android:gravity="center" android:text="MR" android:textColor="@android:color/white" android:textSize="10sp" android:textStyle="bold" />
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Mateo Ríos" android:textColor="@color/brand_dark" android:textSize="11sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="mateo.r@unal.edu.co" android:textColor="@color/brand_slate" android:textSize="9sp" />
-                    </LinearLayout>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_pill_neutral" android:paddingStart="8dp" android:paddingTop="3dp" android:paddingEnd="8dp" android:paddingBottom="3dp" android:text="Invited" android:textColor="@color/brand_slate" android:textSize="9sp" android:textStyle="bold" />
-                </LinearLayout>
-
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:gravity="center_vertical">
-                    <TextView android:layout_width="30dp" android:layout_height="30dp" android:background="@drawable/bg_oval_solid" android:backgroundTint="@color/brand_purple" android:gravity="center" android:text="CT" android:textColor="@android:color/white" android:textSize="10sp" android:textStyle="bold" />
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Camila Torres" android:textColor="@color/brand_dark" android:textSize="11sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="camila.t@unal.edu.co" android:textColor="@color/brand_slate" android:textSize="9sp" />
-                    </LinearLayout>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_pill_neutral" android:paddingStart="8dp" android:paddingTop="3dp" android:paddingEnd="8dp" android:paddingBottom="3dp" android:text="Invited" android:textColor="@color/brand_slate" android:textSize="9sp" android:textStyle="bold" />
-                </LinearLayout>
-
-                <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="12dp" android:background="@color/brand_divider" />
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp">
+                <TextView android:id="@+id/reminder_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textColor="@color/brand_slate" android:textSize="10sp" android:visibility="gone" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp">
                     <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/copy_invite_button"
                         android:layout_width="0dp"
@@ -209,48 +184,13 @@
                         android:background="@drawable/bg_green_chip"
                         android:drawableStart="@drawable/ic_whatsapp"
                         android:drawablePadding="6dp"
+                        android:drawableTint="@color/brand_success_dark"
                         android:text="WhatsApp"
                         android:textAllCaps="false"
                         android:textColor="@color/brand_success_dark"
                         android:textSize="10sp"
                         android:textStyle="bold" />
                 </LinearLayout>
-            </LinearLayout>
-
-            <!-- Utilities card -->
-            <LinearLayout android:id="@+id/activity_utilities_card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/bg_dashboard_card" android:orientation="vertical" android:padding="14dp" android:visibility="gone">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
-                    <TextView android:layout_width="28dp" android:layout_height="28dp" android:background="@drawable/bg_icon_badge" android:gravity="center" android:text="▣" android:textColor="@color/brand_primary" android:textSize="13sp" />
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Google &amp; Apple Calendar" android:textColor="@color/brand_dark" android:textSize="11sp" android:textStyle="bold" />
-                        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Auto-sync with external apps" android:textColor="@color/brand_slate" android:textSize="9sp" />
-                    </LinearLayout>
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/calendar_toggle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:checked="true"
-                        app:thumbTint="@android:color/white"
-                        app:trackTint="@color/brand_primary" />
-                </LinearLayout>
-                <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="10dp" android:background="@color/brand_divider" />
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:gravity="center_vertical">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="⚡  Reminder alert:" android:textColor="@color/brand_slate" android:textSize="11sp" />
-                    <androidx.appcompat.widget.AppCompatButton
-                        android:id="@+id/reminder_button"
-                        android:layout_width="wrap_content"
-                        android:layout_height="32dp"
-                        android:background="@drawable/bg_light_blue"
-                        android:minWidth="0dp"
-                        android:paddingStart="12dp"
-                        android:paddingEnd="12dp"
-                        android:text="15 min before ⌄"
-                        android:textAllCaps="false"
-                        android:textColor="@color/brand_primary"
-                        android:textSize="10sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-                <TextView android:id="@+id/reminder_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textColor="@color/brand_slate" android:textSize="10sp" android:visibility="gone" />
             </LinearLayout>
         </LinearLayout>
     </ScrollView>
@@ -275,19 +215,6 @@
             android:textSize="12sp"
             android:textStyle="bold"
             android:visibility="gone" />
-        <androidx.appcompat.widget.AppCompatButton
-            android:id="@+id/view_schedule_button"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:background="@drawable/bg_primary_pill"
-            android:drawableEnd="@drawable/ic_calendar"
-            android:drawablePadding="8dp"
-            android:drawableTint="@android:color/white"
-            android:text="View in Schedule"
-            android:textAllCaps="false"
-            android:textColor="@android:color/white"
-            android:textSize="13sp"
-            android:textStyle="bold" />
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/back_home_button"
             android:layout_width="match_parent"
