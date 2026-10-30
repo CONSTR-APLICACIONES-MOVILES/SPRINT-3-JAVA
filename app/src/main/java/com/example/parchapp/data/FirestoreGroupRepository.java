@@ -3,6 +3,7 @@ package com.example.parchapp.data;
 import android.util.Log;
 
 import com.example.parchapp.domain.model.Group;
+import com.example.parchapp.domain.model.GroupInvite;
 import com.example.parchapp.domain.model.Member;
 import com.example.parchapp.domain.model.TimeBlock;
 import com.example.parchapp.util.Callback;
@@ -29,6 +30,8 @@ import java.util.UUID;
 class FirestoreGroupRepository extends BaseGroupRepository {
     private static final String TAG = "FirestoreGroupRepo";
     private static final String COLLECTION = "groups";
+// the longest time the backend accepts, 7 days
+    private static final int INVITE_HOURS = 168;
 
     private final CollectionReference collection;
 // f6: the rules do not let the app write a new group, so the backend function creates it
@@ -75,6 +78,73 @@ class FirestoreGroupRepository extends BaseGroupRepository {
                             });
                 })
                 .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+    }
+
+// the backend only gives a code to the owner of the group
+    @Override
+    public void createGroupInvite(String groupId, String userId, Callback<String> callback) {
+        Map<String, Object> input = new HashMap<>();
+        input.put("requestId", UUID.randomUUID().toString());
+        input.put("kind", "group");
+        input.put("entityId", groupId);
+        input.put("hours", INVITE_HOURS);
+        input.put("clientUserId", userId);
+        functions.getHttpsCallable("createShareLink").call(input)
+                .addOnSuccessListener(result -> {
+                    Object code = responseField(result.getData(), "token");
+                    MainThread.post(() -> {
+                        if (code == null) {
+                            callback.onError(new IllegalStateException("Backend response did not contain token"));
+                        } else {
+                            callback.onSuccess(code.toString());
+                        }
+                    });
+                })
+                .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+    }
+
+    @Override
+    public void previewInvite(String code, Callback<GroupInvite> callback) {
+        Map<String, Object> input = new HashMap<>();
+        input.put("token", code);
+        functions.getHttpsCallable("resolveShareLink").call(input)
+                .addOnSuccessListener(result -> {
+                    Object data = result.getData();
+                    Object groupId = responseField(data, "entityId");
+                    MainThread.post(() -> {
+                        if (groupId == null || !"group".equals(responseField(data, "kind"))) {
+                            callback.onError(new IllegalArgumentException("This code is not a group invitation"));
+                        } else {
+                            callback.onSuccess(new GroupInvite(groupId.toString(),
+                                    asString(responseField(data, "title")),
+                                    Boolean.TRUE.equals(responseField(data, "member"))));
+                        }
+                    });
+                })
+                .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+    }
+
+    @Override
+    public void joinWithInvite(String code, String userId, Callback<String> callback) {
+        Map<String, Object> input = new HashMap<>();
+        input.put("token", code);
+        input.put("clientUserId", userId);
+        functions.getHttpsCallable("joinSharedGroup").call(input)
+                .addOnSuccessListener(result -> {
+                    Object groupId = responseField(result.getData(), "groupId");
+                    MainThread.post(() -> {
+                        if (groupId == null) {
+                            callback.onError(new IllegalStateException("Backend response did not contain groupId"));
+                        } else {
+                            callback.onSuccess(groupId.toString());
+                        }
+                    });
+                })
+                .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+    }
+
+    private static Object responseField(Object data, String field) {
+        return data instanceof Map ? ((Map<?, ?>) data).get(field) : null;
     }
 
     @Override

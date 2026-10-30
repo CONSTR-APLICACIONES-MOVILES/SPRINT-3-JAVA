@@ -70,10 +70,8 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         // shared top bar with the logo, search, alerts and the user initials
         TopHeader.setup(this);
 
-        // invite links are not built yet: the box says so and the button looks disabled
-        View copyLink = findViewById(R.id.copy_link_button);
-        copyLink.setEnabled(false);
-        copyLink.setAlpha(0.5f);
+        // the owner of a group shares an invitation code, the friend pastes it in Groups
+        findViewById(R.id.copy_link_button).setOnClickListener(v -> InviteActions.share(this, loadedGroups, v));
         findViewById(R.id.btn_edit_free_until).setOnClickListener(v -> openQuickStatusSheet());
         findViewById(R.id.btn_edit_next_activity).setOnClickListener(v -> openQuickStatusSheet());
         // f1: tapping the status opens Set Availability Status, saving there updates this card right away
@@ -311,7 +309,7 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
             TextView avatar = findViewById(ids[i]);
             if (i < members.size()) {
                 avatar.setVisibility(View.VISIBLE);
-                avatar.setText(members.get(i).getInitials());
+                avatar.setText(members.get(i).getDisplayInitials());
             } else {
                 avatar.setVisibility(View.GONE);
             }
@@ -424,6 +422,5 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         ((TextView) findViewById(R.id.header_user_initials)).setText(initials);
         ((TextView) findViewById(R.id.greeting_text)).setText(name.isEmpty() ? "Home" : "Hello, " + name + "!");
         ((TextView) findViewById(R.id.active_plans_text)).setText(user == null ? "" : "Loading your plans…");
-        ((TextView) findViewById(R.id.invite_link_text)).setText(R.string.invite_link_soon);
     }
 }

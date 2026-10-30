@@ -342,21 +342,12 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
             }
             Member member = members.get(i);
             findViewById(cards[i]).setVisibility(View.VISIBLE);
-            ((TextView) findViewById(initials[i])).setText(initialsOf(member));
+            ((TextView) findViewById(initials[i])).setText(member.getDisplayInitials());
             ((TextView) findViewById(names[i])).setText(member.getName());
 // f6: the summary and the status of each member are other features, so we leave them empty
             ((TextView) findViewById(summaries[i])).setText("");
             ((TextView) findViewById(statuses[i])).setText("");
         }
-    }
-
-// f6: groups made by the backend can have empty initials, then we use the first letter of the name
-    private static String initialsOf(Member member) {
-        if (!member.getInitials().isEmpty()) {
-            return member.getInitials();
-        }
-        String name = member.getName().trim();
-        return name.isEmpty() ? "?" : name.substring(0, 1).toUpperCase();
     }
 
 // f3: we read the plans of the user and keep only the ones of this group
