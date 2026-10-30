@@ -69,6 +69,16 @@ class FunctionsScheduleRepository implements ScheduleRepository {
     }
 
     @Override
+    public void prepareProposalComparison(String date, List<String> friendIds, Callback<String> callback) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("date", date);
+        request.put("friendIds", new ArrayList<>(friendIds));
+        functions.getHttpsCallable("prepareProposalComparison").call(request)
+                .addOnSuccessListener(result -> callback.onSuccess(asString(asMap(result.getData()).get("comparisonEvidenceId"))))
+                .addOnFailureListener(callback::onError);
+    }
+
+    @Override
     public void importCalendarAvailability(String startDate, int days, List<String[]> intervals,
                                            Callback<Integer> callback) {
         List<Map<String, Object>> raw = new ArrayList<>();

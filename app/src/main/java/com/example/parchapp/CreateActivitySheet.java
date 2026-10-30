@@ -20,6 +20,7 @@ import com.example.parchapp.analytics.AnalyticsEvents;
 import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.analytics.CreationFlowTracker;
 import com.example.parchapp.data.Repositories;
+import com.example.parchapp.domain.model.ComparisonEvidence;
 import com.example.parchapp.domain.model.PlannedActivity;
 import com.example.parchapp.util.Callback;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
@@ -54,6 +55,9 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
     private static final String ARG_ENTRY_POINT = "arg_entry_point";
     // bq9: the plan comes from a slot of a friends comparison in Schedule
     private static final String ARG_COMPARISON_ID = "arg_comparison_id";
+    // bq9: who was compared and on which day, publishActivity needs them to accept the comparison
+    private static final String ARG_COMPARED_IDS = "arg_compared_ids";
+    private static final String ARG_COMPARED_DATE = "arg_compared_date";
     private static final String STATE_FLOW_ID = "flow_id";
     private static final String STATE_FLOW_STARTED = "flow_started";
     private static final String STATE_FLOW_STEPS = "flow_steps";
@@ -101,6 +105,29 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         args.putString(ARG_COMPARISON_ID, comparisonId);
         setArguments(args);
         return this;
+    }
+
+    /* Schedule: the backend comparison of me and these friends on this day (a validated slot or a proposal). */
+    public CreateActivitySheet withComparison(String comparisonId, java.util.List<String> friendIds, String date) {
+        withComparisonId(comparisonId);
+        Bundle args = getArguments();
+        args.putStringArrayList(ARG_COMPARED_IDS, new java.util.ArrayList<>(friendIds));
+        args.putString(ARG_COMPARED_DATE, date);
+        setArguments(args);
+        return this;
+    }
+
+    /* BQ9: the evidence sent with the plan. A Schedule comparison with its friends, direct() for a plan made without
+     * comparing, and null (unknown) for a Compare Availability slot, which has no backend comparison to show. */
+    @Nullable
+    static ComparisonEvidence evidenceFor(int slotPosition, @Nullable String comparisonId,
+                                          @Nullable java.util.List<String> friendIds, @Nullable String date,
+                                          @Nullable String myId) {
+        if (comparisonId != null && !comparisonId.isEmpty()) {
+            return friendIds == null || friendIds.isEmpty() || myId == null
+                    ? null : ComparisonEvidence.of(comparisonId, myId, friendIds, date);
+        }
+        return slotPosition >= 0 ? null : ComparisonEvidence.direct();
     }
 
     public CreateActivitySheet withEntryPoint(String entryPoint) {
@@ -258,6 +285,32 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
     }
 
     /* Opened without a group (from Schedule): the organizer picks one of their groups, the plan is published for it. */
+    /* BQ9: after comparing friends only the groups that have all of them can host the plan; if none does,
+     * every group is shown and the plan goes without the comparison, so it is never blocked */
+    private java.util.List<com.example.parchapp.domain.model.Group> groupsForComparison(
+            java.util.List<com.example.parchapp.domain.model.Group> groups) {
+        Bundle args = getArguments();
+        java.util.List<String> compared = args == null ? null : args.getStringArrayList(ARG_COMPARED_IDS);
+        if (compared == null || compared.isEmpty()) {
+            return groups;
+        }
+        java.util.List<com.example.parchapp.domain.model.Group> fitting = new java.util.ArrayList<>();
+        for (com.example.parchapp.domain.model.Group group : groups) {
+            java.util.List<String> memberIds = new java.util.ArrayList<>();
+            for (com.example.parchapp.domain.model.Member member : group.getMembers()) {
+                memberIds.add(member.getId());
+            }
+            if (memberIds.containsAll(compared)) {
+                fitting.add(group);
+            }
+        }
+        if (fitting.isEmpty()) {
+            args.remove(ARG_COMPARED_IDS);
+            return groups;
+        }
+        return fitting;
+    }
+
     private void showGroupChoices(TextView placeholder, View createButton, String pickedGroupId) {
         UserProfile user = UserSession.getCurrentUser();
         if (user == null) {
@@ -280,7 +333,7 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
                 row.addView(scroll, new android.widget.LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
                 java.util.List<TextView> all = new java.util.ArrayList<>();
-                for (com.example.parchapp.domain.model.Group group : groups) {
+                for (com.example.parchapp.domain.model.Group group : groupsForComparison(groups)) {
                     TextView chip = new TextView(requireContext());
 // only the name of the group, without the emoji
                     chip.setText(group.getName());
@@ -359,7 +412,12 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         String sessionId = UUID.randomUUID().toString();
         long startedAt = System.currentTimeMillis();
         ActivityCreationTelemetry.attempt(sessionId, "group_activity", groupSize);
-        Repositories.activities().createActivity(activity, new Callback<PlannedActivity>() {
+        Bundle publishArgs = getArguments() == null ? new Bundle() : getArguments();
+        UserProfile organizer = UserSession.getCurrentUser();
+        ComparisonEvidence evidence = evidenceFor(publishArgs.getInt(ARG_SLOT_POSITION, -1),
+                publishArgs.getString(ARG_COMPARISON_ID), publishArgs.getStringArrayList(ARG_COMPARED_IDS),
+                publishArgs.getString(ARG_COMPARED_DATE), organizer == null ? null : organizer.getId());
+        Repositories.activities().createActivity(activity, evidence, new Callback<PlannedActivity>() {
             @Override public void onSuccess(PlannedActivity saved) {
 // bq7: the activity was created, this flow is not an abandon
                 flow.finished();
