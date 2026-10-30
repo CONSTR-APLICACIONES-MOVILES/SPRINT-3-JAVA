@@ -34,6 +34,8 @@ class FirestoreGroupRepository extends BaseGroupRepository {
 // f6: the rules do not let the app write a new group, so the backend function creates it
     private final FirebaseFunctions functions;
     private final Map<String, ListenerRegistration> registrations = new HashMap<>();
+// last data of each group, a change of only the metadata does not draw the screen again
+    private final Map<String, Map<String, Object>> lastDataByGroup = new HashMap<>();
 
     FirestoreGroupRepository(FirebaseFirestore db, FirebaseFunctions functions) {
         collection = db.collection(COLLECTION);
@@ -123,7 +125,9 @@ class FirestoreGroupRepository extends BaseGroupRepository {
 
     @Override
     protected void startObserving(String groupId) {
-        ListenerRegistration registration = collection.document(groupId).addSnapshotListener((snapshot, error) -> {
+// metadata changes too, so we also hear when the same data stops coming from the cache and comes from the server
+        ListenerRegistration registration = collection.document(groupId).addSnapshotListener(
+                com.google.firebase.firestore.MetadataChanges.INCLUDE, (snapshot, error) -> {
 // an error here usually means the user can not read the group anymore
             if (error != null) {
                 Log.w(TAG, "Listening to group " + groupId + " failed", error);
@@ -131,7 +135,12 @@ class FirestoreGroupRepository extends BaseGroupRepository {
                 return;
             }
             if (snapshot != null && snapshot.exists()) {
-                notifyListeners(fromSnapshot(snapshot));
+                Map<String, Object> data = snapshot.getData();
+                if (data == null || !data.equals(lastDataByGroup.get(groupId))) {
+                    lastDataByGroup.put(groupId, data);
+                    notifyListeners(fromSnapshot(snapshot));
+                }
+                notifySync(groupId, snapshot.getMetadata().isFromCache());
 // the document does not exist, for example it was deleted while the screen was open
             } else if (snapshot != null && !snapshot.getMetadata().isFromCache()) {
                 notifyUnavailable(groupId);
@@ -143,6 +152,7 @@ class FirestoreGroupRepository extends BaseGroupRepository {
     @Override
     protected void stopObserving(String groupId) {
         ListenerRegistration registration = registrations.remove(groupId);
+        lastDataByGroup.remove(groupId);
         if (registration != null) {
             registration.remove();
         }

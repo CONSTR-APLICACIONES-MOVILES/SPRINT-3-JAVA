@@ -65,6 +65,11 @@
     <string name="group_time_past">Pick a time later than now</string>
     <string name="group_created">Group created</string>
     <string name="group_create_failed">Could not create the group. Try again.</string>
+    <string name="group_draft_restored">Your draft was restored</string>
+    <string name="group_offline_notice">You are offline. Your draft is saved and you can create the group when the connection comes back.</string>
+    <string name="group_sync_now">Synced just now</string>
+    <string name="group_sync_offline">Offline - last synced %1$s</string>
+    <string name="group_sync_offline_never">Offline - showing the saved copy</string>
     <string name="view_all_groups">View all (%d)</string>
     <string name="open_chat">Open chat</string>
     <string name="view_status">View status</string>

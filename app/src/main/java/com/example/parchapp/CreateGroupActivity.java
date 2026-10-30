@@ -20,8 +20,10 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.parchapp.data.GroupDraftStore;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.domain.GroupForm;
+import com.example.parchapp.domain.model.GroupDraft;
 import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.IconButtons;
 
@@ -51,6 +53,18 @@ public class CreateGroupActivity extends AppCompatActivity {
 // the day and the minute of the day the user picked, none means not picked yet
     private long pickedDate = NONE;
     private int pickedMinute = NONE;
+// strategy 7: the draft of this form is saved on the phone while the user writes
+    private GroupDraftStore draftStore;
+// true while we put the saved draft back, so that does not save the draft again
+    private boolean restoringDraft;
+// without connection the create button turns off, while the group is being created it is off too
+    private boolean online = true;
+    private boolean creating;
+    private final OfflineBannerController offlineBanner = new OfflineBannerController();
+    private final AnalyticsTracker.ConnectivityListener connectivity = isOnline -> runOnUiThread(() -> {
+        online = isOnline;
+        renderConnectivity();
+    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,8 +104,64 @@ public class CreateGroupActivity extends AppCompatActivity {
             pickedDate = savedInstanceState.getLong(STATE_DATE, NONE);
             pickedMinute = savedInstanceState.getInt(STATE_TIME, NONE);
         }
+        UserProfile user = UserSession.getCurrentUser();
+        draftStore = new GroupDraftStore(this, user == null ? null : user.getId());
+// when the screen opens for the first time we bring back the draft the user left before
+        if (savedInstanceState == null) {
+            restoreDraft();
+        }
         renderInvites();
         showNameCount();
+    }
+
+// while the screen is visible we listen to the connection, so the button and the notice follow it
+    @Override
+    protected void onStart() {
+        super.onStart();
+        offlineBanner.start(findViewById(R.id.offline_banner));
+        AnalyticsTracker.getInstance().addConnectivityListener(connectivity);
+    }
+
+    @Override
+    protected void onStop() {
+        AnalyticsTracker.getInstance().removeConnectivityListener(connectivity);
+        offlineBanner.stop();
+        super.onStop();
+    }
+
+// without connection the button is off and the notice says the draft is saved, with connection it comes back alone
+    private void renderConnectivity() {
+        boolean canCreate = online && !creating;
+        createButton.setEnabled(canCreate);
+        createButton.setAlpha(online ? 1f : 0.5f);
+        findViewById(R.id.group_offline_notice).setVisibility(online ? View.GONE : View.VISIBLE);
+    }
+
+// puts the saved draft in the form, the texts change but that does not save the draft again
+    private void restoreDraft() {
+        GroupDraft draft = draftStore.load();
+        if (draft == null) {
+            return;
+        }
+        restoringDraft = true;
+        nameInput.setText(draft.getName());
+        pickedDate = draft.getPickedDate();
+        pickedMinute = draft.getPickedMinute();
+        dateInput.setText(draft.getDateText());
+        timeInput.setText(draft.getTimeText());
+        invites.clear();
+        invites.addAll(draft.getEmails());
+        restoringDraft = false;
+        toast(getString(R.string.group_draft_restored));
+    }
+
+// saves what is in the form now, it runs after every change
+    private void saveDraft() {
+        if (restoringDraft || draftStore == null) {
+            return;
+        }
+        draftStore.save(new GroupDraft(nameInput.getText().toString(), pickedDate, pickedMinute,
+                dateInput.getText().toString(), timeInput.getText().toString(), invites));
     }
 
 // we save the emails, the date and the time before android makes the screen again, the fields save their text
@@ -117,6 +187,7 @@ public class CreateGroupActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable s) {
                 showNameCount();
+                saveDraft();
             }
         });
 // emails have no spaces, so spaces are not typed
@@ -159,6 +230,7 @@ public class CreateGroupActivity extends AppCompatActivity {
             dateInput.setText(DateFormat.getMediumDateFormat(this).format(picked.getTime()));
             dateInput.setError(null);
             isTimeInTheFuture();
+            saveDraft();
         }, day.get(Calendar.YEAR), day.get(Calendar.MONTH), day.get(Calendar.DAY_OF_MONTH));
         dialog.getDatePicker().setMinDate(System.currentTimeMillis() - 1000);
         dialog.show();
@@ -176,6 +248,7 @@ public class CreateGroupActivity extends AppCompatActivity {
             picked.set(Calendar.MINUTE, minuteOfHour);
             timeInput.setText(DateFormat.getTimeFormat(this).format(picked.getTime()));
             isTimeInTheFuture();
+            saveDraft();
         }, hour, minute, DateFormat.is24HourFormat(this)).show();
     }
 
@@ -224,6 +297,7 @@ public class CreateGroupActivity extends AppCompatActivity {
         AnalyticsTracker.getInstance().trackFeature(AnalyticsEvents.FEATURE_INVITATIONS, "create_group");
         emailInput.setText("");
         renderInvites();
+        saveDraft();
     }
 
 // f6: draws one row for each email, a tap on the row removes it
@@ -245,6 +319,7 @@ public class CreateGroupActivity extends AppCompatActivity {
             row.setOnClickListener(v -> {
                 invites.remove(email);
                 renderInvites();
+                saveDraft();
             });
             emailChips.addView(row);
         }
@@ -262,11 +337,19 @@ public class CreateGroupActivity extends AppCompatActivity {
         if (!isTimeInTheFuture()) {
             return;
         }
+// without connection we do not try, the draft is saved and the button comes back with the connection
+        if (!online) {
+            renderConnectivity();
+            return;
+        }
 // f6: we turn off the button so the user can not create the same group two times
-        createButton.setEnabled(false);
+        creating = true;
+        renderConnectivity();
         Repositories.groups().createGroup(name, DEFAULT_CATEGORY, new ArrayList<>(invites), new Callback<String>() {
             @Override
             public void onSuccess(String groupId) {
+// the group exists now, so the draft is not needed anymore
+                draftStore.clear();
                 if (isFinishing() || isDestroyed()) {
                     return;
                 }
@@ -281,7 +364,8 @@ public class CreateGroupActivity extends AppCompatActivity {
                 if (isFinishing() || isDestroyed()) {
                     return;
                 }
-                createButton.setEnabled(true);
+                creating = false;
+                renderConnectivity();
                 toast(getString(R.string.group_create_failed));
             }
         });
