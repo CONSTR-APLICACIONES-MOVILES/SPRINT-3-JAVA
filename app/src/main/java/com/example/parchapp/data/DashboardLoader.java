@@ -15,14 +15,17 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /* Multithreading (issue #34): the Dashboard needs my groups and today's plans, two reads that do not depend on
  * each other. They run at the same time on two worker threads and each one answers on the main thread as soon
- * as it is ready, so the screen shows the groups without waiting for the plans. The main thread only draws. */
+ * as it is ready, so the screen shows the groups without waiting for the plans. The main thread only draws.
+ * Eventual connectivity (issue #43), cache then network: each read first gives what Firestore saved on the phone,
+ * so the screen is never empty, and then the answer of the network, which replaces it. */
 public final class DashboardLoader {
     static final String TAG = "ParchPerf";
     // two threads, one per read; the pool lives with the app so opening the Dashboard does not create threads
     private static final ExecutorService POOL = BackgroundThreads.pool("parch-dashboard", 2);
 
     public interface Listener<T> {
-        void onLoaded(List<T> items);
+        /* fromCache: the items come from the phone, the network answer may still replace them */
+        void onLoaded(List<T> items, boolean fromCache);
 
         void onFailed(Exception error);
     }
@@ -44,11 +47,28 @@ public final class DashboardLoader {
         POOL.execute(() -> {
             BackgroundThreads.beginSection("Dashboard.load " + name);
             long begin = System.nanoTime();
+            boolean shownFromCache = false;
             try {
+                // 1. cache: instant and works offline; an empty cache (first time) shows nothing instead of "no groups"
+                try {
+                    List<T> saved = load.run(userId, true);
+                    if (!saved.isEmpty()) {
+                        shownFromCache = true;
+                        MainThread.post(() -> listener.onLoaded(saved, true));
+                    }
+                    Log.d(TAG, String.format(Locale.US, "Dashboard %s from cache: %d in %.1f ms",
+                            name, saved.size(), (System.nanoTime() - begin) / 1e6));
+                } catch (Exception noCache) {
+                    Log.d(TAG, "Dashboard " + name + ": nothing saved on the phone yet");
+                }
+                // 2. network: the fresh data replaces the saved one; offline, Firestore answers again with its cache
                 List<T> items = load.run(userId, false);
-                MainThread.post(() -> listener.onLoaded(items));
+                MainThread.post(() -> listener.onLoaded(items, false));
             } catch (Exception error) {
-                MainThread.post(() -> listener.onFailed(error));
+                // if the saved data is already on the screen we keep it; the offline banner explains why it is not fresh
+                if (!shownFromCache) {
+                    MainThread.post(() -> listener.onFailed(error));
+                }
             } finally {
                 long took = System.nanoTime() - begin;
                 BackgroundThreads.endSection();

@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
+import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.analytics.ConfirmationTelemetry;
 import com.example.parchapp.data.DashboardLoader;
 import com.example.parchapp.data.Repositories;
@@ -38,6 +39,16 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
     private TextView displayNextActivity;
     private final OfflineBannerController offlineBanner = new OfflineBannerController();
     private final DashboardLoader dashboardLoader = new DashboardLoader();
+    // eventual connectivity (#43): when the network comes back the saved data is replaced by fresh data, without reopening
+    private boolean wasOnline = true;
+    private final AnalyticsTracker.ConnectivityListener reconnectRefresh = online ->
+            findViewById(R.id.offline_banner).post(() -> {
+                boolean cameBack = online && !wasOnline;
+                wasOnline = online;
+                if (cameBack && !isFinishing() && !isDestroyed()) {
+                    loadDashboard();
+                }
+            });
     // f6: what the dashboard read from firestore, the cards are drawn from these lists
     private final List<Group> loadedGroups = new ArrayList<>();
     private final List<PlannedActivity> loadedActivities = new ArrayList<>();
@@ -109,10 +120,13 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         status.addListener(this);
         onStatusChanged(status);
         offlineBanner.start(findViewById(R.id.offline_banner));
+        wasOnline = AnalyticsTracker.getInstance().isOnline();
+        AnalyticsTracker.getInstance().addConnectivityListener(reconnectRefresh);
     }
 
     @Override
     protected void onStop() {
+        AnalyticsTracker.getInstance().removeConnectivityListener(reconnectRefresh);
         offlineBanner.stop();
         Repositories.status().removeListener(this);
         super.onStop();
@@ -160,7 +174,7 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         }
         dashboardLoader.load(userId, new DashboardLoader.Listener<Group>() {
             @Override
-            public void onLoaded(List<Group> groups) {
+            public void onLoaded(List<Group> groups, boolean fromCache) {
                 if (isFinishing() || isDestroyed()) {
                     return;
                 }
@@ -168,7 +182,7 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
                 loadedGroups.addAll(groups);
                 bindGroups();
                 // a brand new account is added to the demo groups by the backend a moment after sign up, so we look again once
-                if (groups.isEmpty() && !retriedGroups) {
+                if (!fromCache && groups.isEmpty() && !retriedGroups) {
                     retriedGroups = true;
                     findViewById(R.id.groups_empty_dash).postDelayed(() -> {
                         if (!isFinishing() && !isDestroyed()) {
@@ -190,14 +204,16 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
             }
         }, new DashboardLoader.Listener<PlannedActivity>() {
             @Override
-            public void onLoaded(List<PlannedActivity> activities) {
+            public void onLoaded(List<PlannedActivity> activities, boolean fromCache) {
                 if (isFinishing() || isDestroyed()) {
                     return;
                 }
                 loadedActivities.clear();
                 loadedActivities.addAll(activities);
-                // bq9: plans confirmed on the backend are logged once as activity_confirmed
-                ConfirmationTelemetry.logNewlyConfirmed(DashboardActivity.this, activities);
+                // bq9: plans confirmed on the backend are logged once as activity_confirmed, only from fresh data
+                if (!fromCache) {
+                    ConfirmationTelemetry.logNewlyConfirmed(DashboardActivity.this, activities);
+                }
                 bindActivities();
             }
 

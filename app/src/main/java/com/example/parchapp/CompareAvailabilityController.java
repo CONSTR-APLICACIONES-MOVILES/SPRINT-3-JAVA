@@ -67,6 +67,9 @@ final class CompareAvailabilityController {
     private final View bestSlotCard;
     private final LinearLayout alternativeSlots;
     private final Button scheduleButton;
+    // eventual connectivity (#43): the slots are computed on the phone with the saved schedules, only planning needs the network
+    private boolean online = true;
+    private final AnalyticsTracker.ConnectivityListener connectivity = this::onConnectivityChanged;
     private final TextView overlapChip;
     private final TextView preferenceChip;
     private final TextView soonestChip;
@@ -89,6 +92,7 @@ final class CompareAvailabilityController {
         bestSlotCard.setOnClickListener(v -> selectSlot(0));
         scheduleButton.setOnClickListener(v -> scheduleSelectedSlot());
         scheduleButton.setEnabled(false);
+        AnalyticsTracker.getInstance().addConnectivityListener(connectivity);
 
         // Overlap is the default; each chip applies its strategy to the same common slots.
         overlapChip = root.findViewById(R.id.chip_rank_overlap);
@@ -209,6 +213,33 @@ final class CompareAvailabilityController {
         chip.setTextColor(context.getColor(selected ? R.color.brand_primary : R.color.brand_dark));
     }
 
+    /* eventual connectivity: without network the slots still show (from the saved group), but the plan can not be
+     * published, so the button says it and turns off; when the network comes back it turns on by itself */
+    private void updateScheduleButton() {
+        if (rankedSlots.isEmpty() || selectedPosition >= rankedSlots.size()) {
+            return;
+        }
+        String range = rankedSlots.get(selectedPosition).formatRange();
+        scheduleButton.setText(online ? "⚡  Schedule Plan • " + range : "Connect to plan • " + range);
+        scheduleButton.setEnabled(online);
+    }
+
+    // the connectivity callback can come from a background thread, the button is changed on the main one
+    private void onConnectivityChanged(boolean isOnline) {
+        root.post(() -> {
+            if (!host.isAlive()) {
+                return;
+            }
+            online = isOnline;
+            updateScheduleButton();
+        });
+    }
+
+    // the host calls this when its screen goes away, so the controller does not keep listening
+    void stop() {
+        AnalyticsTracker.getInstance().removeConnectivityListener(connectivity);
+    }
+
     // the engine runs in a background thread and answers on the main one, so the screen never freezes
     private void calculateSlots() {
         if (group == null) {
@@ -270,8 +301,7 @@ final class CompareAvailabilityController {
             alternativeSlots.addView(alternativeRow(position));
         }
 
-        scheduleButton.setText("⚡  Schedule Plan • " + rankedSlots.get(selectedPosition).formatRange());
-        scheduleButton.setEnabled(true);
+        updateScheduleButton();
     }
 
     private String bestSlotLabel() {

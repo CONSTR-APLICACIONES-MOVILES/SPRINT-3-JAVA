@@ -226,6 +226,7 @@
     <string name="movement_detection_unavailable">Movement suggestions are unavailable: this device has no accelerometer.</string>
     <string name="movement_detection_active">Movement detection is active while this sheet is open.</string>
     <string name="movement_detection_failed">Could not start movement detection on this device.</string>
+    <string name="offline_banner_sign_in">You\'re offline. Signing in needs an internet connection; your saved session still works.</string>
     <string name="offline_banner_message">You\'re offline. Saved groups and plans are shown; some actions need an internet connection.</string>
     <string name="compare_availability_title">Compare Availability</string>
     <string name="go_back_short">Back</string>
