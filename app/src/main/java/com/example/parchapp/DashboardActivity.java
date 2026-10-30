@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import com.example.parchapp.analytics.ConfirmationTelemetry;
+import com.example.parchapp.data.DashboardLoader;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.data.TravelTimeService;
 import com.example.parchapp.domain.PlanContext;
@@ -36,6 +37,7 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
     private boolean retriedGroups;
     private TextView displayNextActivity;
     private final OfflineBannerController offlineBanner = new OfflineBannerController();
+    private final DashboardLoader dashboardLoader = new DashboardLoader();
     // f6: what the dashboard read from firestore, the cards are drawn from these lists
     private final List<Group> loadedGroups = new ArrayList<>();
     private final List<PlannedActivity> loadedActivities = new ArrayList<>();
@@ -102,8 +104,7 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         hideGroupCards();
         findViewById(R.id.plan_card_study).setVisibility(View.GONE);
         findViewById(R.id.plans_empty).setVisibility(View.GONE);
-        loadGroups();
-        loadActivities();
+        loadDashboard();
         StatusService status = Repositories.status();
         status.addListener(this);
         onStatusChanged(status);
@@ -150,14 +151,16 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         return user == null ? null : user.getId();
     }
 
-    private void loadGroups() {
+    // f6 and multithreading (#34): groups and plans load at the same time on worker threads, each one is drawn when it arrives
+    private void loadDashboard() {
         String userId = currentUserId();
         if (userId == null) {
+            ((TextView) findViewById(R.id.active_plans_text)).setText("");
             return;
         }
-        Repositories.groups().getGroups(userId, new Callback<List<Group>>() {
+        dashboardLoader.load(userId, new DashboardLoader.Listener<Group>() {
             @Override
-            public void onSuccess(List<Group> groups) {
+            public void onLoaded(List<Group> groups) {
                 if (isFinishing() || isDestroyed()) {
                     return;
                 }
@@ -169,32 +172,25 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
                     retriedGroups = true;
                     findViewById(R.id.groups_empty_dash).postDelayed(() -> {
                         if (!isFinishing() && !isDestroyed()) {
-                            loadGroups();
-                            loadActivities();
+                            loadDashboard();
                         }
                     }, GROUPS_RETRY_MS);
                 }
             }
 
             @Override
-            public void onError(Exception error) {
+            public void onFailed(Exception error) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
                 hideGroupCards();
                 TextView empty = findViewById(R.id.groups_empty_dash);
                 empty.setText(R.string.groups_load_error);
                 empty.setVisibility(View.VISIBLE);
             }
-        });
-    }
-
-    private void loadActivities() {
-        String userId = currentUserId();
-        if (userId == null) {
-            ((TextView) findViewById(R.id.active_plans_text)).setText("");
-            return;
-        }
-        Repositories.activities().getActivities(userId, new Callback<List<PlannedActivity>>() {
+        }, new DashboardLoader.Listener<PlannedActivity>() {
             @Override
-            public void onSuccess(List<PlannedActivity> activities) {
+            public void onLoaded(List<PlannedActivity> activities) {
                 if (isFinishing() || isDestroyed()) {
                     return;
                 }
@@ -206,7 +202,10 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
             }
 
             @Override
-            public void onError(Exception error) {
+            public void onFailed(Exception error) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
                 findViewById(R.id.plan_card_study).setVisibility(View.GONE);
                 findViewById(R.id.plans_empty).setVisibility(View.GONE);
                 ((TextView) findViewById(R.id.active_plans_text)).setText("Could not load your plans");

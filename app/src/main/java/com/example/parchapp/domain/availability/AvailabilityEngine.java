@@ -4,6 +4,7 @@ import com.example.parchapp.analytics.AnalyticsEvents;
 import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.domain.model.Member;
 import com.example.parchapp.domain.model.TimeSlot;
+import com.example.parchapp.util.BackgroundThreads;
 import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.MainThread;
 
@@ -12,7 +13,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /* F4: the best-slot recommender. It intersects the busy blocks of every member of the group, keeps the windows of at least one hour where two or more are free, and orders them with the current {@link SlotRanker} (Strategy). The default ranking is by number of free members. */
 public class AvailabilityEngine {
@@ -22,7 +22,8 @@ public class AvailabilityEngine {
     static final int MIN_SLOT_MINUTES = 60;
 
     // Background execution tactic (Sprint 1 scenarios 9.1 and 9.12): the UI thread never computes slots.
-    private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
+    // one thread works as a serial queue: if the user changes the ranking twice, the answers arrive in that order
+    private static final ExecutorService EXECUTOR = BackgroundThreads.serial("parch-availability");
 
     private SlotRanker ranker = new OverlapRanking();
 
@@ -47,11 +48,14 @@ public class AvailabilityEngine {
         EXECUTOR.execute(() -> {
             long startNanos = System.nanoTime();
             List<TimeSlot> slots;
+            BackgroundThreads.beginSection("AvailabilityEngine.findCommonSlots");
             try {
                 slots = findCommonSlots(snapshot, activeRanker);
             } catch (RuntimeException e) {
                 MainThread.post(() -> callback.onError(e));
                 return;
+            } finally {
+                BackgroundThreads.endSection();
             }
             double durationMs = (System.nanoTime() - startNanos) / 1_000_000.0;
 
