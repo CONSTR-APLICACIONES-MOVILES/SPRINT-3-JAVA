@@ -69,6 +69,7 @@ public class GroupsActivity extends AppCompatActivity {
         IconButtons.centerIconWithText(findViewById(R.id.create_group_from_list));
         findViewById(R.id.create_group_from_list).setOnClickListener(v ->
                 startActivity(new Intent(this, CreateGroupActivity.class)));
+        findViewById(R.id.join_with_invite_button).setOnClickListener(v -> InviteActions.join(this));
     }
 
     @Override
@@ -349,7 +350,7 @@ public class GroupsActivity extends AppCompatActivity {
         int overlap = -dp(8);
         int shown = Math.min(MAX_AVATARS, members.size());
         for (int i = 0; i < shown; i++) {
-            container.addView(avatar(members.get(i).getInitials(),
+            container.addView(avatar(members.get(i).getDisplayInitials(),
                     getColor(AVATAR_COLORS[i % AVATAR_COLORS.length]), android.R.color.white),
                     avatarParams(size, i == 0 ? 0 : overlap));
         }
