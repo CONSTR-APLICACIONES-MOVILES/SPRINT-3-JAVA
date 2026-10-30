@@ -64,6 +64,14 @@ final class InviteActions {
         }
     }
 
+// from Group Details: the group is already chosen
+    static void shareGroup(AppCompatActivity activity, Group group, View button) {
+        UserProfile user = UserSession.getCurrentUser();
+        if (user != null && !OfflineGuard.blockIfOffline(activity, activity.getString(R.string.invite_action_share))) {
+            create(activity, group, user.getId(), button);
+        }
+    }
+
     private static void create(AppCompatActivity activity, Group group, String userId, View button) {
         button.setEnabled(false);
         Repositories.groups().createGroupInvite(group.getId(), userId, new Callback<String>() {
