@@ -18,6 +18,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.parchapp.data.GroupListener;
+import com.example.parchapp.data.GroupOpenLoader;
 import com.example.parchapp.data.GroupSyncStore;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.data.SyncedCalendars;
@@ -58,6 +59,8 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
     private Group currentGroup;
 // eventual connectivity: when the group came from the server for the last time, saved on the phone
     private GroupSyncStore syncStore;
+// the time of that last sync, -1 until it is read or when the group never came from the server
+    private long lastSynced = -1L;
     private boolean online = true;
 // null until the first answer, true when the group shown is the copy saved on the phone
     private Boolean fromCache;
@@ -149,6 +152,11 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         AnalyticsTracker.getInstance().addConnectivityListener(connectivity);
         String groupId = getIntent().getStringExtra(EXTRA_GROUP_ID);
         if (groupId != null) {
+// strategy 9: a group opened before draws at once, firestore replaces it when it answers
+            Group saved = currentGroup == null ? Repositories.groupCache().get(userId(), groupId) : null;
+            if (saved != null) {
+                showGroup(saved);
+            }
             Repositories.groups().observeGroup(groupId, this);
 // f3: we look for the next plan every time the screen shows, so a plan made from here appears when the user comes back
             loadGroupPlan();
@@ -165,6 +173,9 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
             return;
         }
         groupUnavailable = true;
+        if (groupId != null) {
+            Repositories.groupCache().remove(userId(), groupId);
+        }
         ((TextView) findViewById(R.id.top_group_name_text)).setText(R.string.group_details_title);
         ((TextView) findViewById(R.id.top_group_subtitle_text)).setText("");
         ((TextView) findViewById(R.id.group_name_text)).setText(R.string.group_unavailable_title);
@@ -188,7 +199,8 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         }
         fromCache = cached;
         if (!cached) {
-            syncStore.markSynced(groupId, System.currentTimeMillis());
+            lastSynced = System.currentTimeMillis();
+            syncStore.markSynced(groupId, lastSynced);
         }
         renderSync();
     }
@@ -204,9 +216,8 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         if (online && !fromCache) {
             sync.setText(R.string.group_sync_now);
         } else if (!online) {
-            long last = syncStore.lastSynced(groupId);
-            sync.setText(last < 0 ? getString(R.string.group_sync_offline_never)
-                    : getString(R.string.group_sync_offline, syncTime(last)));
+            sync.setText(lastSynced < 0 ? getString(R.string.group_sync_offline_never)
+                    : getString(R.string.group_sync_offline, syncTime(lastSynced)));
         } else {
 // with connection but still the saved copy, firestore is about to answer, so we wait
             sync.setVisibility(View.GONE);
@@ -241,6 +252,13 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         if (isFinishing() || isDestroyed()) {
             return;
         }
+        Repositories.groupCache().put(userId(), group);
+        showGroup(group);
+        loadSyncedCount(group);
+    }
+
+// draws the group, it comes from firestore or from the groups kept in memory
+    private void showGroup(Group group) {
         currentGroup = group;
         setPlanButtonsEnabled(true);
         int size = group.getSize();
@@ -251,8 +269,12 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         int invites = group.getPendingInvites().size();
         ((TextView) findViewById(R.id.group_description_text)).setText(invites == 0 ? members
                 : members + " • " + invites + (invites == 1 ? " pending invite" : " pending invites"));
-        loadSyncedCount(group);
         bindMembers(group);
+    }
+
+    private static String userId() {
+        UserProfile user = UserSession.getCurrentUser();
+        return user == null ? null : user.getId();
     }
 
 // "N/M Synced": members whose calendar for today is known to the backend (getScheduleDay), not just the group size
@@ -338,29 +360,29 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
     }
 
 // f3: we read the plans of the user and keep only the ones of this group
+// strategy 6: the plans and the last sync are read at the same time, the answer arrives on the main thread
     private void loadGroupPlan() {
         String groupId = getIntent().getStringExtra(EXTRA_GROUP_ID);
-        UserProfile user = UserSession.getCurrentUser();
-        if (groupId == null || user == null) {
+        String userId = userId();
+        if (groupId == null || userId == null) {
             return;
         }
-        Repositories.activities().getActivities(user.getId(), new Callback<List<PlannedActivity>>() {
-            @Override
-            public void onSuccess(List<PlannedActivity> activities) {
-                if (isFinishing() || isDestroyed()) {
-                    return;
-                }
-// f3: the same rule as the groups list, the next plan or the newest one when nothing is coming
-                PlannedActivity next = GroupPlans.nextFor(groupId, activities,
-                        Calendar.getInstance(PlanContext.bogota()));
-                if (next != null) {
-                    showGroupPlan(next);
-                }
+        GroupOpenLoader.load(syncStore, Repositories.activities(), groupId, userId, (synced, activities) -> {
+            if (isFinishing() || isDestroyed()) {
+                return;
             }
-
+// the listener of the group can be first, then its time is newer than the one read from the phone
+            lastSynced = Math.max(lastSynced, synced);
+            renderSync();
 // f3: without plans the card stays hidden
-            @Override
-            public void onError(Exception error) {
+            if (activities == null) {
+                return;
+            }
+// f3: the same rule as the groups list, the next plan or the newest one when nothing is coming
+            PlannedActivity next = GroupPlans.nextFor(groupId, activities,
+                    Calendar.getInstance(PlanContext.bogota()));
+            if (next != null) {
+                showGroupPlan(next);
             }
         });
     }

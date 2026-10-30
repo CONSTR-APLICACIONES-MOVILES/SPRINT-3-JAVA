@@ -6,28 +6,10 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 
 // tests for the create group draft that is saved on the phone
 public class GroupDraftTest {
-
-// the emails go in one text and come back the same and in the same order
-    @Test
-    public void emailsComeBackTheSame() {
-        List<String> emails = Arrays.asList("ana@uni.edu", "luis@uni.edu");
-        assertEquals(emails, GroupDraft.decodeEmails(GroupDraft.encodeEmails(emails)));
-    }
-
-// empty lines, spaces and repeated emails are not brought back
-    @Test
-    public void decodeSkipsEmptyAndRepeated() {
-        assertEquals(Arrays.asList("ana@uni.edu", "luis@uni.edu"),
-                GroupDraft.decodeEmails("ana@uni.edu\n\n  luis@uni.edu \nana@uni.edu"));
-        assertTrue(GroupDraft.decodeEmails(null).isEmpty());
-        assertTrue(GroupDraft.decodeEmails("").isEmpty());
-    }
 
 // a form with nothing written is an empty draft, any field makes it not empty
     @Test

@@ -1,18 +1,31 @@
 package com.example.parchapp.data;
 
+import android.util.Log;
+
 import com.example.parchapp.domain.model.SlotAcceptanceInsight;
+import com.example.parchapp.util.BackgroundThreads;
 import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.MainThread;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+
 /* F2: reads {@code insights/bq3_slot_acceptance}, the document the backend job refreshSlotRecommendation writes every day from the BQ3 result. */
 class FirestoreInsightsRepository implements InsightsRepository {
+    private static final String TAG = "FirestoreInsights";
+// strategy 6: the file is i/o, so it goes in its own queue and never on the main thread
+    private static final ExecutorService DISK = BackgroundThreads.serial("parch-insight-file");
+
     private final FirebaseFirestore db;
 // strategy 9: cache, falling back to network, the result stays in memory for a few minutes
     private final SlotAcceptanceCache cache = new SlotAcceptanceCache(System::currentTimeMillis);
+// strategy 7: the last result on the phone, for when firestore has no copy and there is no connection
+    private final SlotAcceptanceFile file;
 
-    FirestoreInsightsRepository(FirebaseFirestore db) {
+    FirestoreInsightsRepository(FirebaseFirestore db, SlotAcceptanceFile file) {
         this.db = db;
+        this.file = file;
     }
 
 // the badge only needs the position, so it uses the same cached result
@@ -51,11 +64,29 @@ class FirestoreInsightsRepository implements InsightsRepository {
 // only a real answer is kept, so a missing document is asked again next time
                     if (snapshot.exists()) {
                         cache.put(insight);
+                        saveToFile(insight);
                     }
                     callback.onSuccess(insight);
                 })
-// without the document or offline with nothing saved the first slot is recommended and there is no data
-                .addOnFailureListener(e -> callback.onSuccess(
-                        SlotAcceptanceInsight.withoutData(DEFAULT_RECOMMENDED_POSITION)));
+                .addOnFailureListener(e -> loadFromFile(callback));
+    }
+
+    private void saveToFile(SlotAcceptanceInsight insight) {
+        DISK.execute(() -> {
+            try {
+                file.save(insight);
+            } catch (IOException error) {
+                Log.w(TAG, "Could not save the bq3 result", error);
+            }
+        });
+    }
+
+// offline and firestore has no copy: the file, and without file the first slot is recommended and there is no data
+    private void loadFromFile(Callback<SlotAcceptanceInsight> callback) {
+        DISK.execute(() -> {
+            SlotAcceptanceInsight saved = file.read();
+            MainThread.post(() -> callback.onSuccess(saved != null ? saved
+                    : SlotAcceptanceInsight.withoutData(DEFAULT_RECOMMENDED_POSITION)));
+        });
     }
 }

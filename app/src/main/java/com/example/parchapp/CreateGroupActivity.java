@@ -57,6 +57,8 @@ public class CreateGroupActivity extends AppCompatActivity {
     private GroupDraftStore draftStore;
 // true while we put the saved draft back, so that does not save the draft again
     private boolean restoringDraft;
+// true until the database answers, a save before that could replace the draft we are about to bring back
+    private boolean loadingDraft;
 // without connection the create button turns off, while the group is being created it is off too
     private boolean online = true;
     private boolean creating;
@@ -137,12 +139,32 @@ public class CreateGroupActivity extends AppCompatActivity {
         findViewById(R.id.group_offline_notice).setVisibility(online ? View.GONE : View.VISIBLE);
     }
 
-// puts the saved draft in the form, the texts change but that does not save the draft again
+// strategy 6: the database answers on the worker thread and this code gets the draft on the main thread
     private void restoreDraft() {
-        GroupDraft draft = draftStore.load();
-        if (draft == null) {
-            return;
-        }
+        loadingDraft = true;
+        draftStore.load(new Callback<GroupDraft>() {
+            @Override
+            public void onSuccess(GroupDraft draft) {
+                loadingDraft = false;
+                if (draft != null && !isFinishing() && !isDestroyed() && formIsEmpty()) {
+                    fillForm(draft);
+                }
+            }
+
+            @Override
+            public void onError(Exception error) {
+                loadingDraft = false;
+            }
+        });
+    }
+
+// the user can start to write before the database answers, then the draft does not erase it
+    private boolean formIsEmpty() {
+        return nameInput.getText().toString().isEmpty() && invites.isEmpty();
+    }
+
+// puts the saved draft in the form, the texts change but that does not save the draft again
+    private void fillForm(GroupDraft draft) {
         restoringDraft = true;
         nameInput.setText(draft.getName());
         pickedDate = draft.getPickedDate();
@@ -152,12 +174,14 @@ public class CreateGroupActivity extends AppCompatActivity {
         invites.clear();
         invites.addAll(draft.getEmails());
         restoringDraft = false;
+        renderInvites();
+        showNameCount();
         toast(getString(R.string.group_draft_restored));
     }
 
 // saves what is in the form now, it runs after every change
     private void saveDraft() {
-        if (restoringDraft || draftStore == null) {
+        if (restoringDraft || loadingDraft || draftStore == null) {
             return;
         }
         draftStore.save(new GroupDraft(nameInput.getText().toString(), pickedDate, pickedMinute,

@@ -28,6 +28,7 @@ public final class Repositories {
     private static ProfilePhotoRepository profilePhotos;
     private static StatusService status;
     private static ScheduleRepository schedules;
+    private static final GroupMemoryCache groupCache = new GroupMemoryCache();
 
     private Repositories() {
     }
@@ -74,7 +75,8 @@ public final class Repositories {
                     new FirebaseActivityRepository(functions));
             // eventual connectivity: the last alert list is kept on the phone and shown when offline
             alerts = new OfflineAlertsRepository(context, new FirebaseAlertsRepository(functions));
-            insights = new FirestoreInsightsRepository(db);
+            insights = new FirestoreInsightsRepository(db, new SlotAcceptanceFile(
+                    new java.io.File(context.getFilesDir(), "bq3_slot_acceptance.json")));
             responseTimeInsights = new FirestoreResponseTimeInsightsRepository(db);
             places = new FirestoreCampusPlaceRepository(db);
             // schedules come from the backend callables getScheduleFriends and getScheduleDay
@@ -102,6 +104,10 @@ public final class Repositories {
         char[] padding = new char[35];
         java.util.Arrays.fill(padding, '0');
         return "AI" + "za" + new String(padding);
+    }
+
+    public static GroupMemoryCache groupCache() {
+        return groupCache;
     }
 
     public static boolean isFirebaseAvailable() {
