@@ -94,6 +94,26 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         }
     }
 
+    // eventual connectivity: banner while offline; if the activity could not load, it loads again when the network returns
+    private final ConnectivityWatcher connectivity = new ConnectivityWatcher(() -> {
+        String id = getIntent().getStringExtra(EXTRA_ACTIVITY_ID);
+        if (activity == null && id != null && !id.trim().isEmpty()) {
+            loadActivity(id);
+        }
+    });
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        connectivity.start(findViewById(R.id.offline_banner));
+    }
+
+    @Override
+    protected void onStop() {
+        connectivity.stop();
+        super.onStop();
+    }
+
     private void loadActivity(String activityId) {
         showLoading();
         Repositories.activities().getActivityDetails(activityId, new Callback<ActivityDetails>() {
@@ -109,7 +129,8 @@ public class ActivityCreatedActivity extends AppCompatActivity {
 
             @Override public void onError(Exception error) {
                 if (!isFinishing() && !isDestroyed()) {
-                    showActivityUnavailable(getString(R.string.activity_load_error), true);
+                    showActivityUnavailable(OfflineGuard.failureMessage(error, "load this activity",
+                            getString(R.string.activity_load_error)), true);
                 }
             }
         });
@@ -272,6 +293,10 @@ public class ActivityCreatedActivity extends AppCompatActivity {
     }
 
     private void saveReminder(int minutesBefore) {
+        // the reminder is scheduled by the backend, so offline we say it instead of failing
+        if (OfflineGuard.blockIfOffline(this, "change the reminder")) {
+            return;
+        }
         reminderButton.setEnabled(false);
         reminderStatus.setText("Saving reminder setting…");
         reminderStatus.setVisibility(View.VISIBLE);
@@ -286,9 +311,9 @@ public class ActivityCreatedActivity extends AppCompatActivity {
             @Override public void onError(Exception error) {
                 if (isFinishing() || isDestroyed()) return;
                 reminderButton.setEnabled(true);
-                reminderStatus.setText("Could not save reminder setting");
-                Toast.makeText(ActivityCreatedActivity.this,
-                        "Could not save reminder setting", Toast.LENGTH_SHORT).show();
+                String message = OfflineGuard.failureMessage(error, "change the reminder", "Could not save reminder setting");
+                reminderStatus.setText(message);
+                Toast.makeText(ActivityCreatedActivity.this, message, Toast.LENGTH_SHORT).show();
             }
         });
     }

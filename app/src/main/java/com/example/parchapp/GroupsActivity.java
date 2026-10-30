@@ -45,6 +45,8 @@ public class GroupsActivity extends AppCompatActivity {
 
     private final AnalyticsTracker tracker = AnalyticsTracker.getInstance();
     private LinearLayout groupsList;
+    // eventual connectivity: banner while offline, and the list loads again when the network returns
+    private final ConnectivityWatcher connectivity = new ConnectivityWatcher(this::loadGroups);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,7 +72,14 @@ public class GroupsActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        connectivity.start(findViewById(R.id.offline_banner));
         loadGroups();
+    }
+
+    @Override
+    protected void onStop() {
+        connectivity.stop();
+        super.onStop();
     }
 
     private void loadGroups() {
@@ -90,8 +99,15 @@ public class GroupsActivity extends AppCompatActivity {
 
             @Override
             public void onError(Exception error) {
-                bindGroups(Collections.emptyList());
-                toast("Could not load your groups");
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                // offline Firestore answers from the phone; it only fails when nothing was ever saved here.
+                // the cards already on screen stay, and the message says what happened
+                if (groupsList.getChildCount() == 0) {
+                    bindGroups(Collections.emptyList());
+                }
+                toast(OfflineGuard.failureMessage(error, "load your groups", "Could not load your groups"));
             }
         });
     }
@@ -154,14 +170,19 @@ public class GroupsActivity extends AppCompatActivity {
                 });
             }
 
-// without plans we can not say what is next, so the card says there is no plan
+// without plans we can not say what is next; offline the card says so instead of "no upcoming plan"
             @Override
             public void onError(Exception error) {
                 if (isFinishing() || isDestroyed()) {
                     return;
                 }
+                boolean offline = OfflineGuard.isNetworkError(error) || !tracker.isOnline();
                 for (View card : cards.values()) {
-                    bindNextPlan(card, null);
+                    if (offline) {
+                        ((TextView) card.findViewById(R.id.group_card_next)).setText(R.string.group_plans_offline);
+                    } else {
+                        bindNextPlan(card, null);
+                    }
                 }
             }
         });

@@ -51,6 +51,7 @@
     <string name="group_next_plan">Next: %1$s</string>
     <string name="group_next_plan_place">Next: %1$s • %2$s</string>
     <string name="group_no_plan">No upcoming plan</string>
+    <string name="group_plans_offline">Plans load when you are back online</string>
     <string name="group_activity_most">Most Active</string>
     <string name="group_activity_active">Active</string>
     <string name="group_activity_low">Low Activity</string>
@@ -231,6 +232,7 @@
     <string name="movement_detection_unavailable">Movement suggestions are unavailable: this device has no accelerometer.</string>
     <string name="movement_detection_active">Movement detection is active while this sheet is open.</string>
     <string name="movement_detection_failed">Could not start movement detection on this device.</string>
+    <string name="offline_banner_sign_up">You\'re offline. Creating an account needs an internet connection.</string>
     <string name="offline_banner_sign_in">You\'re offline. Signing in needs an internet connection; your saved session still works.</string>
     <string name="offline_banner_message">You\'re offline. Saved groups and plans are shown; some actions need an internet connection.</string>
     <string name="compare_availability_title">Compare Availability</string>

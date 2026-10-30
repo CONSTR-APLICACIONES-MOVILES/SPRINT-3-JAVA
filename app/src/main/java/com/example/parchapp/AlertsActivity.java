@@ -44,6 +44,11 @@ public class AlertsActivity extends AppCompatActivity {
     private LinearLayout alertsContainer;
     private LinearLayout remindersContainer;
     private TextView alertsState;
+    // eventual connectivity: banner while offline, and the alerts load again when the network returns
+    private final ConnectivityWatcher connectivity = new ConnectivityWatcher(() -> {
+        loadAlerts();
+        loadReminderActivities();
+    });
     private TextView remindersState;
     private TextView unreadBadge;
     private ProgressBar alertsLoading;
@@ -92,8 +97,15 @@ public class AlertsActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        connectivity.start(findViewById(R.id.offline_banner));
         loadAlerts();
         loadReminderActivities();
+    }
+
+    @Override
+    protected void onStop() {
+        connectivity.stop();
+        super.onStop();
     }
 
     private void bindFilters() {
@@ -170,6 +182,7 @@ public class AlertsActivity extends AppCompatActivity {
                 alerts.addAll(result);
                 ReminderTelemetry.recordReminderAlerts(AlertsActivity.this, result);
                 renderAlerts();
+                showSavedNotice();
             }
 
             @Override
@@ -179,11 +192,26 @@ public class AlertsActivity extends AppCompatActivity {
                 alertsLoading.setVisibility(View.GONE);
                 alerts.clear();
                 unreadBadge.setVisibility(View.GONE);
-                alertsState.setText(R.string.alerts_load_error);
+                // offline with nothing saved yet: say it is the connection, the banner and Retry stay
+                alertsState.setText(OfflineGuard.failureMessage(error, "load your alerts",
+                        getString(R.string.alerts_load_error)));
                 alertsState.setVisibility(View.VISIBLE);
                 retryButton.setVisibility(View.VISIBLE);
             }
         });
+    }
+
+    /* offline the list comes from the phone: say how old it is, so the user knows it may not be up to date */
+    private void showSavedNotice() {
+        if (!(Repositories.alerts() instanceof com.example.parchapp.data.OfflineAlertsRepository)) return;
+        com.example.parchapp.data.OfflineAlertsRepository saved =
+                (com.example.parchapp.data.OfflineAlertsRepository) Repositories.alerts();
+        if (!saved.isShowingSaved() || alerts.isEmpty()) return;
+        long savedAt = saved.getShownSavedAt();
+        String when = savedAt > 0 ? " from " + android.text.format.DateFormat.getTimeFormat(this)
+                .format(new java.util.Date(savedAt)) : "";
+        alertsState.setText("Offline · showing your alerts saved" + when + ". Answering needs a connection.");
+        alertsState.setVisibility(View.VISIBLE);
     }
 
     private void renderAlerts() {
@@ -302,6 +330,8 @@ public class AlertsActivity extends AppCompatActivity {
     }
 
     private void respondToActivityInvitation(AlertItem alert, String response, View actions) {
+        // the answer goes to the organizer through the backend, so offline we say it instead of failing
+        if (OfflineGuard.blockIfOffline(this, "answer the invitation")) return;
         setActionEnabled(actions, false);
         long respondedAtMillis = System.currentTimeMillis();
         AlertItem reminder = latestRsvpReminder(alert.getActivityId(), respondedAtMillis);
@@ -334,6 +364,7 @@ public class AlertsActivity extends AppCompatActivity {
     }
 
     private void respondToGroupInvitation(AlertItem alert, String response, View actions) {
+        if (OfflineGuard.blockIfOffline(this, "answer the invitation")) return;
         setActionEnabled(actions, false);
         Repositories.alerts().respondToGroupInvitation(alert.getGroupId(), response, new Callback<Void>() {
             @Override public void onSuccess(Void ignored) {
@@ -348,6 +379,7 @@ public class AlertsActivity extends AppCompatActivity {
     }
 
     private void markRead(List<String> ids) {
+        if (OfflineGuard.blockIfOffline(this, "mark your alerts as read")) return;
         Repositories.alerts().markAlertsRead(ids, new Callback<Void>() {
             @Override public void onSuccess(Void ignored) {
                 if (!isFinishing() && !isDestroyed()) loadAlerts();
@@ -477,6 +509,7 @@ public class AlertsActivity extends AppCompatActivity {
 
     private void saveReminder(PlannedActivity activity, int minutes, TextView setting,
                               TextView state, AppCompatButton button) {
+        if (OfflineGuard.blockIfOffline(this, "change the reminder")) return;
         button.setEnabled(false);
         state.setText(R.string.reminder_settings_saving);
         state.setVisibility(View.VISIBLE);

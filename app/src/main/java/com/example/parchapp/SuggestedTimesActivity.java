@@ -69,6 +69,9 @@ public class SuggestedTimesActivity extends AppCompatActivity {
     private View noMatchingSlots;
     private AppCompatButton findButton;
     private AppCompatButton retryButton;
+    // eventual connectivity: suggested times are computed by the backend (network only); offline the banner
+    // explains it and, when the network returns, the activity and its suggestions load again by themselves
+    private final ConnectivityWatcher connectivity = new ConnectivityWatcher(this::loadActivity);
     private AppCompatButton changeDurationButton;
     private AppCompatButton retryFeedbackButton;
     private TextView[] filterButtons;
@@ -604,7 +607,23 @@ public class SuggestedTimesActivity extends AppCompatActivity {
     }
 
     private String errorMessage(Exception error, String fallback) {
+        // a lost connection gets a clear message instead of the technical text of the exception
+        if (OfflineGuard.isNetworkError(error) || !com.example.parchapp.analytics.AnalyticsTracker.getInstance().isOnline()) {
+            return "You're offline. Suggested times need the server; they will load when you are back online.";
+        }
         String value = error == null ? null : error.getMessage();
         return value == null || value.trim().isEmpty() ? fallback : value;
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        connectivity.start(findViewById(R.id.offline_banner));
+    }
+
+    @Override
+    protected void onStop() {
+        connectivity.stop();
+        super.onStop();
     }
 }

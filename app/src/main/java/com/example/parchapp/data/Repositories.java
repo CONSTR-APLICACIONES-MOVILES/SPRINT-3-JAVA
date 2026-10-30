@@ -72,7 +72,8 @@ public final class Repositories {
             activities = new CompositeActivityRepository(
                     new FirestoreActivityRepository(db),
                     new FirebaseActivityRepository(functions));
-            alerts = new FirebaseAlertsRepository(functions);
+            // eventual connectivity: the last alert list is kept on the phone and shown when offline
+            alerts = new OfflineAlertsRepository(context, new FirebaseAlertsRepository(functions));
             insights = new FirestoreInsightsRepository(db);
             responseTimeInsights = new FirestoreResponseTimeInsightsRepository(db);
             places = new FirestoreCampusPlaceRepository(db);
