@@ -76,6 +76,11 @@ dependencies {
     implementation libs.camera.lifecycle
     implementation libs.camera.view
     implementation libs.exifinterface
+// strategy 7: relational database on the phone for the create group draft
+    implementation libs.room.runtime
+    annotationProcessor libs.room.compiler
+// strategy 9: LruCache of the groups, this one also runs in the unit tests
+    implementation libs.collection
     testImplementation libs.junit
 // f7: real org.json for the unit tests, android only gives an empty version there
     testImplementation libs.json.for.tests

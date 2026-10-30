@@ -55,23 +55,4 @@ public final class GroupDraft {
     public boolean isEmpty() {
         return name.trim().isEmpty() && pickedDate == NONE && pickedMinute == NONE && emails.isEmpty();
     }
-
-// emails can not have a new line, so we keep them in one text with one email in each line
-    public static String encodeEmails(List<String> emails) {
-        return String.join("\n", emails);
-    }
-
-    public static List<String> decodeEmails(String text) {
-        List<String> emails = new ArrayList<>();
-        if (text == null) {
-            return emails;
-        }
-        for (String line : text.split("\n")) {
-            String email = line.trim();
-            if (!email.isEmpty() && !emails.contains(email)) {
-                emails.add(email);
-            }
-        }
-        return emails;
-    }
 }
