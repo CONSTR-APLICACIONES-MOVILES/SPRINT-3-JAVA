@@ -124,6 +124,12 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
                 startActivity(CompareAvailabilityActivity.intent(this, id));
             }
         });
+// share link sends the invitation of this group, a friend pastes it in Join with invite to be a member
+        findViewById(R.id.share_group_link_button).setOnClickListener(v -> {
+            if (currentGroup != null) {
+                InviteActions.shareGroup(this, currentGroup, v);
+            }
+        });
         findViewById(R.id.view_all_activities).setEnabled(false);
 
 // shared bottom bar, groups is the active tab and it goes back to the list of groups
@@ -257,6 +263,8 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
     private void showGroup(Group group) {
         currentGroup = group;
         setPlanButtonsEnabled(true);
+// the backend only gives the invitation to the owner, so the other members do not see a button that would fail
+        findViewById(R.id.share_group_link_button).setVisibility(group.isOwner(userId()) ? View.VISIBLE : View.GONE);
         int size = group.getSize();
         String members = size == 1 ? "1 member" : size + " members";
         ((TextView) findViewById(R.id.top_group_name_text)).setText(group.getName());

@@ -17,6 +17,7 @@
     <string name="invite_friends_title">Invite Friends to Sync</string>
     <string name="invite_friends_subtitle">Share your link so classmates can connect and sync calendars in seconds</string>
     <string name="copy_link">Copy Link</string>
+    <string name="group_share_link">Share Link</string>
     <string name="link_copied">Link Copied</string>
 
     <!-- Quick status card -->
