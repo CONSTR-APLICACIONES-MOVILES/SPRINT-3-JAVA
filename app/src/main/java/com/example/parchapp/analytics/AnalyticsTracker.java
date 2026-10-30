@@ -125,6 +125,10 @@ public final class AnalyticsTracker {
         }
     }
 
+    public boolean isAnalyticsConsentEnabled() {
+        return analyticsConsent;
+    }
+
     public void track(String name) {
         track(name, new HashMap<>());
     }

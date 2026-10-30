@@ -28,10 +28,21 @@ public final class AnalyticsEvents {
     public static final String CREATION_FINISHED = "creation_finished";
     /* BQ5: response timing by activity group size. */
     public static final String RSVP_SUBMITTED = "rsvp_submitted";
+    /* BQ6: one reminder was delivered and a pending participant later responded. */
+    public static final String REMINDER_SENT = "reminder_sent";
+    public static final String RESPONSE_AFTER_REMINDER = "response_after_reminder";
 
     public static final String PARAM_GROUP_SIZE = "group_size";
     public static final String PARAM_RESPONSE_MS = "response_ms";
     public static final String PARAM_RESPONSE = "response";
+    public static final String PARAM_REMINDER_ID = "reminder_id";
+    public static final String PARAM_REMINDER_PURPOSE = "reminder_purpose";
+    public static final String PARAM_REMINDER_SENT_AT_MS = "reminder_sent_at_ms";
+    public static final String PARAM_RESPONSE_AT_MS = "response_at_ms";
+    public static final String PARAM_RESPONSE_DELAY_MS = "response_delay_ms";
+    public static final String PARAM_REMINDER_STRATEGY = "strategy";
+    public static final String PARAM_REMINDER_SEQUENCE = "sequence";
+    public static final String PARAM_DELAY_MINUTES = "delay_minutes";
     public static final String PARAM_DURATION_MS = "duration_ms";
     public static final String PARAM_SLOT_COUNT = "slot_count";
     public static final String PARAM_RANKER = "ranker";

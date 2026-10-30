@@ -37,4 +37,25 @@ public class RsvpTelemetryTest {
         assertNull(RsvpTelemetry.parameters(unknownSize, "maybe", 1_793_283_000_000L));
         assertNull(RsvpTelemetry.parameters(alreadyAnswered, "maybe", 1_793_283_000_000L));
     }
+
+    @Test
+    public void pairsOnlyAResponseAfterTheMatchingRsvpReminder() {
+        AlertItem invitation = new AlertItem("activity-1", "invitation", "Study group",
+                "Today", "2026-10-29T14:00:00.000Z", false, null,
+                "activity-1", "group-1", 5);
+        AlertItem reminder = new AlertItem("evt_reminder-activity-1-1", "reminder", "Pending response",
+                "Today", "2026-10-29T14:05:00.000Z", false, null,
+                "activity-1", "group-1", 0, "reminder-activity-1-1", "rsvp",
+                "rsvp_after_30_min", 1, 30, "2026-10-29T14:05:00.000Z");
+
+        Map<String, Object> params = RsvpTelemetry.responseAfterReminderParameters(
+                invitation, "accepted", 1_793_283_000_000L, reminder);
+
+        assertEquals("activity-1", params.get(AnalyticsEvents.PARAM_ACTIVITY_ID));
+        assertEquals("reminder-activity-1-1", params.get(AnalyticsEvents.PARAM_REMINDER_ID));
+        assertEquals("rsvp_after_30_min", params.get(AnalyticsEvents.PARAM_REMINDER_STRATEGY));
+        assertEquals(300_000L, params.get(AnalyticsEvents.PARAM_RESPONSE_DELAY_MS));
+        assertNull(RsvpTelemetry.responseAfterReminderParameters(
+                invitation, "accepted", 1_793_282_000_000L, reminder));
+    }
 }
