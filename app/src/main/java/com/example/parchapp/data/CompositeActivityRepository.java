@@ -3,6 +3,7 @@ package com.example.parchapp.data;
 import androidx.annotation.Nullable;
 
 import com.example.parchapp.domain.model.ActivityDetails;
+import com.example.parchapp.domain.model.ComparisonEvidence;
 import com.example.parchapp.domain.model.PlannedActivity;
 import com.example.parchapp.util.Callback;
 
@@ -21,6 +22,12 @@ final class CompositeActivityRepository implements ActivityRepository {
     @Override
     public void createActivity(PlannedActivity activity, Callback<PlannedActivity> callback) {
         backend.createActivity(activity, callback);
+    }
+
+    @Override
+    public void createActivity(PlannedActivity activity, @Nullable ComparisonEvidence evidence,
+                               Callback<PlannedActivity> callback) {
+        backend.createActivity(activity, evidence, callback);
     }
 
     @Override

@@ -1009,11 +1009,50 @@ public class ScheduleActivity extends AppCompatActivity {
     }
 
     // Flutter preparePlan: the backend validates the slot first, then New Activity opens with it
+    /* Flutter Schedule: comparing friends without picking a slot still plans after comparing. The backend gives
+     * evidence of the comparison for the day and the organizer chooses the time; if it fails we plan without it. */
+    private void proposeWithoutSlot() {
+        int version = requestVersion;
+        List<String> friends = new ArrayList<>(selectedIds);
+        String date = dateKey(selectedDay);
+        setPlanning(true);
+        repository.prepareProposalComparison(date, friends, new Callback<String>() {
+            @Override
+            public void onSuccess(String comparisonId) {
+                setPlanning(false);
+                if (isFinishing() || version != requestVersion) {
+                    snackbar("The comparison changed. Compare again.");
+                    return;
+                }
+                CreateActivitySheet sheet = new CreateActivitySheet().withSuggestedDate(date)
+                        .withEntryPoint(com.example.parchapp.analytics.AnalyticsEvents.ENTRY_SCHEDULE);
+                if (comparisonId != null && !comparisonId.isEmpty()) {
+                    sheet.withComparison(comparisonId, friends, date);
+                }
+                sheet.show(getSupportFragmentManager(), "create_activity");
+            }
+
+            @Override
+            public void onError(Exception failure) {
+                setPlanning(false);
+                if (isFinishing()) return;
+                snackbar("Could not save the comparison. You can still plan this day.");
+                new CreateActivitySheet().withSuggestedDate(date)
+                        .withEntryPoint(com.example.parchapp.analytics.AnalyticsEvents.ENTRY_SCHEDULE)
+                        .show(getSupportFragmentManager(), "create_activity");
+            }
+        });
+    }
+
     private void planActivity() {
         if (planning) {
             return;
         }
         if (selectedSlot < 0) {
+            if (comparing && !selectedIds.isEmpty()) {
+                proposeWithoutSlot();
+                return;
+            }
             // Java team: without a slot you can still plan on this day, choosing the time yourself
             new CreateActivitySheet().withSuggestedDate(dateKey(selectedDay))
                     .withEntryPoint(com.example.parchapp.analytics.AnalyticsEvents.ENTRY_SCHEDULE)
@@ -1034,13 +1073,15 @@ public class ScheduleActivity extends AppCompatActivity {
                             snackbar("The comparison changed. Select a slot again.");
                             return;
                         }
-                        CreateActivitySheet.newInstance(null, schedules.size(), slot.formatRange(), -1)
+                        CreateActivitySheet sheet = CreateActivitySheet.newInstance(null, schedules.size(), slot.formatRange(), -1)
                                 .withEntryPoint(com.example.parchapp.analytics.AnalyticsEvents.ENTRY_SCHEDULE)
-                                // bq9: only a slot shared with friends counts as planned after comparing
-                                .withComparisonId(participants.isEmpty() ? null : comparisonId)
                                 .withSuggestedDate(dateKey(selectedDay))
-                                .withSuggestedDuration(slot.getDurationMinutes())
-                                .show(getSupportFragmentManager(), "create_activity");
+                                .withSuggestedDuration(slot.getDurationMinutes());
+                        // bq9: only a slot shared with friends counts as planned after comparing
+                        if (!participants.isEmpty() && comparisonId != null) {
+                            sheet.withComparison(comparisonId, participants, dateKey(selectedDay));
+                        }
+                        sheet.show(getSupportFragmentManager(), "create_activity");
                     }
 
                     @Override

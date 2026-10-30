@@ -94,6 +94,11 @@ public class OfflineScheduleRepository implements ScheduleRepository {
     }
 
     @Override
+    public void prepareProposalComparison(String date, List<String> friendIds, Callback<String> callback) {
+        remote.prepareProposalComparison(date, friendIds, callback);
+    }
+
+    @Override
     public void importCalendarAvailability(String startDate, int days, List<String[]> intervals,
                                            Callback<Integer> callback) {
         remote.importCalendarAvailability(startDate, days, intervals, callback);
