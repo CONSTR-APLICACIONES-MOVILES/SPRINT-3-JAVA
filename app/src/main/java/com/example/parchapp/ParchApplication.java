@@ -19,5 +19,6 @@ public class ParchApplication extends Application {
             UserSession.setCurrentUser(restored);
             AnalyticsTracker.getInstance().setUserId(restored.getId());
         }
+        Repositories.availabilityStatusSync().start();
     }
 }

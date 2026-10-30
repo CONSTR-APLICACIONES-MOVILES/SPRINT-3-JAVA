@@ -281,6 +281,7 @@ public class ProfileActivity extends AppCompatActivity {
 
     private void logout() {
         Repositories.auth().signOut();
+        Repositories.availabilityStatusSync().onUserSignedOut();
         UserSession.clear();
         Intent signIn = new Intent(this, MainActivity.class);
         signIn.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
