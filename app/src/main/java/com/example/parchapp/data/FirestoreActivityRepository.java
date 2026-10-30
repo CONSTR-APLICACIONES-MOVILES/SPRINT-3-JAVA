@@ -123,4 +123,21 @@ class FirestoreActivityRepository implements ActivityPlanRepository {
     public void cacheTravelMinutes(String activityId, int minutes) {
         travelCache.put(activityId, minutes);
     }
+
+    @Override
+    public Integer getCachedTravelMinutesForDestination(String activityId, String destinationId) {
+        return travelCache.getForDestination(activityId, destinationId);
+    }
+
+    @Override
+    public Integer getCachedTravelMinutesNear(String activityId, double latitude, double longitude,
+                                              String destinationId, double radiusMeters) {
+        return travelCache.getNearOrigin(activityId, latitude, longitude, destinationId, radiusMeters);
+    }
+
+    @Override
+    public void cacheTravelMinutesForPlace(String activityId, int minutes, double latitude,
+                                           double longitude, String destinationId) {
+        travelCache.put(activityId, minutes, latitude, longitude, destinationId);
+    }
 }

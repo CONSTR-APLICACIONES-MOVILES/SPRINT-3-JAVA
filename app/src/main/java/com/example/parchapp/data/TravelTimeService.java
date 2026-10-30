@@ -21,8 +21,6 @@ import com.google.android.gms.tasks.CancellationTokenSource;
 
 import java.util.Calendar;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /* Uses Google Maps for travel time when available, with a local walking estimate as fallback. */
 /* Travel time from the user's location to a campus place, with a local walking estimate as fallback. */
@@ -60,8 +58,6 @@ public class TravelTimeService {
     private static final DistanceMatrixClient MAPS = new DistanceMatrixClient(BuildConfig.MAPS_API_KEY);
     /* F7: a saved time is only reused while the user is still near the place where it was measured. */
     static final double CACHE_RADIUS_METERS = 300;
-    // f7: where each cached time was measured from, {lat, lng} per activity id
-    private static final Map<String, double[]> CACHE_ORIGINS = new ConcurrentHashMap<>();
 
     private final Context context;
 
@@ -83,11 +79,12 @@ public class TravelTimeService {
                     listener.onProblem(Problem.NO_PLACE);
                     return;
                 }
-                Integer cached = activity.getId() == null ? null
-                        : Repositories.activities().getCachedTravelMinutes(activity.getId());
+                Integer cachedForPlace = activity.getId() == null ? null
+                        : Repositories.activities().getCachedTravelMinutesForDestination(
+                                activity.getId(), place.getId());
                 if (!hasLocationPermission()) {
-                    if (cached != null) {
-                        listener.onTravel(result(activity, cached, CACHED_SOURCE, place));
+                    if (cachedForPlace != null) {
+                        listener.onTravel(result(activity, cachedForPlace, CACHED_SOURCE, place));
                     } else {
                         listener.onProblem(Problem.NO_PERMISSION);
                     }
@@ -95,17 +92,22 @@ public class TravelTimeService {
                 }
                 readLocation(location -> {
                     if (location == null) {
-                        if (cached != null) {
-                            listener.onTravel(result(activity, cached, CACHED_SOURCE, place));
+                        if (cachedForPlace != null) {
+                            listener.onTravel(result(activity, cachedForPlace, CACHED_SOURCE, place));
                         } else {
                             listener.onProblem(Problem.NO_LOCATION);
                         }
-                    } else if (cached != null && isNearOrigin(CACHE_ORIGINS.get(activity.getId()),
-                            location.getLatitude(), location.getLongitude())) {
-                        // f7: same place as last time, so the saved time is still right and we do not call maps again
-                        listener.onTravel(result(activity, cached, CACHED_SOURCE, place));
                     } else {
-                        measure(activity, place, location, listener);
+                        Integer cachedNearby = activity.getId() == null ? null
+                                : Repositories.activities().getCachedTravelMinutesNear(activity.getId(),
+                                        location.getLatitude(), location.getLongitude(), place.getId(),
+                                        CACHE_RADIUS_METERS);
+                        if (cachedNearby != null) {
+                        // f7: same place as last time, so the saved time is still right and we do not call maps again
+                            listener.onTravel(result(activity, cachedNearby, CACHED_SOURCE, place));
+                        } else {
+                            measure(activity, place, location, listener);
+                        }
                     }
                 });
             }
@@ -128,8 +130,8 @@ public class TravelTimeService {
                     @Override
                     public void onSuccess(Integer minutes) {
                         if (activity.getId() != null) {
-                            Repositories.activities().cacheTravelMinutes(activity.getId(), minutes);
-                            CACHE_ORIGINS.put(activity.getId(), new double[]{from.getLatitude(), from.getLongitude()});
+                            Repositories.activities().cacheTravelMinutesForPlace(activity.getId(), minutes,
+                                    from.getLatitude(), from.getLongitude(), place.getId());
                         }
                         listener.onTravel(result(activity, minutes, MAPS_SOURCE, place));
                     }
