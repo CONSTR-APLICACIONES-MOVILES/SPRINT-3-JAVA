@@ -56,6 +56,14 @@ public class CompareAvailabilityActivity extends AppCompatActivity implements Co
         controller.saveState(outState);
     }
 
+    @Override
+    protected void onDestroy() {
+        if (controller != null) {
+            controller.stop();
+        }
+        super.onDestroy();
+    }
+
     // the chips come from GroupRepository, the same groups the dashboard shows
     private void loadGroups() {
         UserProfile user = UserSession.getCurrentUser();

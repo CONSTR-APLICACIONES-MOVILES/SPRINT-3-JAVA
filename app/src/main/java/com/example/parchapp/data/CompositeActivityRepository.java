@@ -36,6 +36,11 @@ final class CompositeActivityRepository implements ActivityRepository {
     }
 
     @Override
+    public List<PlannedActivity> loadActivities(String userId, boolean fromCache) throws Exception {
+        return firestore.loadActivities(userId, fromCache);
+    }
+
+    @Override
     public void getActivityDetails(String activityId, Callback<ActivityDetails> callback) {
         backend.getActivityDetails(activityId, callback);
     }
