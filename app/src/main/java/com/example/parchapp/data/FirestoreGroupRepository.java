@@ -7,12 +7,14 @@ import com.example.parchapp.domain.model.Member;
 import com.example.parchapp.domain.model.TimeBlock;
 import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.MainThread;
+import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.Source;
 import com.google.firebase.functions.FirebaseFunctions;
 
@@ -105,6 +107,18 @@ class FirestoreGroupRepository extends BaseGroupRepository {
                     MainThread.post(() -> callback.onSuccess(groups));
                 })
                 .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+    }
+
+    // runs on a worker thread: Tasks.await blocks until firestore answers, which must never happen on the main thread
+    @Override
+    public List<Group> loadGroups(String userId, boolean fromCache) throws Exception {
+        QuerySnapshot snapshot = Tasks.await(collection.whereArrayContains("memberIds", userId)
+                .get(fromCache ? Source.CACHE : Source.DEFAULT));
+        List<Group> groups = new ArrayList<>();
+        for (DocumentSnapshot document : snapshot.getDocuments()) {
+            groups.add(fromSnapshot(document));
+        }
+        return groups;
     }
 
     @Override

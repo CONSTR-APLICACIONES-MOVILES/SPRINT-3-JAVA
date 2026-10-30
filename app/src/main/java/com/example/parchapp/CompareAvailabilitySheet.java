@@ -59,6 +59,14 @@ public class CompareAvailabilitySheet extends BottomSheetDialogFragment implemen
         }
     }
 
+    @Override
+    public void onDestroyView() {
+        if (controller != null) {
+            controller.stop();
+        }
+        super.onDestroyView();
+    }
+
 // the sheet opens fully, in landscape half open only showed the title
     @Override
     public void onStart() {

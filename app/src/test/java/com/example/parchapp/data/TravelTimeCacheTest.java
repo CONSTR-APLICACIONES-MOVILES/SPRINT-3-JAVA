@@ -3,6 +3,7 @@ package com.example.parchapp.data;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 
 import org.junit.Test;
 
@@ -22,9 +23,9 @@ public class TravelTimeCacheTest {
     }
 
     @Test
-    public void onlyReusesFreshRoutesForTheSameDestinationAndNearbyOrigin() {
+    public void reusesOnlyFreshRoutesForTheSamePlaceAndNearbyOrigin() {
         TravelTimeCache cache = new TravelTimeCache(() -> 5_000L);
-        cache.putForPlace("study", 12, 4.6026, -74.0660, "ml-building");
+        cache.put("study", 12, 4.6026, -74.0660, "ml-building");
 
         assertEquals(Integer.valueOf(12), cache.getForDestination("study", "ml-building"));
         assertEquals(Integer.valueOf(12), cache.getNearOrigin(
@@ -35,11 +36,12 @@ public class TravelTimeCacheTest {
 
     @Test
     public void evictsLeastRecentlyUsedEntriesWhenCapacityIsReached() {
-        TravelTimeCache cache = new TravelTimeCache(() -> 10_000L);
+        long[] now = {10_000L};
+        TravelTimeCache cache = new TravelTimeCache(() -> now[0]);
         for (int i = 0; i < TravelTimeCache.MAX_ENTRIES; i++) {
             cache.put("activity-" + i, i + 1);
         }
-        assertNotNull(cache.get("activity-0"));
+        assertNotNull(cache.get("activity-0")); // promote it to most recently used
         cache.put("activity-new", 99);
 
         assertNotNull(cache.get("activity-0"));
@@ -48,7 +50,7 @@ public class TravelTimeCacheTest {
     }
 
     @Test
-    public void removesOtherExpiredEntriesWhenAddingANewRoute() {
+    public void removesExpiredEntriesWhenAddingNewValues() {
         long[] now = {20_000L};
         TravelTimeCache cache = new TravelTimeCache(() -> now[0]);
         cache.put("old", 10);

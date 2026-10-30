@@ -103,7 +103,7 @@ public class TravelTimeService {
                                         location.getLatitude(), location.getLongitude(), place.getId(),
                                         CACHE_RADIUS_METERS);
                         if (cachedNearby != null) {
-                            // Reuse only for the same campus destination and a nearby origin.
+                        // f7: same place as last time, so the saved time is still right and we do not call maps again
                             listener.onTravel(result(activity, cachedNearby, CACHED_SOURCE, place));
                         } else {
                             measure(activity, place, location, listener);

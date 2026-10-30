@@ -11,7 +11,9 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
+import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.analytics.ConfirmationTelemetry;
+import com.example.parchapp.data.DashboardLoader;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.data.TravelTimeService;
 import com.example.parchapp.domain.PlanContext;
@@ -36,6 +38,17 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
     private boolean retriedGroups;
     private TextView displayNextActivity;
     private final OfflineBannerController offlineBanner = new OfflineBannerController();
+    private final DashboardLoader dashboardLoader = new DashboardLoader();
+    // eventual connectivity (#43): when the network comes back the saved data is replaced by fresh data, without reopening
+    private boolean wasOnline = true;
+    private final AnalyticsTracker.ConnectivityListener reconnectRefresh = online ->
+            findViewById(R.id.offline_banner).post(() -> {
+                boolean cameBack = online && !wasOnline;
+                wasOnline = online;
+                if (cameBack && !isFinishing() && !isDestroyed()) {
+                    loadDashboard();
+                }
+            });
     // f6: what the dashboard read from firestore, the cards are drawn from these lists
     private final List<Group> loadedGroups = new ArrayList<>();
     private final List<PlannedActivity> loadedActivities = new ArrayList<>();
@@ -102,16 +115,18 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         hideGroupCards();
         findViewById(R.id.plan_card_study).setVisibility(View.GONE);
         findViewById(R.id.plans_empty).setVisibility(View.GONE);
-        loadGroups();
-        loadActivities();
+        loadDashboard();
         StatusService status = Repositories.status();
         status.addListener(this);
         onStatusChanged(status);
         offlineBanner.start(findViewById(R.id.offline_banner));
+        wasOnline = AnalyticsTracker.getInstance().isOnline();
+        AnalyticsTracker.getInstance().addConnectivityListener(reconnectRefresh);
     }
 
     @Override
     protected void onStop() {
+        AnalyticsTracker.getInstance().removeConnectivityListener(reconnectRefresh);
         offlineBanner.stop();
         Repositories.status().removeListener(this);
         super.onStop();
@@ -150,14 +165,16 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         return user == null ? null : user.getId();
     }
 
-    private void loadGroups() {
+    // f6 and multithreading (#34): groups and plans load at the same time on worker threads, each one is drawn when it arrives
+    private void loadDashboard() {
         String userId = currentUserId();
         if (userId == null) {
+            ((TextView) findViewById(R.id.active_plans_text)).setText("");
             return;
         }
-        Repositories.groups().getGroups(userId, new Callback<List<Group>>() {
+        dashboardLoader.load(userId, new DashboardLoader.Listener<Group>() {
             @Override
-            public void onSuccess(List<Group> groups) {
+            public void onLoaded(List<Group> groups, boolean fromCache) {
                 if (isFinishing() || isDestroyed()) {
                     return;
                 }
@@ -165,48 +182,46 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
                 loadedGroups.addAll(groups);
                 bindGroups();
                 // a brand new account is added to the demo groups by the backend a moment after sign up, so we look again once
-                if (groups.isEmpty() && !retriedGroups) {
+                if (!fromCache && groups.isEmpty() && !retriedGroups) {
                     retriedGroups = true;
                     findViewById(R.id.groups_empty_dash).postDelayed(() -> {
                         if (!isFinishing() && !isDestroyed()) {
-                            loadGroups();
-                            loadActivities();
+                            loadDashboard();
                         }
                     }, GROUPS_RETRY_MS);
                 }
             }
 
             @Override
-            public void onError(Exception error) {
+            public void onFailed(Exception error) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
                 hideGroupCards();
                 TextView empty = findViewById(R.id.groups_empty_dash);
                 empty.setText(R.string.groups_load_error);
                 empty.setVisibility(View.VISIBLE);
             }
-        });
-    }
-
-    private void loadActivities() {
-        String userId = currentUserId();
-        if (userId == null) {
-            ((TextView) findViewById(R.id.active_plans_text)).setText("");
-            return;
-        }
-        Repositories.activities().getActivities(userId, new Callback<List<PlannedActivity>>() {
+        }, new DashboardLoader.Listener<PlannedActivity>() {
             @Override
-            public void onSuccess(List<PlannedActivity> activities) {
+            public void onLoaded(List<PlannedActivity> activities, boolean fromCache) {
                 if (isFinishing() || isDestroyed()) {
                     return;
                 }
                 loadedActivities.clear();
                 loadedActivities.addAll(activities);
-                // bq9: plans confirmed on the backend are logged once as activity_confirmed
-                ConfirmationTelemetry.logNewlyConfirmed(DashboardActivity.this, activities);
+                // bq9: plans confirmed on the backend are logged once as activity_confirmed, only from fresh data
+                if (!fromCache) {
+                    ConfirmationTelemetry.logNewlyConfirmed(DashboardActivity.this, activities);
+                }
                 bindActivities();
             }
 
             @Override
-            public void onError(Exception error) {
+            public void onFailed(Exception error) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
                 findViewById(R.id.plan_card_study).setVisibility(View.GONE);
                 findViewById(R.id.plans_empty).setVisibility(View.GONE);
                 ((TextView) findViewById(R.id.active_plans_text)).setText("Could not load your plans");

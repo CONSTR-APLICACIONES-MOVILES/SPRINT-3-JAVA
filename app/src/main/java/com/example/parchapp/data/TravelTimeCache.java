@@ -8,7 +8,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/* Short-lived, bounded LRU estimates. Reuse requires a fresh entry for the same destination and nearby origin. */
+/* Short-lived, bounded LRU estimates. A route is reusable only for the same destination and nearby origin. */
 class TravelTimeCache {
     static final long TTL_MS = 15 * 60 * 1000L;
     static final int MAX_ENTRIES = 100;
@@ -68,16 +68,16 @@ class TravelTimeCache {
     }
 
     synchronized void put(String activityId, int minutes) {
-        putEntry(activityId, minutes, null, null, null);
+        put(activityId, minutes, null, null, null);
     }
 
-    synchronized void putForPlace(String activityId, int minutes, double latitude, double longitude,
-                                  String destinationId) {
-        putEntry(activityId, minutes, latitude, longitude, destinationId);
-    }
-
-    private void putEntry(String activityId, int minutes, Double latitude, Double longitude,
+    synchronized void put(String activityId, int minutes, double latitude, double longitude,
                           String destinationId) {
+        put(activityId, minutes, Double.valueOf(latitude), Double.valueOf(longitude), destinationId);
+    }
+
+    private void put(String activityId, int minutes, Double latitude, Double longitude,
+                     String destinationId) {
         if (activityId == null || activityId.trim().isEmpty() || minutes <= 0) return;
         pruneExpired();
         entries.put(activityId, new Entry(minutes, clock.now(), latitude, longitude, destinationId));
