@@ -15,10 +15,19 @@ public final class RsvpTelemetry {
     private RsvpTelemetry() { }
 
     public static void recordSubmitted(AlertItem invitation, String response, long respondedAtMillis) {
+        recordSubmitted(invitation, response, respondedAtMillis, null);
+    }
+
+    public static void recordSubmitted(AlertItem invitation, String response, long respondedAtMillis,
+                                       AlertItem reminder) {
         Map<String, Object> params = parameters(invitation, response, respondedAtMillis);
         if (params == null) return;
         try {
-            AnalyticsTracker.getInstance().track(AnalyticsEvents.RSVP_SUBMITTED, params);
+            AnalyticsTracker tracker = AnalyticsTracker.getInstance();
+            tracker.track(AnalyticsEvents.RSVP_SUBMITTED, params);
+            Map<String, Object> afterReminder = responseAfterReminderParameters(
+                    invitation, response, respondedAtMillis, reminder);
+            if (afterReminder != null) tracker.track(AnalyticsEvents.RESPONSE_AFTER_REMINDER, afterReminder);
         } catch (RuntimeException ignored) {
             // The invitation response is already saved; analytics must not block the UI.
         }
@@ -37,8 +46,29 @@ public final class RsvpTelemetry {
         params.put(AnalyticsEvents.PARAM_ACTIVITY_ID, invitation.getActivityId());
         params.put(AnalyticsEvents.PARAM_GROUP_SIZE, invitation.getGroupSize());
         params.put(AnalyticsEvents.PARAM_RESPONSE_MS, Math.max(0L, respondedAtMillis - invitedAt));
+        params.put(AnalyticsEvents.PARAM_RESPONSE_AT_MS, respondedAtMillis);
         params.put(AnalyticsEvents.PARAM_RESPONSE, "accepted".equals(response)
                 ? "going" : "maybe".equals(response) ? "maybe" : "declined");
+        return params;
+    }
+
+    static Map<String, Object> responseAfterReminderParameters(AlertItem invitation, String response,
+                                                                long respondedAtMillis, AlertItem reminder) {
+        if (invitation == null || reminder == null || !reminder.isRsvpReminder()
+                || blank(invitation.getActivityId()) || !invitation.getActivityId().equals(reminder.getActivityId())) {
+            return null;
+        }
+        Long sentAt = ReminderTelemetry.reminderSentAtMillis(reminder);
+        if (sentAt == null || sentAt > respondedAtMillis) return null;
+        Map<String, Object> params = new HashMap<>();
+        params.put(AnalyticsEvents.PARAM_ACTIVITY_ID, invitation.getActivityId());
+        params.put(AnalyticsEvents.PARAM_REMINDER_ID, reminder.getReminderId());
+        params.put(AnalyticsEvents.PARAM_REMINDER_STRATEGY, reminder.getReminderStrategy());
+        params.put(AnalyticsEvents.PARAM_REMINDER_SEQUENCE, reminder.getReminderSequence());
+        params.put(AnalyticsEvents.PARAM_DELAY_MINUTES, reminder.getReminderDelayMinutes());
+        params.put(AnalyticsEvents.PARAM_RESPONSE_DELAY_MS, Math.max(0L, respondedAtMillis - sentAt));
+        params.put(AnalyticsEvents.PARAM_RESPONSE_AT_MS, respondedAtMillis);
+        params.put(AnalyticsEvents.PARAM_RESPONSE, response);
         return params;
     }
 

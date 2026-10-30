@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.res.ColorStateList;
 import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.analytics.AnalyticsEvents;
+import com.example.parchapp.analytics.ReminderTelemetry;
 import com.example.parchapp.analytics.RsvpTelemetry;
 import android.os.Bundle;
 import android.text.Editable;
@@ -169,6 +170,7 @@ public class AlertsActivity extends AppCompatActivity {
                 alertsLoading.setVisibility(View.GONE);
                 alerts.clear();
                 alerts.addAll(result);
+                ReminderTelemetry.recordReminderAlerts(AlertsActivity.this, result);
                 renderAlerts();
             }
 
@@ -304,10 +306,11 @@ public class AlertsActivity extends AppCompatActivity {
     private void respondToActivityInvitation(AlertItem alert, String response, View actions) {
         setActionEnabled(actions, false);
         long respondedAtMillis = System.currentTimeMillis();
+        AlertItem reminder = latestRsvpReminder(alert.getActivityId(), respondedAtMillis);
         Repositories.alerts().respondToActivityInvitation(alert.getActivityId(), response, new Callback<Void>() {
             @Override public void onSuccess(Void ignored) {
                 if (!isFinishing() && !isDestroyed()) {
-                    RsvpTelemetry.recordSubmitted(alert, response, respondedAtMillis);
+                    RsvpTelemetry.recordSubmitted(alert, response, respondedAtMillis, reminder);
                     loadAlerts();
                 }
             }
@@ -315,6 +318,21 @@ public class AlertsActivity extends AppCompatActivity {
                 if (!isFinishing() && !isDestroyed()) actionFailed(actions);
             }
         });
+    }
+
+    private AlertItem latestRsvpReminder(String activityId, long respondedAtMillis) {
+        AlertItem latest = null;
+        Long latestSentAt = null;
+        for (AlertItem alert : alerts) {
+            if (!alert.isRsvpReminder() || !activityId.equals(alert.getActivityId())) continue;
+            Long sentAt = ReminderTelemetry.reminderSentAtMillis(alert);
+            if (sentAt != null && sentAt <= respondedAtMillis
+                    && (latestSentAt == null || sentAt > latestSentAt)) {
+                latest = alert;
+                latestSentAt = sentAt;
+            }
+        }
+        return latest;
     }
 
     private void respondToGroupInvitation(AlertItem alert, String response, View actions) {

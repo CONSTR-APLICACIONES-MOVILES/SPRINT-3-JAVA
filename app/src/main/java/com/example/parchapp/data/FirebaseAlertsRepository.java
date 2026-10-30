@@ -32,7 +32,12 @@ final class FirebaseAlertsRepository implements AlertsRepository {
                                     string(data.get("title")), string(data.get("description")),
                                     string(data.get("createdAt")), Boolean.TRUE.equals(data.get("isRead")),
                                     nullableString(data.get("response")), string(data.get("studySessionId")),
-                                    string(data.get("groupId")), integer(data.get("groupSize"))));
+                                    string(data.get("groupId")), integer(data.get("groupSize")),
+                                    nullableString(data.get("reminderId")),
+                                    nullableString(data.get("reminderPurpose")),
+                                    nullableString(data.get("strategy")),
+                                    integer(data.get("sequence")), nullableInteger(data.get("delayMinutes")),
+                                    nullableString(data.get("sentAt"))));
                         }
                     }
                     MainThread.post(() -> callback.onSuccess(alerts));
@@ -87,5 +92,9 @@ final class FirebaseAlertsRepository implements AlertsRepository {
 
     private static int integer(Object value) {
         return value instanceof Number ? ((Number) value).intValue() : 0;
+    }
+
+    private static Integer nullableInteger(Object value) {
+        return value instanceof Number ? ((Number) value).intValue() : null;
     }
 }
