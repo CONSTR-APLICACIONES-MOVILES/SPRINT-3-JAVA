@@ -205,6 +205,7 @@ public class MainActivity extends AppCompatActivity {
     private void openDashboard(UserProfile user) {
         UserSession.setCurrentUser(user);
         AnalyticsTracker.getInstance().setUserId(user.getId());
+        Repositories.availabilityStatusSync().onUserAvailable();
         startActivity(new Intent(this, DashboardActivity.class));
     }
 

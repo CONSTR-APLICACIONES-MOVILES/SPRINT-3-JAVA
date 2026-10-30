@@ -47,6 +47,8 @@ public class GroupsActivity extends AppCompatActivity {
     private LinearLayout groupsList;
     // eventual connectivity: banner while offline, and the list loads again when the network returns
     private final ConnectivityWatcher connectivity = new ConnectivityWatcher(this::loadGroups);
+    // the plans of the cards: saved ones at once (also offline), then fresh ones, like the Dashboard
+    private final com.example.parchapp.data.DashboardLoader plansLoader = new com.example.parchapp.data.DashboardLoader();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -136,9 +138,9 @@ public class GroupsActivity extends AppCompatActivity {
         if (user == null || cards.isEmpty()) {
             return;
         }
-        Repositories.activities().getActivities(user.getId(), new Callback<List<PlannedActivity>>() {
+        plansLoader.loadPlans(user.getId(), new com.example.parchapp.data.DashboardLoader.Listener<PlannedActivity>() {
             @Override
-            public void onSuccess(List<PlannedActivity> plans) {
+            public void onLoaded(List<PlannedActivity> plans, boolean fromCache) {
                 if (isFinishing() || isDestroyed()) {
                     return;
                 }
@@ -172,7 +174,7 @@ public class GroupsActivity extends AppCompatActivity {
 
 // without plans we can not say what is next; offline the card says so instead of "no upcoming plan"
             @Override
-            public void onError(Exception error) {
+            public void onFailed(Exception error) {
                 if (isFinishing() || isDestroyed()) {
                     return;
                 }
