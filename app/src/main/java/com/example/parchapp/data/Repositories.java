@@ -25,6 +25,7 @@ public final class Repositories {
     private static CampusPlaceRepository places;
     private static AuthRepository auth;
     private static PrivacySettingsRepository privacySettings;
+    private static ProfileRepository profileDetails;
     private static ProfilePhotoRepository profilePhotos;
     private static StatusService status;
     private static ScheduleRepository schedules;
@@ -58,6 +59,7 @@ public final class Repositories {
                 firebaseAuth.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 9099);
             }
             auth = new FirebaseAuthRepository(firebaseAuth);
+            profileDetails = new FirebaseProfileRepository(context, functions);
             profilePhotos = new FirebaseProfilePhotoRepository(functions, firebaseAuth);
             privacySettings = new FirebasePrivacySettingsRepository(context, functions);
             FirebaseFirestore db = FirebaseFirestore.getInstance();
@@ -84,6 +86,7 @@ public final class Repositories {
             schedules = new OfflineScheduleRepository(context, new FunctionsScheduleRepository(functions));
         } else {
             auth = new DisabledAuthRepository();
+            profileDetails = null;
             privacySettings = new DisabledPrivacySettingsRepository(context);
             groups = new EmptyGroupRepository();
             activities = new DisabledActivityRepository();
@@ -153,6 +156,10 @@ public final class Repositories {
 
     public static PrivacySettingsRepository privacySettings() {
         return privacySettings;
+    }
+
+    public static ProfileRepository profileDetails() {
+        return profileDetails;
     }
 
     /** null when the app has no authenticated Firebase backend. */
