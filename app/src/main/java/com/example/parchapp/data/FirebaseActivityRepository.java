@@ -28,16 +28,25 @@ public final class FirebaseActivityRepository implements ActivityActionsReposito
 
     @Override
     public void createActivity(PlannedActivity activity, Callback<PlannedActivity> callback) {
-        createActivity(activity, null, callback);
+        createActivity(activity, UUID.randomUUID().toString(), null, callback);
     }
 
     @Override
     public void createActivity(PlannedActivity activity, @Nullable ComparisonEvidence evidence,
                                Callback<PlannedActivity> callback) {
-        publish(activity, evidence, true, callback);
+        createActivity(activity, UUID.randomUUID().toString(), evidence, callback);
     }
 
-    private void publish(PlannedActivity activity, @Nullable ComparisonEvidence evidence, boolean retryWithoutEvidence,
+    @Override
+    public void createActivity(PlannedActivity activity, String requestId,
+                               @Nullable ComparisonEvidence evidence, Callback<PlannedActivity> callback) {
+        String stableRequestId = requestId == null || requestId.trim().isEmpty()
+                ? UUID.randomUUID().toString() : requestId;
+        publish(activity, evidence, true, stableRequestId, callback);
+    }
+
+    private void publish(PlannedActivity activity, @Nullable ComparisonEvidence evidence,
+                         boolean retryWithoutEvidence, String requestId,
                          Callback<PlannedActivity> callback) {
         Map<String, Object> fields = new HashMap<>();
         fields.put("title", activity.getTitle());
@@ -48,7 +57,7 @@ public final class FirebaseActivityRepository implements ActivityActionsReposito
         fields.put("status", activity.getStatus());
 
         Map<String, Object> input = new HashMap<>();
-        input.put("requestId", UUID.randomUUID().toString());
+        input.put("requestId", requestId);
         input.put("groupId", activity.getGroupId());
         input.put("fields", fields);
         if (activity.getStartTime() != null && activity.getEndTime() != null) {
@@ -71,7 +80,7 @@ public final class FirebaseActivityRepository implements ActivityActionsReposito
                     // bq9: the comparison expires after a few minutes; a late plan is still created, only without it
                     if (withEvidence && retryWithoutEvidence && error instanceof FirebaseFunctionsException
                             && ((FirebaseFunctionsException) error).getCode() == FirebaseFunctionsException.Code.FAILED_PRECONDITION) {
-                        publish(activity, null, false, callback);
+                        publish(activity, null, false, requestId, callback);
                         return;
                     }
                     MainThread.post(() -> callback.onError(error));

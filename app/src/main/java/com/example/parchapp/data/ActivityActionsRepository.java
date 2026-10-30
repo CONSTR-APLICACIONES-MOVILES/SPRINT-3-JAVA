@@ -11,6 +11,13 @@ import com.example.parchapp.util.Callback;
 public interface ActivityActionsRepository {
     void createActivity(PlannedActivity activity, Callback<PlannedActivity> callback);
 
+    /** Retries a durable local draft with its original server idempotency key. */
+    default void createActivity(PlannedActivity activity, String requestId,
+                                @Nullable ComparisonEvidence evidence,
+                                Callback<PlannedActivity> callback) {
+        createActivity(activity, evidence, callback);
+    }
+
     /* BQ9: publishes with what the backend needs to know about the comparison behind the plan; adapters without a backend ignore it */
     default void createActivity(PlannedActivity activity, @Nullable ComparisonEvidence evidence,
                                 Callback<PlannedActivity> callback) {

@@ -123,8 +123,11 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         String availability = status.getAvailability();
         boolean free = "Available now".equalsIgnoreCase(availability);
         ((TextView) findViewById(R.id.status_title)).setText(free ? getString(R.string.available_now) : availability);
+        String syncLabel = !status.isRemoteSyncAvailable() || !status.isAutoSyncEnabled()
+                ? "Local only" : status.isStatusSyncPending() ? "Sync pending"
+                : status.hasSavedAvailability() ? "Synced" : "Not synced";
         ((TextView) findViewById(R.id.status_source_chip)).setText(
-                status.isFromMotion() ? "◎ Motion sensor" : "● Live Sync");
+                (status.isFromMotion() ? "◎ Motion" : "● Status") + " · " + syncLabel);
         ((TextView) findViewById(R.id.status_header_chip)).setText(
                 free ? "● FREE" : "● " + availability.toUpperCase(Locale.ROOT));
         // a new user has no quick status yet, so the box invites to set it instead of staying blank

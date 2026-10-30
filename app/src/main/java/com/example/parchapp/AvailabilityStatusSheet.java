@@ -2,6 +2,7 @@ package com.example.parchapp;
 
 import android.os.Bundle;
 import android.app.Dialog;
+import android.app.TimePickerDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,10 +16,17 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SwitchCompat;
 
 import com.example.parchapp.data.Repositories;
+import com.example.parchapp.domain.AvailabilityStatusExpiry;
 import com.example.parchapp.domain.StatusService;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
 
 public class AvailabilityStatusSheet extends BottomSheetDialogFragment implements StatusService.Listener {
 
@@ -30,6 +38,9 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment implement
     private String selectedDurationName = "For 1 hour";
     private StatusService statusService;
     private TextView motionDetectionMessage;
+    private TextView syncStatusMessage;
+    private TextView durationSelectedLabel;
+    private long manualExpiryMillis;
 
     @Nullable
     @Override
@@ -42,6 +53,7 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment implement
         super.onViewCreated(view, savedInstanceState);
         statusService = Repositories.status();
         motionDetectionMessage = view.findViewById(R.id.motion_detection_message);
+        syncStatusMessage = view.findViewById(R.id.status_sync_message);
 
         view.findViewById(R.id.sheet_close_btn).setOnClickListener(v -> dismiss());
 
@@ -59,13 +71,14 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment implement
                 view.findViewById(R.id.duration_manual)
         };
         String[] durationShortLabels = {"1h", "Until 6PM", "Until tomorrow", "Manual"};
-        TextView durationSelectedLabel = view.findViewById(R.id.duration_selected_label);
+        durationSelectedLabel = view.findViewById(R.id.duration_selected_label);
         for (int i = 0; i < durationChips.length; i++) {
             TextView chip = durationChips[i];
             String shortLabel = durationShortLabels[i];
             chip.setOnClickListener(v -> {
                 selectDurationChip(chip);
                 durationSelectedLabel.setText("◷ " + shortLabel + " selected");
+                if ("Indefinite / Manual".equals(chip.getText().toString())) pickManualExpiry();
             });
         }
         int savedDurationIndex = findDurationIndex(durationChips, statusService.getAvailabilityDuration());
@@ -75,9 +88,17 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment implement
         SwitchCompat autoSyncToggle = view.findViewById(R.id.auto_sync_toggle);
         autoSyncToggle.setChecked(statusService.isAutoSyncEnabled());
         autoSyncToggle.setOnCheckedChangeListener((button, enabled) -> statusService.setAutoSyncEnabled(enabled));
+        syncStatusMessage.setOnClickListener(v -> Repositories.availabilityStatusSync().retry());
+        onStatusChanged(statusService);
 
         view.findViewById(R.id.save_status_button).setOnClickListener(v -> {
-            Repositories.status().setAvailability(selectedStatusName, selectedDurationName);
+            long expiresAt = selectedDurationName.equals("Indefinite / Manual")
+                    ? manualExpiryMillis : expiryFor(selectedDurationName);
+            if (!AvailabilityStatusExpiry.isValid(expiresAt, System.currentTimeMillis())) {
+                Toast.makeText(requireContext(), "Choose an expiry within the next 24 hours", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Repositories.status().setAvailability(selectedStatusName, selectedDurationName, expiresAt);
             Toast.makeText(requireContext(), selectedStatusName + " · " + selectedDurationName, Toast.LENGTH_SHORT).show();
             dismiss();
         });
@@ -114,7 +135,23 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment implement
     }
 
     @Override
-    public void onStatusChanged(StatusService status) { }
+    public void onStatusChanged(StatusService status) {
+        if (syncStatusMessage == null || !isAdded()) return;
+        if (!status.isRemoteSyncAvailable()) {
+            syncStatusMessage.setText("Saved on this device only; remote status sync is unavailable.");
+        } else if (!status.isAutoSyncEnabled()) {
+            syncStatusMessage.setText("Saved on this device only · Automatic synchronization is off.");
+        } else if (status.isStatusSyncPending()) {
+            String error = status.getStatusSyncError();
+            syncStatusMessage.setText((error == null || error.isEmpty()
+                    ? "Saved here · waiting to sync with your groups."
+                    : "Sync pending · " + error) + " Tap to retry.");
+        } else {
+            syncStatusMessage.setText(status.hasSavedAvailability()
+                    ? "Synced to your privacy settings until " + formatExpiry(status.getAvailabilityExpiresAtMillis()) + "."
+                    : "Choose a status to share it with your groups.");
+        }
+    }
 
     @Override
     public void onCommuteSuggested(StatusService status) {
@@ -192,6 +229,7 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment implement
         chip.setTextColor(requireContext().getColor(R.color.brand_primary));
         selectedDurationChip = chip;
         selectedDurationName = chip.getText().toString();
+        if (!"Indefinite / Manual".equals(selectedDurationName)) manualExpiryMillis = 0L;
     }
 
     private int findDurationIndex(TextView[] chips, String savedDuration) {
@@ -201,5 +239,28 @@ public class AvailabilityStatusSheet extends BottomSheetDialogFragment implement
             }
         }
         return 0;
+    }
+
+    private void pickManualExpiry() {
+        Calendar initial = Calendar.getInstance(TimeZone.getTimeZone("America/Bogota"));
+        initial.add(Calendar.HOUR_OF_DAY, 1);
+        new TimePickerDialog(requireContext(), (picker, hour, minute) -> {
+            manualExpiryMillis = AvailabilityStatusExpiry.manualTime(hour, minute, System.currentTimeMillis());
+            if (!AvailabilityStatusExpiry.isValid(manualExpiryMillis, System.currentTimeMillis())) {
+                Toast.makeText(requireContext(), "Choose a time within the next 24 hours", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            durationSelectedLabel.setText("◷ Until " + formatExpiry(manualExpiryMillis));
+        }, initial.get(Calendar.HOUR_OF_DAY), initial.get(Calendar.MINUTE), false).show();
+    }
+
+    private long expiryFor(String duration) {
+        return AvailabilityStatusExpiry.expiryFor(duration, System.currentTimeMillis());
+    }
+
+    private String formatExpiry(long timestamp) {
+        SimpleDateFormat format = new SimpleDateFormat("h:mm a", Locale.US);
+        format.setTimeZone(TimeZone.getTimeZone("America/Bogota"));
+        return format.format(new Date(timestamp));
     }
 }

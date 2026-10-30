@@ -11,7 +11,10 @@ import androidx.appcompat.widget.AppCompatButton;
 
 import com.example.parchapp.analytics.AnalyticsEvents;
 import com.example.parchapp.analytics.AnalyticsTracker;
+import com.example.parchapp.data.ActivityDetailsCache;
+import com.example.parchapp.data.ActivityCreationSyncCoordinator;
 import com.example.parchapp.data.FirebaseRecommendationDecisionRepository;
+import com.example.parchapp.data.PendingActivityCreation;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.domain.model.ActivityDetails;
 import com.example.parchapp.util.Callback;
@@ -25,12 +28,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
-public class ActivityCreatedActivity extends AppCompatActivity {
+public class ActivityCreatedActivity extends AppCompatActivity implements ActivityCreationSyncCoordinator.Listener {
     public static final String EXTRA_TITLE = "extra_activity_title";
     public static final String EXTRA_DATE = "extra_activity_date";
     public static final String EXTRA_TIME = "extra_activity_time";
     public static final String EXTRA_LOCATION = "extra_activity_location";
     public static final String EXTRA_ACTIVITY_ID = "extra_activity_id";
+    public static final String EXTRA_PENDING_REQUEST_ID = "extra_pending_request_id";
     public static final String EXTRA_RECOMMENDATION_ID = "extra_recommendation_id";
     public static final String EXTRA_WAS_MODIFIED = "extra_was_modified";
     public static final String EXTRA_SELECTED_START_TIME = "extra_selected_start_time";
@@ -39,7 +43,10 @@ public class ActivityCreatedActivity extends AppCompatActivity {
     public static final String EXTRA_GROUP_SIZE = "extra_group_size";
 
     private ActivityDetails activity;
+    private ActivityDetailsCache detailsCache;
     private String activityId;
+    private String pendingRequestId;
+    private String pendingUserId;
     private AppCompatButton reminderButton;
     private TextView reminderStatus;
 // key to keep the bq3 message when the phone turns
@@ -52,6 +59,10 @@ public class ActivityCreatedActivity extends AppCompatActivity {
 
         reminderButton = findViewById(R.id.reminder_button);
         reminderStatus = findViewById(R.id.reminder_status);
+        detailsCache = new ActivityDetailsCache(this);
+        findViewById(R.id.activity_snapshot_retry).setOnClickListener(v -> {
+            if (!isBlank(activityId)) loadActivity(activityId);
+        });
         findViewById(R.id.suggested_times_button).setVisibility(View.GONE);
         findViewById(R.id.close_created_button).setOnClickListener(v -> finish());
         findViewById(R.id.copy_invite_button).setEnabled(false);
@@ -62,6 +73,13 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         findViewById(R.id.retry_activity_button).setOnClickListener(v -> {
             if (!isBlank(activityId)) loadActivity(activityId);
         });
+        findViewById(R.id.pending_retry_button).setOnClickListener(v -> {
+            if (!isBlank(pendingRequestId)) Repositories.activityCreationSync().retry(pendingRequestId);
+        });
+        findViewById(R.id.pending_discard_button).setOnClickListener(v -> {
+            if (!isBlank(pendingRequestId)) Repositories.activityCreationSync().cancel(pendingRequestId);
+            finish();
+        });
         // back to the dashboard closing the screens opened on top of it, finishAffinity closed the whole app
         findViewById(R.id.back_home_button).setOnClickListener(v -> {
             startActivity(new android.content.Intent(this, DashboardActivity.class)
@@ -69,7 +87,12 @@ public class ActivityCreatedActivity extends AppCompatActivity {
             finish();
         });
 
-        activityId = getIntent().getStringExtra(EXTRA_ACTIVITY_ID);
+        activityId = savedInstanceState == null ? getIntent().getStringExtra(EXTRA_ACTIVITY_ID)
+                : savedInstanceState.getString("created_activity_id", getIntent().getStringExtra(EXTRA_ACTIVITY_ID));
+        pendingRequestId = savedInstanceState == null ? getIntent().getStringExtra(EXTRA_PENDING_REQUEST_ID)
+                : savedInstanceState.getString("pending_request_id", getIntent().getStringExtra(EXTRA_PENDING_REQUEST_ID));
+        UserProfile restoredUser = UserSession.getCurrentUser();
+        if (!isBlank(pendingRequestId) && restoredUser != null) pendingUserId = restoredUser.getId();
         if (savedInstanceState == null) {
             persistRecommendationOutcome();
         } else {
@@ -81,7 +104,9 @@ public class ActivityCreatedActivity extends AppCompatActivity {
                 outcomeView.setVisibility(View.VISIBLE);
             }
         }
-        if (isBlank(activityId)) {
+        if (!isBlank(pendingRequestId) && isBlank(activityId)) {
+            loadPendingActivity();
+        } else if (isBlank(activityId)) {
             String title = getIntent().getStringExtra(EXTRA_TITLE);
             if (isBlank(title)) {
                 showActivityUnavailable(getString(R.string.activity_missing_id), false);
@@ -94,8 +119,118 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (isBlank(pendingRequestId) || !isBlank(activityId)) return;
+        Repositories.activityCreationSync().addListener(this);
+        loadPendingActivity();
+    }
+
+    @Override
+    protected void onStop() {
+        Repositories.activityCreationSync().removeListener(this);
+        super.onStop();
+    }
+
+    private void loadPendingActivity() {
+        UserProfile user = UserSession.getCurrentUser();
+        if (user == null) {
+            showActivityUnavailable("Sign in to sync this saved activity.", false);
+            return;
+        }
+        pendingUserId = user.getId();
+        PendingActivityCreation pending = Repositories.activityCreationSync().get(user.getId(), pendingRequestId);
+        if (pending == null) {
+            showActivityUnavailable("This saved activity is no longer available on this device.", false);
+            return;
+        }
+        renderPendingState(pending);
+        if (pending.getState() == PendingActivityCreation.State.CREATED
+                && !isBlank(pending.getCreatedActivityId())) {
+            bindCreatedDraftSnapshot(pending);
+            if (!isBlank(pending.getRecommendationOutcome())) {
+                TextView outcomeView = findViewById(R.id.recommendation_outcome_text);
+                outcomeView.setText(pending.getRecommendationOutcome());
+                outcomeView.setVisibility(View.VISIBLE);
+            }
+            loadActivity(pending.getCreatedActivityId());
+        } else if (pending.getState() == PendingActivityCreation.State.PENDING) {
+            Repositories.activityCreationSync().retry(pendingRequestId);
+        }
+    }
+
+    private void bindCreatedDraftSnapshot(PendingActivityCreation pending) {
+        UserProfile user = UserSession.getCurrentUser();
+        if (user == null || pending.getActivity() == null || isBlank(pending.getCreatedActivityId())) return;
+        com.example.parchapp.domain.model.PlannedActivity draft = pending.getActivity();
+        ActivityDetails snapshot = new ActivityDetails(pending.getCreatedActivityId(), draft.getGroupId(),
+                draft.getTitle(), draft.getCategory(), draft.getDate(), draft.getTime(), draft.getLocation(),
+                draft.getStatus(), draft.getStartTime(), draft.getEndTime(), null, user.getId());
+        detailsCache.put(user.getId(), snapshot);
+    }
+
+    private void renderPendingState(PendingActivityCreation pending) {
+        View pendingState = findViewById(R.id.activity_pending_state);
+        pendingState.setVisibility(View.VISIBLE);
+        findViewById(R.id.activity_loading_state).setVisibility(View.GONE);
+        findViewById(R.id.activity_error_state).setVisibility(View.GONE);
+        findViewById(R.id.activity_success_header).setVisibility(View.GONE);
+        findViewById(R.id.activity_summary_card).setVisibility(View.GONE);
+        findViewById(R.id.attendees_card).setVisibility(View.GONE);
+        findViewById(R.id.activity_utilities_card).setVisibility(View.GONE);
+        findViewById(R.id.suggested_times_button).setVisibility(View.GONE);
+        findViewById(R.id.view_schedule_button).setVisibility(View.GONE);
+        ((TextView) findViewById(R.id.pending_activity_title)).setText(pending.getActivity().getTitle());
+        TextView message = findViewById(R.id.pending_activity_message);
+        AppCompatButton retry = findViewById(R.id.pending_retry_button);
+        AppCompatButton discard = findViewById(R.id.pending_discard_button);
+        PendingActivityCreation.State state = pending.getState();
+        if (state == PendingActivityCreation.State.SYNCING) {
+            message.setText("Publishing your saved activity…");
+            retry.setVisibility(View.GONE);
+            discard.setVisibility(View.GONE);
+        } else if (state == PendingActivityCreation.State.NEEDS_REVIEW) {
+            message.setText("The server could not publish this draft. Review the details, discard it, and create a new activity.");
+            retry.setVisibility(View.GONE);
+            discard.setVisibility(View.VISIBLE);
+        } else {
+            message.setText("Saved on this device. Tap Try again or wait for your connection to return.");
+            retry.setVisibility(View.VISIBLE);
+            discard.setVisibility(View.GONE);
+        }
+        reminderButton.setEnabled(false);
+    }
+
+    @Override
+    public void onPendingActivityChanged(PendingActivityCreation pending) {
+        if (isFinishing() || isDestroyed() || isBlank(pendingRequestId)
+                || !pendingRequestId.equals(pending.getRequestId())
+                || !pending.getUserId().equals(pendingUserId)) return;
+        if (pending.getState() == PendingActivityCreation.State.CREATED
+                && !isBlank(pending.getCreatedActivityId())) {
+            bindCreatedDraftSnapshot(pending);
+            if (!isBlank(pending.getRecommendationOutcome())) {
+                TextView outcomeView = findViewById(R.id.recommendation_outcome_text);
+                outcomeView.setText(pending.getRecommendationOutcome());
+                outcomeView.setVisibility(View.VISIBLE);
+            }
+            loadActivity(pending.getCreatedActivityId());
+        } else {
+            renderPendingState(pending);
+        }
+    }
+
     private void loadActivity(String activityId) {
-        showLoading();
+        this.activityId = activityId;
+        UserProfile currentUser = UserSession.getCurrentUser();
+        ActivityDetailsCache.Snapshot snapshot = currentUser == null ? null
+                : detailsCache.get(currentUser.getId(), activityId);
+        if (snapshot == null) {
+            showLoading();
+        } else {
+            bindCachedActivity(snapshot);
+        }
         Repositories.activities().getActivityDetails(activityId, new Callback<ActivityDetails>() {
             @Override public void onSuccess(ActivityDetails details) {
                 if (isFinishing() || isDestroyed()) return;
@@ -104,15 +239,44 @@ public class ActivityCreatedActivity extends AppCompatActivity {
                     return;
                 }
                 activity = details;
+                UserProfile user = UserSession.getCurrentUser();
+                if (user != null) detailsCache.put(user.getId(), details);
                 bindActivity(details);
+                if (!isBlank(pendingRequestId) && !isBlank(pendingUserId)) {
+                    Repositories.activityCreationSync().removeCreated(pendingUserId, pendingRequestId);
+                    pendingRequestId = null;
+                }
             }
 
             @Override public void onError(Exception error) {
                 if (!isFinishing() && !isDestroyed()) {
-                    showActivityUnavailable(getString(R.string.activity_load_error), true);
+                    if (snapshot != null) {
+                        bindCachedActivity(snapshot);
+                        ((TextView) findViewById(R.id.activity_snapshot_status)).setText(
+                                "Offline: showing saved details. Reconnect to refresh or change this activity.");
+                    } else {
+                        showActivityUnavailable(getString(R.string.activity_load_error), true);
+                    }
                 }
             }
         });
+    }
+
+    private void bindCachedActivity(ActivityDetailsCache.Snapshot snapshot) {
+        activity = snapshot.getDetails();
+        showSuccessContent();
+        bindSummary(activity.getTitle(), activity.getDate(), activity.getTime(), activity.getLocation(),
+                categoryLabel(activity.getCategory()), statusLabel(activity.getStatus()), durationLabel(activity));
+        TextView freshness = findViewById(R.id.activity_snapshot_status);
+        freshness.setText("Saved details · last refreshed " + cachedAt(snapshot.getSavedAtMillis())
+                + ". Reconnect to confirm the latest version.");
+        freshness.setVisibility(View.VISIBLE);
+        findViewById(R.id.activity_snapshot_retry).setVisibility(View.VISIBLE);
+        findViewById(R.id.suggested_times_button).setVisibility(View.GONE);
+        reminderButton.setEnabled(false);
+        reminderButton.setText("Reminder unavailable offline");
+        reminderStatus.setText("Connect to refresh reminder settings.");
+        reminderStatus.setVisibility(View.VISIBLE);
     }
 
     private void bindActivity(ActivityDetails details) {
@@ -127,6 +291,8 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         suggestedTimes.setVisibility(canSuggest ? View.VISIBLE : View.GONE);
         suggestedTimes.setOnClickListener(v -> startActivity(
                 SuggestedTimesActivity.intent(this, details.getId())));
+        findViewById(R.id.activity_snapshot_status).setVisibility(View.GONE);
+        findViewById(R.id.activity_snapshot_retry).setVisibility(View.GONE);
         if (!hasCompleteSchedule(details)) {
             reminderButton.setText("Reminder unavailable");
             reminderStatus.setText(R.string.activity_reminder_requires_schedule);
@@ -164,32 +330,40 @@ public class ActivityCreatedActivity extends AppCompatActivity {
     }
 
     private void showLoading() {
+        findViewById(R.id.activity_pending_state).setVisibility(View.GONE);
         findViewById(R.id.activity_loading_state).setVisibility(View.VISIBLE);
         findViewById(R.id.activity_error_state).setVisibility(View.GONE);
         findViewById(R.id.activity_success_header).setVisibility(View.GONE);
         findViewById(R.id.activity_summary_card).setVisibility(View.GONE);
         findViewById(R.id.attendees_card).setVisibility(View.GONE);
         findViewById(R.id.activity_utilities_card).setVisibility(View.GONE);
+        findViewById(R.id.activity_snapshot_status).setVisibility(View.GONE);
+        findViewById(R.id.activity_snapshot_retry).setVisibility(View.GONE);
         reminderButton.setEnabled(false);
         reminderButton.setText(R.string.activity_loading_details);
         reminderStatus.setVisibility(View.GONE);
     }
 
     private void showSuccessContent() {
+        findViewById(R.id.activity_pending_state).setVisibility(View.GONE);
         findViewById(R.id.activity_loading_state).setVisibility(View.GONE);
         findViewById(R.id.activity_error_state).setVisibility(View.GONE);
         findViewById(R.id.activity_success_header).setVisibility(View.VISIBLE);
         findViewById(R.id.activity_summary_card).setVisibility(View.VISIBLE);
         findViewById(R.id.attendees_card).setVisibility(View.GONE);
         findViewById(R.id.activity_utilities_card).setVisibility(View.VISIBLE);
+        findViewById(R.id.view_schedule_button).setVisibility(View.VISIBLE);
     }
 
     private void showActivityUnavailable(String message, boolean retryable) {
+        findViewById(R.id.activity_pending_state).setVisibility(View.GONE);
         findViewById(R.id.activity_loading_state).setVisibility(View.GONE);
         findViewById(R.id.activity_success_header).setVisibility(View.GONE);
         findViewById(R.id.activity_summary_card).setVisibility(View.GONE);
         findViewById(R.id.attendees_card).setVisibility(View.GONE);
         findViewById(R.id.activity_utilities_card).setVisibility(View.GONE);
+        findViewById(R.id.activity_snapshot_status).setVisibility(View.GONE);
+        findViewById(R.id.activity_snapshot_retry).setVisibility(View.GONE);
         findViewById(R.id.activity_error_state).setVisibility(View.VISIBLE);
         ((TextView) findViewById(R.id.activity_error_message)).setText(message);
         findViewById(R.id.retry_activity_button).setVisibility(retryable ? View.VISIBLE : View.GONE);
@@ -221,6 +395,12 @@ public class ActivityCreatedActivity extends AppCompatActivity {
             return getString(R.string.activity_duration_hours, hours);
         }
         return getString(R.string.activity_duration_hours_minutes, hours, remainingMinutes);
+    }
+
+    private String cachedAt(long timestamp) {
+        SimpleDateFormat format = new SimpleDateFormat("MMM d, h:mm a", Locale.US);
+        format.setTimeZone(com.example.parchapp.domain.PlanContext.bogota());
+        return format.format(new Date(timestamp));
     }
 
     private Date parseUtc(String value) {
@@ -304,6 +484,8 @@ public class ActivityCreatedActivity extends AppCompatActivity {
     @Override
     protected void onSaveInstanceState(@androidx.annotation.NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
+        if (!isBlank(activityId)) outState.putString("created_activity_id", activityId);
+        if (!isBlank(pendingRequestId)) outState.putString("pending_request_id", pendingRequestId);
         TextView outcomeView = findViewById(R.id.recommendation_outcome_text);
         if (outcomeView.getVisibility() == View.VISIBLE && outcomeView.getText().length() > 0) {
             outState.putString(STATE_OUTCOME, outcomeView.getText().toString());

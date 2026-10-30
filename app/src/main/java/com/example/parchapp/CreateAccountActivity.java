@@ -157,6 +157,8 @@ public class CreateAccountActivity extends AppCompatActivity {
         public void onSuccess(UserProfile user) {
             UserSession.setCurrentUser(user);
             AnalyticsTracker.getInstance().setUserId(user.getId());
+            Repositories.activityCreationSync().onUserAvailable();
+            Repositories.availabilityStatusSync().onUserAvailable();
             startActivity(new Intent(CreateAccountActivity.this, DashboardActivity.class));
             finishAffinity();
         }

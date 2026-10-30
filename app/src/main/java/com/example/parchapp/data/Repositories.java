@@ -3,6 +3,7 @@ package com.example.parchapp.data;
 import android.content.Context;
 
 import com.example.parchapp.BuildConfig;
+import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.domain.StatusService;
 import com.example.parchapp.util.MainThread;
 import com.google.firebase.FirebaseApp;
@@ -18,6 +19,8 @@ public final class Repositories {
     private static boolean firebaseAvailable;
     private static GroupRepository groups;
     private static ActivityRepository activities;
+    private static ActivityCreationSyncCoordinator activityCreationSync;
+    private static AvailabilityStatusSyncCoordinator availabilityStatusSync;
     private static AlertsRepository alerts;
     private static InsightsRepository insights;
     private static ResponseTimeInsightsRepository responseTimeInsights;
@@ -27,6 +30,7 @@ public final class Repositories {
     private static PrivacySettingsRepository privacySettings;
     private static ProfilePhotoRepository profilePhotos;
     private static StatusService status;
+    private static PresenceRepository presence;
     private static ScheduleRepository schedules;
 
     private Repositories() {
@@ -58,6 +62,7 @@ public final class Repositories {
             }
             auth = new FirebaseAuthRepository(firebaseAuth);
             profilePhotos = new FirebaseProfilePhotoRepository(functions, firebaseAuth);
+            presence = new FirebasePresenceRepository(functions);
             privacySettings = new FirebasePrivacySettingsRepository(context, functions);
             FirebaseFirestore db = FirebaseFirestore.getInstance();
             if (BuildConfig.USE_FIREBASE_EMULATORS) {
@@ -81,6 +86,7 @@ public final class Repositories {
             schedules = new OfflineScheduleRepository(context, new FunctionsScheduleRepository(functions));
         } else {
             auth = new DisabledAuthRepository();
+            presence = null;
             privacySettings = new DisabledPrivacySettingsRepository(context);
             groups = new EmptyGroupRepository();
             activities = new DisabledActivityRepository();
@@ -93,7 +99,10 @@ public final class Repositories {
             places = callback -> MainThread.post(() -> callback.onSuccess(java.util.Collections.emptyList()));
             schedules = new EmptyScheduleRepository();
         }
-        status = new StatusService(context);
+        activityCreationSync = new ActivityCreationSyncCoordinator(context, activities, recommendationDecisions);
+        status = new StatusService(context, firebaseAvailable);
+        availabilityStatusSync = new AvailabilityStatusSyncCoordinator(status, presence,
+                AnalyticsTracker.getInstance());
     }
 
     /* A fake key that only has the format of a Google API key ("AIza" plus 35 characters). Built at runtime so secret scanners do not flag a non-secret. */
@@ -117,6 +126,14 @@ public final class Repositories {
 
     public static ActivityRepository activities() {
         return activities;
+    }
+
+    public static ActivityCreationSyncCoordinator activityCreationSync() {
+        return activityCreationSync;
+    }
+
+    public static AvailabilityStatusSyncCoordinator availabilityStatusSync() {
+        return availabilityStatusSync;
     }
 
     public static AlertsRepository alerts() {

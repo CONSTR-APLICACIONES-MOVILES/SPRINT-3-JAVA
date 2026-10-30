@@ -17,8 +17,8 @@ import androidx.annotation.Nullable;
 
 import com.example.parchapp.analytics.ActivityCreationTelemetry;
 import com.example.parchapp.analytics.AnalyticsEvents;
-import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.analytics.CreationFlowTracker;
+import com.example.parchapp.data.PendingActivityCreation;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.domain.model.ComparisonEvidence;
 import com.example.parchapp.domain.model.PlannedActivity;
@@ -30,9 +30,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -408,84 +406,48 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
                 locationInput.getText().toString().trim(), PlannedActivity.STATUS_PROPOSED,
                 System.currentTimeMillis(), groupSize, false).withSchedule(startIso, endIso);
 
+        if (!Repositories.isFirebaseAvailable()) {
+            Toast.makeText(requireContext(), "Activity publishing is unavailable right now", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        UserProfile currentUser = UserSession.getCurrentUser();
+        if (currentUser == null) {
+            Toast.makeText(requireContext(), "Sign in before creating an activity", Toast.LENGTH_SHORT).show();
+            return;
+        }
         button.setEnabled(false);
         String sessionId = UUID.randomUUID().toString();
         long startedAt = System.currentTimeMillis();
         ActivityCreationTelemetry.attempt(sessionId, "group_activity", groupSize);
         Bundle publishArgs = getArguments() == null ? new Bundle() : getArguments();
-        UserProfile organizer = UserSession.getCurrentUser();
         ComparisonEvidence evidence = evidenceFor(publishArgs.getInt(ARG_SLOT_POSITION, -1),
                 publishArgs.getString(ARG_COMPARISON_ID), publishArgs.getStringArrayList(ARG_COMPARED_IDS),
-                publishArgs.getString(ARG_COMPARED_DATE), organizer == null ? null : organizer.getId());
-        Repositories.activities().createActivity(activity, evidence, new Callback<PlannedActivity>() {
-            @Override public void onSuccess(PlannedActivity saved) {
-// bq7: the activity was created, this flow is not an abandon
-                flow.finished();
-                ActivityCreationTelemetry.result(sessionId, "group_activity",
-                        System.currentTimeMillis() - startedAt, true, saved.getId(), null);
-                Map<String, Object> event = new HashMap<>();
-                event.put(AnalyticsEvents.PARAM_ACTIVITY_ID, saved.getId());
-                event.put(AnalyticsEvents.PARAM_CREATION_SESSION_ID, sessionId);
-                event.put(AnalyticsEvents.PARAM_CATEGORY, saved.getCategory());
-                event.put(AnalyticsEvents.PARAM_GROUP_SIZE, groupSize);
-                // bq9: a plan made from a Compare Availability slot or a Schedule comparison was created after comparing
-                Bundle created = getArguments() == null ? new Bundle() : getArguments();
-                String comparisonId = created.getString(ARG_COMPARISON_ID);
-                if (comparisonId != null && !comparisonId.isEmpty()) {
-                    event.put(AnalyticsEvents.PARAM_COMPARISON_ID, comparisonId);
-                }
-                event.put(AnalyticsEvents.PARAM_SOURCE,
-                        madeAfterComparing(created.getInt(ARG_SLOT_POSITION, -1), comparisonId)
-                                ? AnalyticsEvents.SOURCE_SUGGESTED_SLOT : AnalyticsEvents.SOURCE_GROUP_ACTIVITY);
-                AnalyticsTracker.getInstance().track(AnalyticsEvents.ACTIVITY_CREATED, event);
-                if (!isAdded()) return;
-                Intent result = new Intent(requireContext(), ActivityCreatedActivity.class);
-                result.putExtra(ActivityCreatedActivity.EXTRA_ACTIVITY_ID, saved.getId());
-                int slotPosition = getArguments() == null ? -1 : getArguments().getInt(ARG_SLOT_POSITION, -1);
-                if (slotPosition < 0 || Repositories.recommendationDecisions() == null) {
-                    dismiss();
-                    startActivity(result);
-                    return;
-                }
-                prepareRecommendationOutcome(saved.getId(), dateInput.getText().toString().trim(), durationMinutes,
-                        slotPosition, start, end, startIso, endIso, result);
-            }
-
-            @Override public void onError(Exception error) {
-                ActivityCreationTelemetry.result(sessionId, "group_activity",
-                        System.currentTimeMillis() - startedAt, false, null,
-                        error.getClass().getSimpleName());
-                button.setEnabled(true);
-                Toast.makeText(requireContext(), "Could not create the activity", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    /* bq3: the plan came from a Compare slot, so Activity Created records whether the organizer kept the backend's suggestion. If the backend has nothing to compare with (another day, someone busy) the screen opens without it. */
-    private void prepareRecommendationOutcome(String activityId, String date, int durationMinutes, int slotPosition,
-                                              Calendar start, Calendar end, String startIso, String endIso,
-                                              Intent result) {
+                publishArgs.getString(ARG_COMPARED_DATE), currentUser.getId());
+        int slotPosition = publishArgs.getInt(ARG_SLOT_POSITION, -1);
+        int[] shownStarts = publishArgs.getIntArray(ARG_SHOWN_STARTS);
+        PendingActivityCreation pending = new PendingActivityCreation(currentUser.getId(),
+                UUID.randomUUID().toString(), sessionId, startedAt, activity, evidence, slotPosition,
+                durationMinutes, start.getTimeInMillis(), end.getTimeInMillis(), shownStarts, flow.getFlowId(),
+                flow.getStartedAt(), flow.seenSteps(), PendingActivityCreation.State.PENDING,
+                "Waiting to sync…", null, "");
         androidx.fragment.app.FragmentActivity host = requireActivity();
-        int[] shownStarts = getArguments() == null ? null : getArguments().getIntArray(ARG_SHOWN_STARTS);
-        Repositories.recommendationDecisions().prepareDecision(activityId, date, durationMinutes, slotPosition,
-                start.getTimeInMillis(), end.getTimeInMillis(), shownStarts,
-                new Callback<com.example.parchapp.data.RecommendationDecisionRepository.PreparedDecision>() {
-                    @Override
-                    public void onSuccess(com.example.parchapp.data.RecommendationDecisionRepository.PreparedDecision decision) {
-                        if (decision != null) {
-                            result.putExtra(ActivityCreatedActivity.EXTRA_RECOMMENDATION_ID, decision.recommendationId);
-                            result.putExtra(ActivityCreatedActivity.EXTRA_WAS_MODIFIED, decision.wasModified);
-                            result.putExtra(ActivityCreatedActivity.EXTRA_SLOT_POSITION, decision.position);
-                            result.putExtra(ActivityCreatedActivity.EXTRA_SELECTED_START_TIME, startIso);
-                            result.putExtra(ActivityCreatedActivity.EXTRA_SELECTED_END_TIME, endIso);
-                            result.putExtra(ActivityCreatedActivity.EXTRA_GROUP_SIZE, groupSize);
-                        }
+        Repositories.activityCreationSync().enqueue(pending,
+                new com.example.parchapp.data.ActivityCreationSyncCoordinator.EnqueueCallback() {
+                    @Override public void onSaved(PendingActivityCreation saved) {
+                        if (host.isFinishing() || host.isDestroyed()) return;
+                        Intent result = new Intent(host, ActivityCreatedActivity.class);
+                        result.putExtra(ActivityCreatedActivity.EXTRA_PENDING_REQUEST_ID, saved.getRequestId());
                         open(host, result);
                     }
 
-                    @Override
-                    public void onError(Exception error) {
-                        open(host, result);
+                    @Override public void onError(Exception error) {
+                        ActivityCreationTelemetry.result(sessionId, "group_activity",
+                                System.currentTimeMillis() - startedAt, false, null,
+                                error.getClass().getSimpleName());
+                        if (!isAdded()) return;
+                        button.setEnabled(true);
+                        Toast.makeText(requireContext(), error.getMessage() == null
+                                ? "Could not save the activity for sync" : error.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
     }

@@ -16,4 +16,23 @@ public interface ActivityPlanRepository {
     Integer getCachedTravelMinutes(String activityId);
 
     void cacheTravelMinutes(String activityId, int minutes);
+
+    /** Reuses a fresh estimate only for the destination where it was measured. */
+    @Nullable
+    default Integer getCachedTravelMinutesForDestination(String activityId, String destinationId) {
+        return null;
+    }
+
+    /** Reuses a fresh estimate only when the current origin is inside the allowed radius. */
+    @Nullable
+    default Integer getCachedTravelMinutesNear(String activityId, double latitude, double longitude,
+                                               String destinationId, double radiusMeters) {
+        return null;
+    }
+
+    /** Stores the estimate together with the context needed to decide if it is still reusable. */
+    default void cacheTravelMinutesForPlace(String activityId, int minutes, double latitude,
+                                            double longitude, String destinationId) {
+        cacheTravelMinutes(activityId, minutes);
+    }
 }

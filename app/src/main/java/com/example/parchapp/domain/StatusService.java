@@ -27,6 +27,10 @@ public class StatusService implements SensorEventListener {
     private static final String KEY_AVAILABILITY = "availability";
     private static final String KEY_DURATION = "availability_duration";
     private static final String KEY_AUTO_SYNC = "availability_auto_sync";
+    private static final String KEY_EXPIRES_AT = "availability_expires_at";
+    private static final String KEY_REVISION = "availability_revision";
+    private static final String KEY_SYNC_PENDING = "availability_sync_pending";
+    private static final String KEY_SYNC_ERROR = "availability_sync_error";
     // f1: true when the status came from the motion sensor suggestion, the sensor feature writes it when the user accepts
     static final String KEY_FROM_MOTION = "availability_from_motion";
     private static final long SUGGESTION_COOLDOWN_MS = 10 * 60 * 1000L;
@@ -39,10 +43,17 @@ public class StatusService implements SensorEventListener {
     private final List<Listener> listeners = new ArrayList<>();
     private final SustainedMotionDetector motionDetector = new SustainedMotionDetector();
     private Sensor activeSensor;
+    private String userId = "";
+    private final boolean remoteSyncAvailable;
 
     public StatusService(Context context) {
+        this(context, false);
+    }
+
+    public StatusService(Context context, boolean remoteSyncAvailable) {
         Context appContext = context.getApplicationContext();
         prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        this.remoteSyncAvailable = remoteSyncAvailable;
         sensorManager = (SensorManager) appContext.getSystemService(Context.SENSOR_SERVICE);
         linearAccelerationSensor = sensorManager == null ? null
                 : sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
@@ -50,62 +61,133 @@ public class StatusService implements SensorEventListener {
     }
 
     public String getFreeUntil() {
-        return prefs.getString(KEY_FREE_UNTIL, "");
+        return prefs.getString(key(KEY_FREE_UNTIL), "");
     }
 
     public String getNextActivity() {
-        return prefs.getString(KEY_NEXT_ACTIVITY, "");
+        return prefs.getString(key(KEY_NEXT_ACTIVITY), "");
     }
 
     public String getAvailability() {
-        return prefs.getString(KEY_AVAILABILITY, "Available now");
+        return prefs.getString(key(KEY_AVAILABILITY), "Available now");
     }
 
     public String getAvailabilityDuration() {
-        return prefs.getString(KEY_DURATION, "For 1 hour");
+        return prefs.getString(key(KEY_DURATION), "For 1 hour");
     }
 
     public boolean isAutoSyncEnabled() {
-        return prefs.getBoolean(KEY_AUTO_SYNC, true);
+        return prefs.getBoolean(key(KEY_AUTO_SYNC), true);
     }
 
     public void setAutoSyncEnabled(boolean enabled) {
-        prefs.edit().putBoolean(KEY_AUTO_SYNC, enabled).apply();
+        long revision = getStatusRevision() + 1;
+        prefs.edit().putBoolean(key(KEY_AUTO_SYNC), enabled)
+                .putLong(key(KEY_REVISION), revision)
+                .putBoolean(key(KEY_SYNC_PENDING), enabled && remoteSyncAvailable
+                        && prefs.contains(key(KEY_AVAILABILITY)))
+                .putString(key(KEY_SYNC_ERROR), "")
+                .apply();
+        notifyListeners();
     }
 
     /** In the following code the empty values keep the current one, matching the quick status sheet. */
     public void updateQuickStatus(String freeUntil, String nextActivity) {
         SharedPreferences.Editor editor = prefs.edit();
         if (!freeUntil.isEmpty()) {
-            editor.putString(KEY_FREE_UNTIL, freeUntil);
+            editor.putString(key(KEY_FREE_UNTIL), freeUntil);
         }
         if (!nextActivity.isEmpty()) {
-            editor.putString(KEY_NEXT_ACTIVITY, nextActivity);
+            editor.putString(key(KEY_NEXT_ACTIVITY), nextActivity);
         }
         editor.apply();
         notifyListeners();
     }
 
     public void setAvailability(String availability, String duration) {
-        saveAvailability(availability, duration, false);
+        saveAvailability(availability, duration, expiryFor(duration, System.currentTimeMillis()), false);
+    }
+
+    public void setAvailability(String availability, String duration, long expiresAtMillis) {
+        saveAvailability(availability, duration, expiresAtMillis, false);
     }
 
     public void setAvailabilityFromMotion(String availability, String duration) {
-        saveAvailability(availability, duration, true);
+        saveAvailability(availability, duration, expiryFor(duration, System.currentTimeMillis()), true);
     }
 
-    private void saveAvailability(String availability, String duration, boolean fromMotion) {
+    private void saveAvailability(String availability, String duration, long expiresAtMillis, boolean fromMotion) {
+        long revision = getStatusRevision() + 1;
+        boolean pending = isAutoSyncEnabled() && remoteSyncAvailable;
         prefs.edit()
-                .putString(KEY_AVAILABILITY, availability)
-                .putString(KEY_DURATION, duration)
-                .putBoolean(KEY_FROM_MOTION, fromMotion)
+                .putString(key(KEY_AVAILABILITY), availability)
+                .putString(key(KEY_DURATION), duration)
+                .putLong(key(KEY_EXPIRES_AT), expiresAtMillis)
+                .putLong(key(KEY_REVISION), revision)
+                .putBoolean(key(KEY_SYNC_PENDING), pending)
+                .putString(key(KEY_SYNC_ERROR), "")
+                .putBoolean(key(KEY_FROM_MOTION), fromMotion)
                 .apply();
         notifyListeners();
     }
 
     /* F1: the live status card shows "Motion sensor" instead of "Live Sync" when this is true. */
     public boolean isFromMotion() {
-        return prefs.getBoolean(KEY_FROM_MOTION, false);
+        return prefs.getBoolean(key(KEY_FROM_MOTION), false);
+    }
+
+    public String getUserId() { return userId; }
+
+    public boolean hasSavedAvailability() { return prefs.contains(key(KEY_AVAILABILITY)); }
+
+    public boolean isRemoteSyncAvailable() { return remoteSyncAvailable; }
+
+    public boolean isStatusSyncPending() {
+        return prefs.getBoolean(key(KEY_SYNC_PENDING), false);
+    }
+
+    public long getStatusRevision() { return prefs.getLong(key(KEY_REVISION), 0L); }
+
+    public long getAvailabilityExpiresAtMillis() {
+        long stored = prefs.getLong(key(KEY_EXPIRES_AT), 0L);
+        return stored > 0 ? stored : expiryFor(getAvailabilityDuration(), System.currentTimeMillis());
+    }
+
+    public String getStatusSyncError() { return prefs.getString(key(KEY_SYNC_ERROR), ""); }
+
+    public void markStatusSynced(long revision) {
+        if (getStatusRevision() != revision || !isStatusSyncPending()) return;
+        prefs.edit().putBoolean(key(KEY_SYNC_PENDING), false)
+                .putString(key(KEY_SYNC_ERROR), "").apply();
+        notifyListeners();
+    }
+
+    public void markStatusSyncError(long revision, String message) {
+        if (getStatusRevision() != revision || !isStatusSyncPending()) return;
+        prefs.edit().putString(key(KEY_SYNC_ERROR), message == null ? "Could not sync status" : message).apply();
+        notifyListeners();
+    }
+
+    /** Switches all locally persisted status fields to the authenticated user's private preference namespace. */
+    public void setUserId(String nextUserId) {
+        String next = nextUserId == null ? "" : nextUserId.trim();
+        if (userId.equals(next)) return;
+        if (!next.isEmpty() && !prefs.contains(scopedKey(KEY_AVAILABILITY, next))
+                && prefs.contains(KEY_AVAILABILITY)) {
+            SharedPreferences.Editor editor = prefs.edit();
+            copyLegacy(editor, KEY_AVAILABILITY, next);
+            copyLegacy(editor, KEY_DURATION, next);
+            copyLegacy(editor, KEY_AUTO_SYNC, next);
+            copyLegacy(editor, KEY_FREE_UNTIL, next);
+            copyLegacy(editor, KEY_NEXT_ACTIVITY, next);
+            copyLegacy(editor, KEY_FROM_MOTION, next);
+            copyLegacy(editor, KEY_LAST_SUGGESTION, next);
+            editor.remove(KEY_AVAILABILITY).remove(KEY_DURATION).remove(KEY_AUTO_SYNC)
+                    .remove(KEY_FREE_UNTIL).remove(KEY_NEXT_ACTIVITY).remove(KEY_FROM_MOTION)
+                    .remove(KEY_LAST_SUGGESTION).apply();
+        }
+        userId = next;
+        notifyListeners();
     }
 
     public boolean isMotionDetectionAvailable() {
@@ -149,8 +231,8 @@ public class StatusService implements SensorEventListener {
     private void notifyCommuteSuggestion() {
         if ("Commute / In Transit".equals(getAvailability())) return;
         long now = System.currentTimeMillis();
-        if (now - prefs.getLong(KEY_LAST_SUGGESTION, 0L) < SUGGESTION_COOLDOWN_MS) return;
-        prefs.edit().putLong(KEY_LAST_SUGGESTION, now).apply();
+        if (now - prefs.getLong(key(KEY_LAST_SUGGESTION), 0L) < SUGGESTION_COOLDOWN_MS) return;
+        prefs.edit().putLong(key(KEY_LAST_SUGGESTION), now).apply();
         for (Listener listener : new ArrayList<>(listeners)) {
             listener.onCommuteSuggested(this);
         }
@@ -170,5 +252,24 @@ public class StatusService implements SensorEventListener {
         for (Listener listener : new ArrayList<>(listeners)) {
             listener.onStatusChanged(this);
         }
+    }
+
+    private String key(String base) { return scopedKey(base, userId); }
+
+    private static String scopedKey(String base, String owner) {
+        return owner == null || owner.isEmpty() ? base : base + "_" + owner;
+    }
+
+    private void copyLegacy(SharedPreferences.Editor editor, String legacyKey, String owner) {
+        String scoped = scopedKey(legacyKey, owner);
+        Object value = prefs.getAll().get(legacyKey);
+        if (value instanceof String) editor.putString(scoped, (String) value);
+        else if (value instanceof Boolean) editor.putBoolean(scoped, (Boolean) value);
+        else if (value instanceof Long) editor.putLong(scoped, (Long) value);
+        else if (value instanceof Integer) editor.putInt(scoped, (Integer) value);
+    }
+
+    private static long expiryFor(String duration, long nowMillis) {
+        return AvailabilityStatusExpiry.expiryFor(duration, nowMillis);
     }
 }
