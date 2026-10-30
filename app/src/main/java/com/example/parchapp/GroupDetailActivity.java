@@ -18,6 +18,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.parchapp.data.GroupListener;
+import com.example.parchapp.data.GroupSyncStore;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.data.SyncedCalendars;
 import com.example.parchapp.data.TravelTimeService;
@@ -55,6 +56,20 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
     private boolean groupUnavailable;
 // last version of the group, the plan buttons need its id and size
     private Group currentGroup;
+// eventual connectivity: when the group came from the server for the last time, saved on the phone
+    private GroupSyncStore syncStore;
+    private boolean online = true;
+// null until the first answer, true when the group shown is the copy saved on the phone
+    private Boolean fromCache;
+    private final AnalyticsTracker.ConnectivityListener connectivity = isOnline -> runOnUiThread(() -> {
+        boolean cameBack = !online && isOnline;
+        online = isOnline;
+        renderSync();
+// firestore updates the group alone, the plan and the synced count are asked again when the connection comes back
+        if (cameBack) {
+            refresh();
+        }
+    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -128,6 +143,10 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
     protected void onStart() {
         super.onStart();
         offlineBanner.start(findViewById(R.id.offline_banner));
+        if (syncStore == null) {
+            syncStore = new GroupSyncStore(this);
+        }
+        AnalyticsTracker.getInstance().addConnectivityListener(connectivity);
         String groupId = getIntent().getStringExtra(EXTRA_GROUP_ID);
         if (groupId != null) {
             Repositories.groups().observeGroup(groupId, this);
@@ -158,11 +177,56 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         }
         currentGroup = null;
         setPlanButtonsEnabled(false);
+        findViewById(R.id.group_sync_text).setVisibility(View.GONE);
+    }
+
+// the repository says if the group now comes from the server or from the copy saved on the phone
+    @Override
+    public void onGroupSyncChanged(String groupId, boolean cached) {
+        if (isFinishing() || isDestroyed()) {
+            return;
+        }
+        fromCache = cached;
+        if (!cached) {
+            syncStore.markSynced(groupId, System.currentTimeMillis());
+        }
+        renderSync();
+    }
+
+// with connection and server data it says synced just now, without connection it says when it synced the last time
+    private void renderSync() {
+        TextView sync = findViewById(R.id.group_sync_text);
+        String groupId = getIntent().getStringExtra(EXTRA_GROUP_ID);
+        if (groupUnavailable || groupId == null || fromCache == null) {
+            sync.setVisibility(View.GONE);
+            return;
+        }
+        if (online && !fromCache) {
+            sync.setText(R.string.group_sync_now);
+        } else if (!online) {
+            long last = syncStore.lastSynced(groupId);
+            sync.setText(last < 0 ? getString(R.string.group_sync_offline_never)
+                    : getString(R.string.group_sync_offline, syncTime(last)));
+        } else {
+// with connection but still the saved copy, firestore is about to answer, so we wait
+            sync.setVisibility(View.GONE);
+            return;
+        }
+        sync.setVisibility(View.VISIBLE);
+    }
+
+// only the hour when it was today, the day and the hour when it was before
+    private String syncTime(long timeMs) {
+        boolean today = android.text.format.DateUtils.isToday(timeMs);
+        int flags = android.text.format.DateUtils.FORMAT_SHOW_TIME | (today ? 0
+                : android.text.format.DateUtils.FORMAT_SHOW_DATE | android.text.format.DateUtils.FORMAT_ABBREV_MONTH);
+        return android.text.format.DateUtils.formatDateTime(this, timeMs, flags);
     }
 
 // f6: we stop listening when the screen is not visible, so we do not leak the screen
     @Override
     protected void onStop() {
+        AnalyticsTracker.getInstance().removeConnectivityListener(connectivity);
         offlineBanner.stop();
         String groupId = getIntent().getStringExtra(EXTRA_GROUP_ID);
         if (groupId != null) {
