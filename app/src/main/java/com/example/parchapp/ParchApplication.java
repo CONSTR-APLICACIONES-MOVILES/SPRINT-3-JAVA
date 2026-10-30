@@ -10,6 +10,8 @@ public class ParchApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        // every screen stays inside the status bar and the navigation bar (real phones with 3-button navigation)
+        registerActivityLifecycleCallbacks(new SystemBarsInsets());
         Repositories.init(this);
         AnalyticsTracker.getInstance().init(this, Repositories.isFirebaseAnalyticsAvailable(),
                 Repositories.privacySettings().isAnalyticsConsentAccepted());
