@@ -71,6 +71,16 @@ public class UserProfile {
         return fullName;
     }
 
+    public UserProfile withFullName(String name) {
+        String nextName = name == null ? "" : name.trim();
+        if (nextName.isEmpty()) return this;
+        String[] words = nextName.split("\\s+");
+        String nextInitials = words[0].substring(0, 1)
+                + (words.length > 1 ? words[words.length - 1].substring(0, 1) : "");
+        return new UserProfile(id, email, words[0], nextInitials.toUpperCase(Locale.ROOT), nextName,
+                inviteLink, activePlans);
+    }
+
     public String getInviteLink() {
         return inviteLink;
     }
