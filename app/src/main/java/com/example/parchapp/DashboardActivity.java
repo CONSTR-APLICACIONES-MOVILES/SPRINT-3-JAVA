@@ -246,8 +246,9 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         }
         findViewById(R.id.plan_card_study).setVisibility(View.VISIBLE);
         View suggestedTimes = findViewById(R.id.dashboard_suggested_times_button);
+// the backend only suggests times for today, a plan of another day would receive the slots of today
         suggestedTimes.setVisibility(shown.getId() == null || shown.getId().trim().isEmpty()
-                ? View.GONE : View.VISIBLE);
+                || !PlanContext.isToday(shown.getDate()) ? View.GONE : View.VISIBLE);
         ((TextView) findViewById(R.id.plan_status_text)).setText(shown.getStatus());
         ((TextView) findViewById(R.id.plan_title_text)).setText(shown.getTitle());
         ((TextView) findViewById(R.id.plan_time_text)).setText(joinNonEmpty(shown.getDate(), shown.getTime()));

@@ -2,6 +2,7 @@ package com.example.parchapp.domain;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -77,5 +78,23 @@ public class PlanContextTest {
         assertEquals("tomorrow", PlanContext.nextPlan(plans, now, 19 * 60).getTitle());
         assertEquals(Integer.valueOf(1), PlanContext.dayOffset("2026-10-28", now));
         assertEquals(null, PlanContext.dayOffset("Friday", now));
+    }
+
+// the date of a plan opens that same day in schedule
+    @Test
+    public void parseDayReadsTheDateOfAPlan() {
+        Calendar day = PlanContext.parseDay("2026-10-31");
+        assertEquals(2026, day.get(Calendar.YEAR));
+        assertEquals(Calendar.OCTOBER, day.get(Calendar.MONTH));
+        assertEquals(31, day.get(Calendar.DAY_OF_MONTH));
+        assertEquals(12, day.get(Calendar.HOUR_OF_DAY));
+    }
+
+// another format is not a day, schedule opens today
+    @Test
+    public void parseDayRejectsOtherFormats() {
+        assertNull(PlanContext.parseDay("Oct 31"));
+        assertNull(PlanContext.parseDay("2026-13-40"));
+        assertNull(PlanContext.parseDay(null));
     }
 }
