@@ -390,11 +390,15 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         }
         groupPlan = plan;
         findViewById(R.id.group_plan_section).setVisibility(View.VISIBLE);
-        View suggestedTimes = findViewById(R.id.group_suggested_times_button);
+        TextView suggestedTimes = findViewById(R.id.group_suggested_times_button);
         suggestedTimes.setVisibility(plan.getId() == null || plan.getId().trim().isEmpty()
                 ? View.GONE : View.VISIBLE);
-        suggestedTimes.setOnClickListener(v -> startActivity(
-                SuggestedTimesActivity.intent(this, plan.getId())));
+// the backend only suggests times for today, for another day we compare that date in schedule
+        boolean today = PlanContext.isToday(plan.getDate());
+        suggestedTimes.setText(today ? R.string.suggested_times : R.string.compare_day_in_schedule);
+        suggestedTimes.setOnClickListener(v -> startActivity(today
+                ? SuggestedTimesActivity.intent(this, plan.getId())
+                : ScheduleActivity.intent(this, plan.getDate())));
         ((TextView) findViewById(R.id.next_plan_header)).setText("Next Group Plan");
         ((TextView) findViewById(R.id.next_plan_status)).setText(plan.getStatus());
         ((TextView) findViewById(R.id.plan_title_text)).setText(plan.getTitle());

@@ -29,6 +29,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.parchapp.data.OfflineScheduleRepository;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.data.ScheduleRepository;
+import com.example.parchapp.domain.PlanContext;
 import com.example.parchapp.domain.availability.CommonSlotFinder;
 import com.example.parchapp.domain.model.DaySchedule;
 import com.example.parchapp.domain.model.ScheduleFriend;
@@ -63,9 +64,16 @@ public class ScheduleActivity extends AppCompatActivity {
     private static final int YEAR = 2026;
     private static final int MAX_HOURS = 12;
 
+    private static final String EXTRA_DATE = "extra_date";
+
     private enum Status { LOADING, READY, ERROR }
 
     private enum Import { IDLE, IMPORTING, IMPORTED, ERROR }
+
+    /* Opens Schedule on that day, "yyyy-MM-dd"; another format opens today. */
+    public static android.content.Intent intent(android.content.Context context, String date) {
+        return new android.content.Intent(context, ScheduleActivity.class).putExtra(EXTRA_DATE, date);
+    }
 
     private final ScheduleRepository repository = Repositories.schedules();
     private final List<ScheduleFriend> friends = new ArrayList<>();
@@ -185,7 +193,8 @@ public class ScheduleActivity extends AppCompatActivity {
         findViewById(R.id.schedule_retry).setOnClickListener(v -> load());
         setUpStepper();
 
-        selectedDay = todayInBogota();
+        Calendar requestedDay = PlanContext.parseDay(getIntent().getStringExtra(EXTRA_DATE));
+        selectedDay = requestedDay != null ? requestedDay : todayInBogota();
         buildTimeColumnAndGrid();
         render();
         load();
@@ -582,9 +591,11 @@ public class ScheduleActivity extends AppCompatActivity {
         enable(findViewById(R.id.schedule_prev_week), previous.get(Calendar.YEAR) == YEAR);
         enable(findViewById(R.id.schedule_next_week), next.get(Calendar.YEAR) == YEAR);
 
-        // ParchApp keeps its Monday to Friday layout
+        // ParchApp keeps its Monday to Friday layout, a selected weekend day adds saturday and sunday so it can be seen
+        int weekDay = selectedDay.get(Calendar.DAY_OF_WEEK);
+        int shownDays = weekDay == Calendar.SATURDAY || weekDay == Calendar.SUNDAY ? 7 : 5;
         days.removeAllViews();
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < shownDays; i++) {
             Calendar day = (Calendar) monday.clone();
             day.add(Calendar.DAY_OF_MONTH, i);
             boolean on = sameDay(day, selectedDay);
