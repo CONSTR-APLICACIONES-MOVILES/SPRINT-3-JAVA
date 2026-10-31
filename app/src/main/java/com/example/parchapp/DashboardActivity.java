@@ -11,7 +11,9 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
+import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.analytics.ConfirmationTelemetry;
+import com.example.parchapp.data.DashboardLoader;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.data.TravelTimeService;
 import com.example.parchapp.domain.PlanContext;
@@ -36,6 +38,17 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
     private boolean retriedGroups;
     private TextView displayNextActivity;
     private final OfflineBannerController offlineBanner = new OfflineBannerController();
+    private final DashboardLoader dashboardLoader = new DashboardLoader();
+    // eventual connectivity (#43): when the network comes back the saved data is replaced by fresh data, without reopening
+    private boolean wasOnline = true;
+    private final AnalyticsTracker.ConnectivityListener reconnectRefresh = online ->
+            findViewById(R.id.offline_banner).post(() -> {
+                boolean cameBack = online && !wasOnline;
+                wasOnline = online;
+                if (cameBack && !isFinishing() && !isDestroyed()) {
+                    loadDashboard();
+                }
+            });
     // f6: what the dashboard read from firestore, the cards are drawn from these lists
     private final List<Group> loadedGroups = new ArrayList<>();
     private final List<PlannedActivity> loadedActivities = new ArrayList<>();
@@ -54,17 +67,11 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         displayFreeUntil = findViewById(R.id.display_free_until);
         displayNextActivity = findViewById(R.id.display_next_activity);
 
-        findViewById(R.id.header_search_btn).setOnClickListener(v -> toast("Search coming soon"));
-        findViewById(R.id.header_notif_btn).setOnClickListener(v -> {
-            startActivity(new Intent(this, AlertsActivity.class));
-        });
-        findViewById(R.id.header_user_initials).setOnClickListener(v ->
-                startActivity(new Intent(this, ProfileActivity.class)));
+        // shared top bar with the logo, search, alerts and the user initials
+        TopHeader.setup(this);
 
-        // invite links are not built yet: the box says so and the button looks disabled
-        View copyLink = findViewById(R.id.copy_link_button);
-        copyLink.setEnabled(false);
-        copyLink.setAlpha(0.5f);
+        // the owner of a group shares an invitation code, the friend pastes it in Groups
+        findViewById(R.id.copy_link_button).setOnClickListener(v -> InviteActions.share(this, loadedGroups, v));
         findViewById(R.id.btn_edit_free_until).setOnClickListener(v -> openQuickStatusSheet());
         findViewById(R.id.btn_edit_next_activity).setOnClickListener(v -> openQuickStatusSheet());
         // f1: tapping the status opens Set Availability Status, saving there updates this card right away
@@ -75,10 +82,19 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         findViewById(R.id.calendar_button).setOnClickListener(v -> {
             startActivity(new Intent(this, ScheduleActivity.class));
         });
-        findViewById(R.id.new_activity_button).setEnabled(false);
+// new activity opens the same form of schedule, from home there is no group yet so the user picks one
+// when the form closes, onStart loads the plans again and the new plan shows on this screen
+        findViewById(R.id.new_activity_button).setOnClickListener(v -> {
+            if (getSupportFragmentManager().findFragmentByTag("create_activity") == null) {
+                new CreateActivitySheet()
+                        .withEntryPoint(com.example.parchapp.analytics.AnalyticsEvents.ENTRY_DASHBOARD)
+                        .show(getSupportFragmentManager(), "create_activity");
+            }
+        });
 
         findViewById(R.id.plan_card_study).setOnClickListener(v -> openPlanDetails());
         findViewById(R.id.plan_details_button).setOnClickListener(v -> openPlanDetails());
+        findViewById(R.id.dashboard_suggested_times_button).setOnClickListener(v -> openSuggestedTimes());
 
         findViewById(R.id.going_button).setEnabled(false);
         findViewById(R.id.maybe_button).setEnabled(false);
@@ -97,16 +113,18 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         hideGroupCards();
         findViewById(R.id.plan_card_study).setVisibility(View.GONE);
         findViewById(R.id.plans_empty).setVisibility(View.GONE);
-        loadGroups();
-        loadActivities();
+        loadDashboard();
         StatusService status = Repositories.status();
         status.addListener(this);
         onStatusChanged(status);
         offlineBanner.start(findViewById(R.id.offline_banner));
+        wasOnline = AnalyticsTracker.getInstance().isOnline();
+        AnalyticsTracker.getInstance().addConnectivityListener(reconnectRefresh);
     }
 
     @Override
     protected void onStop() {
+        AnalyticsTracker.getInstance().removeConnectivityListener(reconnectRefresh);
         offlineBanner.stop();
         Repositories.status().removeListener(this);
         super.onStop();
@@ -145,14 +163,16 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         return user == null ? null : user.getId();
     }
 
-    private void loadGroups() {
+    // f6 and multithreading (#34): groups and plans load at the same time on worker threads, each one is drawn when it arrives
+    private void loadDashboard() {
         String userId = currentUserId();
         if (userId == null) {
+            ((TextView) findViewById(R.id.active_plans_text)).setText("");
             return;
         }
-        Repositories.groups().getGroups(userId, new Callback<List<Group>>() {
+        dashboardLoader.load(userId, new DashboardLoader.Listener<Group>() {
             @Override
-            public void onSuccess(List<Group> groups) {
+            public void onLoaded(List<Group> groups, boolean fromCache) {
                 if (isFinishing() || isDestroyed()) {
                     return;
                 }
@@ -160,48 +180,46 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
                 loadedGroups.addAll(groups);
                 bindGroups();
                 // a brand new account is added to the demo groups by the backend a moment after sign up, so we look again once
-                if (groups.isEmpty() && !retriedGroups) {
+                if (!fromCache && groups.isEmpty() && !retriedGroups) {
                     retriedGroups = true;
                     findViewById(R.id.groups_empty_dash).postDelayed(() -> {
                         if (!isFinishing() && !isDestroyed()) {
-                            loadGroups();
-                            loadActivities();
+                            loadDashboard();
                         }
                     }, GROUPS_RETRY_MS);
                 }
             }
 
             @Override
-            public void onError(Exception error) {
+            public void onFailed(Exception error) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
                 hideGroupCards();
                 TextView empty = findViewById(R.id.groups_empty_dash);
                 empty.setText(R.string.groups_load_error);
                 empty.setVisibility(View.VISIBLE);
             }
-        });
-    }
-
-    private void loadActivities() {
-        String userId = currentUserId();
-        if (userId == null) {
-            ((TextView) findViewById(R.id.active_plans_text)).setText("");
-            return;
-        }
-        Repositories.activities().getActivities(userId, new Callback<List<PlannedActivity>>() {
+        }, new DashboardLoader.Listener<PlannedActivity>() {
             @Override
-            public void onSuccess(List<PlannedActivity> activities) {
+            public void onLoaded(List<PlannedActivity> activities, boolean fromCache) {
                 if (isFinishing() || isDestroyed()) {
                     return;
                 }
                 loadedActivities.clear();
                 loadedActivities.addAll(activities);
-                // bq9: plans confirmed on the backend are logged once as activity_confirmed
-                ConfirmationTelemetry.logNewlyConfirmed(DashboardActivity.this, activities);
+                // bq9: plans confirmed on the backend are logged once as activity_confirmed, only from fresh data
+                if (!fromCache) {
+                    ConfirmationTelemetry.logNewlyConfirmed(DashboardActivity.this, activities);
+                }
                 bindActivities();
             }
 
             @Override
-            public void onError(Exception error) {
+            public void onFailed(Exception error) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
                 findViewById(R.id.plan_card_study).setVisibility(View.GONE);
                 findViewById(R.id.plans_empty).setVisibility(View.GONE);
                 ((TextView) findViewById(R.id.active_plans_text)).setText("Could not load your plans");
@@ -227,6 +245,9 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
             return;
         }
         findViewById(R.id.plan_card_study).setVisibility(View.VISIBLE);
+        View suggestedTimes = findViewById(R.id.dashboard_suggested_times_button);
+        suggestedTimes.setVisibility(shown.getId() == null || shown.getId().trim().isEmpty()
+                ? View.GONE : View.VISIBLE);
         ((TextView) findViewById(R.id.plan_status_text)).setText(shown.getStatus());
         ((TextView) findViewById(R.id.plan_title_text)).setText(shown.getTitle());
         ((TextView) findViewById(R.id.plan_time_text)).setText(joinNonEmpty(shown.getDate(), shown.getTime()));
@@ -288,7 +309,7 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
             TextView avatar = findViewById(ids[i]);
             if (i < members.size()) {
                 avatar.setVisibility(View.VISIBLE);
-                avatar.setText(members.get(i).getInitials());
+                avatar.setText(members.get(i).getDisplayInitials());
             } else {
                 avatar.setVisibility(View.GONE);
             }
@@ -337,7 +358,8 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         ((TextView) findViewById(titleId)).setText(group.getName());
         int size = group.getSize();
         ((TextView) findViewById(subtitleId)).setText(size == 1 ? "1 member" : size + " members");
-        ((TextView) findViewById(iconId)).setText(group.getIcon());
+// the cards show only the name, without the emoji of the group
+        findViewById(iconId).setVisibility(View.GONE);
     }
 
     private void hideGroupCards() {
@@ -377,6 +399,14 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
                 .show(getSupportFragmentManager(), "plan_details");
     }
 
+    private void openSuggestedTimes() {
+        if (latestActivity == null || latestActivity.getId() == null || latestActivity.getId().trim().isEmpty()) {
+            toast("No activity data is available");
+            return;
+        }
+        startActivity(SuggestedTimesActivity.intent(this, latestActivity.getId()));
+    }
+
     private String joinNonEmpty(String first, String second) {
         String value = (first + " " + second).trim();
         return value.isEmpty() ? "Schedule not specified" : value;
@@ -392,6 +422,5 @@ public class DashboardActivity extends AppCompatActivity implements StatusServic
         ((TextView) findViewById(R.id.header_user_initials)).setText(initials);
         ((TextView) findViewById(R.id.greeting_text)).setText(name.isEmpty() ? "Home" : "Hello, " + name + "!");
         ((TextView) findViewById(R.id.active_plans_text)).setText(user == null ? "" : "Loading your plans…");
-        ((TextView) findViewById(R.id.invite_link_text)).setText(R.string.invite_link_soon);
     }
 }

@@ -1,6 +1,7 @@
 package com.example.parchapp;
 
 import android.content.Context;
+import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -18,6 +19,7 @@ import com.example.parchapp.domain.availability.SlotRanker;
 import com.example.parchapp.domain.availability.SoonestRanking;
 import com.example.parchapp.domain.model.Group;
 import com.example.parchapp.domain.model.Member;
+import com.example.parchapp.domain.model.SlotAcceptanceInsight;
 import com.example.parchapp.domain.model.TimeSlot;
 import com.example.parchapp.util.Callback;
 
@@ -37,7 +39,8 @@ final class CompareAvailabilityController {
         void onGroupError();
 
         /* the organiser picked a slot: open New Activity for it */
-        void onSlotChosen(Group group, TimeSlot slot, int position);
+// bq3: shown are the slots the organizer saw, in the same order, so the backend measures that list
+        void onSlotChosen(Group group, TimeSlot slot, int position, List<TimeSlot> shown);
     }
 
     private final Context context;
@@ -50,13 +53,23 @@ final class CompareAvailabilityController {
     private Group group;
     private List<TimeSlot> rankedSlots = new ArrayList<>();
     private int selectedPosition;
+// keys to keep the ranking and the picked slot when the phone turns
+    private static final String STATE_RANKER = "compare_ranker";
+    private static final String STATE_POSITION = "compare_position";
+// slot to pick again when the slots come back after the phone turns, -1 when there is none
+    private int restoredPosition = -1;
     // f2: which position gets the Recommended badge, it comes from the BQ3 result in firestore
     private int recommendedPosition = InsightsRepository.DEFAULT_RECOMMENDED_POSITION;
 
     private final TextView statusText;
+// bq3: the answer of the question, shown on top of the slots
+    private final TextView bq3InsightText;
     private final View bestSlotCard;
     private final LinearLayout alternativeSlots;
     private final Button scheduleButton;
+    // eventual connectivity (#43): the slots are computed on the phone with the saved schedules, only planning needs the network
+    private boolean online = true;
+    private final AnalyticsTracker.ConnectivityListener connectivity = this::onConnectivityChanged;
     private final TextView overlapChip;
     private final TextView preferenceChip;
     private final TextView soonestChip;
@@ -72,12 +85,14 @@ final class CompareAvailabilityController {
         AnalyticsTracker.getInstance().trackFeature(AnalyticsEvents.FEATURE_COMPARE_AVAILABILITY, source);
 
         statusText = root.findViewById(R.id.slots_status_text);
+        bq3InsightText = root.findViewById(R.id.bq3_insight_text);
         bestSlotCard = root.findViewById(R.id.best_slot_card);
         alternativeSlots = root.findViewById(R.id.alternative_slots);
         scheduleButton = root.findViewById(R.id.btn_schedule_in_slot);
         bestSlotCard.setOnClickListener(v -> selectSlot(0));
         scheduleButton.setOnClickListener(v -> scheduleSelectedSlot());
         scheduleButton.setEnabled(false);
+        AnalyticsTracker.getInstance().addConnectivityListener(connectivity);
 
         // Overlap is the default; each chip applies its strategy to the same common slots.
         overlapChip = root.findViewById(R.id.chip_rank_overlap);
@@ -87,10 +102,15 @@ final class CompareAvailabilityController {
         preferenceChip.setOnClickListener(v -> useRanker(new PreferenceRanking()));
         soonestChip.setOnClickListener(v -> useRanker(new SoonestRanking()));
 
-        Repositories.insights().getRecommendedSlotPosition(new Callback<Integer>() {
+// bq3: one read gives the recommended position for the badge and the text with the percent
+        Repositories.insights().getSlotAcceptance(new Callback<SlotAcceptanceInsight>() {
             @Override
-            public void onSuccess(Integer position) {
-                recommendedPosition = position;
+            public void onSuccess(SlotAcceptanceInsight insight) {
+                if (!host.isAlive()) {
+                    return;
+                }
+                recommendedPosition = insight.getRecommendedPosition();
+                showSlotAcceptance(insight);
                 // the slots can arrive before or after this answer, so we redraw if they are already there
                 if (host.isAlive() && !rankedSlots.isEmpty()) {
                     renderSlots();
@@ -101,6 +121,21 @@ final class CompareAvailabilityController {
             public void onError(Exception error) {
             }
         });
+    }
+
+// bq3: with enough slots it says the percent and the best position, if not it says why the first slot is recommended
+    private void showSlotAcceptance(SlotAcceptanceInsight insight) {
+        int position = insight.getRecommendedPosition() + 1;
+        if (!insight.hasEnoughData()) {
+            bq3InsightText.setText(context.getString(R.string.bq3_insight_no_data, SlotAcceptanceInsight.MIN_SAMPLE));
+        } else if (insight.noneAcceptedUnchanged()) {
+// with 0 percent there is no best position, so we do not say that one works best
+            bq3InsightText.setText(context.getString(R.string.bq3_insight_all_changed, insight.getSampleSize()));
+        } else {
+            bq3InsightText.setText(context.getString(R.string.bq3_insight,
+                    insight.roundedPercent(), position, insight.getSampleSize()));
+        }
+        bq3InsightText.setVisibility(View.VISIBLE);
     }
 
     void loadGroup(String groupId) {
@@ -142,6 +177,26 @@ final class CompareAvailabilityController {
         host.onGroupError();
     }
 
+// the host calls this before android makes the screen again
+    void saveState(Bundle outState) {
+        outState.putString(STATE_RANKER, engine.getRanker().getName());
+        outState.putInt(STATE_POSITION, selectedPosition);
+    }
+
+// the host calls this after making the controller again, before the group loads
+    void restoreState(Bundle savedState) {
+        if (savedState == null) {
+            return;
+        }
+        String ranker = savedState.getString(STATE_RANKER);
+        if ("preference".equals(ranker)) {
+            useRanker(new PreferenceRanking());
+        } else if ("soonest".equals(ranker)) {
+            useRanker(new SoonestRanking());
+        }
+        restoredPosition = savedState.getInt(STATE_POSITION, -1);
+    }
+
     private void useRanker(SlotRanker ranker) {
         if (ranker.getName().equals(engine.getRanker().getName())) {
             return;
@@ -156,6 +211,33 @@ final class CompareAvailabilityController {
     private void styleRankerChip(TextView chip, boolean selected) {
         chip.setBackgroundResource(selected ? R.drawable.bg_chip_selected : R.drawable.bg_chip_unselected);
         chip.setTextColor(context.getColor(selected ? R.color.brand_primary : R.color.brand_dark));
+    }
+
+    /* eventual connectivity: without network the slots still show (from the saved group), but the plan can not be
+     * published, so the button says it and turns off; when the network comes back it turns on by itself */
+    private void updateScheduleButton() {
+        if (rankedSlots.isEmpty() || selectedPosition >= rankedSlots.size()) {
+            return;
+        }
+        String range = rankedSlots.get(selectedPosition).formatRange();
+        scheduleButton.setText(online ? "⚡  Schedule Plan • " + range : "Connect to plan • " + range);
+        scheduleButton.setEnabled(online);
+    }
+
+    // the connectivity callback can come from a background thread, the button is changed on the main one
+    private void onConnectivityChanged(boolean isOnline) {
+        root.post(() -> {
+            if (!host.isAlive()) {
+                return;
+            }
+            online = isOnline;
+            updateScheduleButton();
+        });
+    }
+
+    // the host calls this when its screen goes away, so the controller does not keep listening
+    void stop() {
+        AnalyticsTracker.getInstance().removeConnectivityListener(connectivity);
     }
 
     // the engine runs in a background thread and answers on the main one, so the screen never freezes
@@ -175,7 +257,11 @@ final class CompareAvailabilityController {
                     return;
                 }
                 rankedSlots = slots;
-                selectedPosition = 0;
+// after the phone turns we pick again the slot the user had, if it is still on the screen
+                boolean restore = restoredPosition >= 0 && restoredPosition < slots.size()
+                        && restoredPosition <= maxAlternatives;
+                selectedPosition = restore ? restoredPosition : 0;
+                restoredPosition = -1;
                 renderSlots();
             }
 
@@ -215,8 +301,7 @@ final class CompareAvailabilityController {
             alternativeSlots.addView(alternativeRow(position));
         }
 
-        scheduleButton.setText("⚡  Schedule Plan • " + rankedSlots.get(selectedPosition).formatRange());
-        scheduleButton.setEnabled(true);
+        updateScheduleButton();
     }
 
     private String bestSlotLabel() {
@@ -266,7 +351,12 @@ final class CompareAvailabilityController {
         params.put(AnalyticsEvents.PARAM_SLOT_POSITION, selectedPosition);
         params.put(AnalyticsEvents.PARAM_GROUP_SIZE, group.getSize());
         AnalyticsTracker.getInstance().track(AnalyticsEvents.SLOT_SELECTED, params);
-        host.onSlotChosen(group, slot, selectedPosition);
+        host.onSlotChosen(group, slot, selectedPosition, shownSlots());
+    }
+
+// the best slot and the alternatives that are on the screen, the same ones renderSlots draws
+    private List<TimeSlot> shownSlots() {
+        return new ArrayList<>(rankedSlots.subList(0, Math.min(rankedSlots.size(), maxAlternatives + 1)));
     }
 
     private String freeMemberNames(TimeSlot slot) {

@@ -15,6 +15,7 @@ import com.example.parchapp.data.FirebaseRecommendationDecisionRepository;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.domain.model.ActivityDetails;
 import com.example.parchapp.util.Callback;
+import com.example.parchapp.util.IconButtons;
 import com.google.firebase.functions.FirebaseFunctions;
 
 import java.text.ParsePosition;
@@ -42,6 +43,8 @@ public class ActivityCreatedActivity extends AppCompatActivity {
     private String activityId;
     private AppCompatButton reminderButton;
     private TextView reminderStatus;
+// key to keep the bq3 message when the phone turns
+    private static final String STATE_OUTCOME = "recommendation_outcome";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,12 +53,12 @@ public class ActivityCreatedActivity extends AppCompatActivity {
 
         reminderButton = findViewById(R.id.reminder_button);
         reminderStatus = findViewById(R.id.reminder_status);
+        findViewById(R.id.suggested_times_button).setVisibility(View.GONE);
         findViewById(R.id.close_created_button).setOnClickListener(v -> finish());
-        findViewById(R.id.copy_invite_button).setEnabled(false);
-        findViewById(R.id.whatsapp_button).setEnabled(false);
-        findViewById(R.id.calendar_toggle).setEnabled(false);
-        ((androidx.appcompat.widget.SwitchCompat) findViewById(R.id.calendar_toggle)).setChecked(false);
-        findViewById(R.id.view_schedule_button).setEnabled(false);
+        IconButtons.centerIconWithText(findViewById(R.id.copy_invite_button));
+        IconButtons.centerIconWithText(findViewById(R.id.whatsapp_button));
+        findViewById(R.id.copy_invite_button).setOnClickListener(v -> InviteActions.inviteToPlan(this, activity, false, v));
+        findViewById(R.id.whatsapp_button).setOnClickListener(v -> InviteActions.inviteToPlan(this, activity, true, v));
         findViewById(R.id.retry_activity_button).setOnClickListener(v -> {
             if (!isBlank(activityId)) loadActivity(activityId);
         });
@@ -67,7 +70,17 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         });
 
         activityId = getIntent().getStringExtra(EXTRA_ACTIVITY_ID);
-        if (savedInstanceState == null) persistRecommendationOutcome();
+        if (savedInstanceState == null) {
+            persistRecommendationOutcome();
+        } else {
+// bq3: the decision is saved only one time, after the phone turns we only show its message again
+            String outcome = savedInstanceState.getString(STATE_OUTCOME);
+            if (outcome != null) {
+                TextView outcomeView = findViewById(R.id.recommendation_outcome_text);
+                outcomeView.setText(outcome);
+                outcomeView.setVisibility(View.VISIBLE);
+            }
+        }
         if (isBlank(activityId)) {
             String title = getIntent().getStringExtra(EXTRA_TITLE);
             if (isBlank(title)) {
@@ -79,6 +92,26 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         } else {
             loadActivity(activityId);
         }
+    }
+
+    // eventual connectivity: banner while offline; if the activity could not load, it loads again when the network returns
+    private final ConnectivityWatcher connectivity = new ConnectivityWatcher(() -> {
+        String id = getIntent().getStringExtra(EXTRA_ACTIVITY_ID);
+        if (activity == null && id != null && !id.trim().isEmpty()) {
+            loadActivity(id);
+        }
+    });
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        connectivity.start(findViewById(R.id.offline_banner));
+    }
+
+    @Override
+    protected void onStop() {
+        connectivity.stop();
+        super.onStop();
     }
 
     private void loadActivity(String activityId) {
@@ -96,7 +129,8 @@ public class ActivityCreatedActivity extends AppCompatActivity {
 
             @Override public void onError(Exception error) {
                 if (!isFinishing() && !isDestroyed()) {
-                    showActivityUnavailable(getString(R.string.activity_load_error), true);
+                    showActivityUnavailable(OfflineGuard.failureMessage(error, "load this activity",
+                            getString(R.string.activity_load_error)), true);
                 }
             }
         });
@@ -106,6 +140,14 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         showSuccessContent();
         bindSummary(details.getTitle(), details.getDate(), details.getTime(), details.getLocation(),
                 categoryLabel(details.getCategory()), statusLabel(details.getStatus()), durationLabel(details));
+        View suggestedTimes = findViewById(R.id.suggested_times_button);
+        UserProfile currentUser = UserSession.getCurrentUser();
+        boolean canSuggest = !details.isCancelled() && currentUser != null
+                && currentUser.getId().equals(details.getCreatedBy())
+                && Repositories.recommendationDecisions() != null;
+        suggestedTimes.setVisibility(canSuggest ? View.VISIBLE : View.GONE);
+        suggestedTimes.setOnClickListener(v -> startActivity(
+                SuggestedTimesActivity.intent(this, details.getId())));
         if (!hasCompleteSchedule(details)) {
             reminderButton.setText("Reminder unavailable");
             reminderStatus.setText(R.string.activity_reminder_requires_schedule);
@@ -147,7 +189,6 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         findViewById(R.id.activity_error_state).setVisibility(View.GONE);
         findViewById(R.id.activity_success_header).setVisibility(View.GONE);
         findViewById(R.id.activity_summary_card).setVisibility(View.GONE);
-        findViewById(R.id.attendees_card).setVisibility(View.GONE);
         findViewById(R.id.activity_utilities_card).setVisibility(View.GONE);
         reminderButton.setEnabled(false);
         reminderButton.setText(R.string.activity_loading_details);
@@ -159,7 +200,6 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         findViewById(R.id.activity_error_state).setVisibility(View.GONE);
         findViewById(R.id.activity_success_header).setVisibility(View.VISIBLE);
         findViewById(R.id.activity_summary_card).setVisibility(View.VISIBLE);
-        findViewById(R.id.attendees_card).setVisibility(View.GONE);
         findViewById(R.id.activity_utilities_card).setVisibility(View.VISIBLE);
     }
 
@@ -167,7 +207,6 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         findViewById(R.id.activity_loading_state).setVisibility(View.GONE);
         findViewById(R.id.activity_success_header).setVisibility(View.GONE);
         findViewById(R.id.activity_summary_card).setVisibility(View.GONE);
-        findViewById(R.id.attendees_card).setVisibility(View.GONE);
         findViewById(R.id.activity_utilities_card).setVisibility(View.GONE);
         findViewById(R.id.activity_error_state).setVisibility(View.VISIBLE);
         ((TextView) findViewById(R.id.activity_error_message)).setText(message);
@@ -251,6 +290,10 @@ public class ActivityCreatedActivity extends AppCompatActivity {
     }
 
     private void saveReminder(int minutesBefore) {
+        // the reminder is scheduled by the backend, so offline we say it instead of failing
+        if (OfflineGuard.blockIfOffline(this, "change the reminder")) {
+            return;
+        }
         reminderButton.setEnabled(false);
         reminderStatus.setText("Saving reminder setting…");
         reminderStatus.setVisibility(View.VISIBLE);
@@ -265,9 +308,9 @@ public class ActivityCreatedActivity extends AppCompatActivity {
             @Override public void onError(Exception error) {
                 if (isFinishing() || isDestroyed()) return;
                 reminderButton.setEnabled(true);
-                reminderStatus.setText("Could not save reminder setting");
-                Toast.makeText(ActivityCreatedActivity.this,
-                        "Could not save reminder setting", Toast.LENGTH_SHORT).show();
+                String message = OfflineGuard.failureMessage(error, "change the reminder", "Could not save reminder setting");
+                reminderStatus.setText(message);
+                Toast.makeText(ActivityCreatedActivity.this, message, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -279,6 +322,16 @@ public class ActivityCreatedActivity extends AppCompatActivity {
     }
 
     /** Persists was_modified as the backend's authoritative BQ3 recommendation outcome. */
+// keeps the bq3 message when the phone turns
+    @Override
+    protected void onSaveInstanceState(@androidx.annotation.NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        TextView outcomeView = findViewById(R.id.recommendation_outcome_text);
+        if (outcomeView.getVisibility() == View.VISIBLE && outcomeView.getText().length() > 0) {
+            outState.putString(STATE_OUTCOME, outcomeView.getText().toString());
+        }
+    }
+
     private void persistRecommendationOutcome() {
         String activityId = getIntent().getStringExtra(EXTRA_ACTIVITY_ID);
         String recommendationId = getIntent().getStringExtra(EXTRA_RECOMMENDATION_ID);

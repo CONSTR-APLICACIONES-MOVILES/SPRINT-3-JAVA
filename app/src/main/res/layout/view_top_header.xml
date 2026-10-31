@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- top bar shared by the main screens, TopHeader.setup puts the user initials and opens alerts and profile -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/top_header"
+    android:layout_width="match_parent"
+    android:layout_height="64dp"
+    android:background="@color/brand_background"
+    android:gravity="center_vertical"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp">
+
+    <ImageView
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_parchapp_mark" />
+
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_weight="1"
+        android:text="@string/app_name"
+        android:textColor="@color/brand_primary"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <FrameLayout
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_marginStart="8dp">
+        <ImageButton
+            android:id="@+id/header_notif_btn"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_light_blue"
+            android:contentDescription="@string/cd_notifications"
+            android:padding="11dp"
+            android:src="@drawable/ic_notifications"
+            android:tint="@color/brand_dark" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/header_user_initials"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/bg_primary_pill"
+        android:contentDescription="@string/cd_profile"
+        android:gravity="center"
+        android:textColor="@android:color/white"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+</LinearLayout>

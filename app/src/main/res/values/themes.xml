@@ -5,5 +5,12 @@
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
     </style>
 
-    <style name="Theme.ParchApp" parent="Base.Theme.ParchApp" />
+    <style name="Theme.ParchApp" parent="Base.Theme.ParchApp">
+        <item name="buttonStyle">@style/Widget.ParchApp.Button</item>
+    </style>
+
+    <!-- without the press shadow: the buttons are rounded and the shadow was cut in a straight line -->
+    <style name="Widget.ParchApp.Button" parent="Widget.AppCompat.Button">
+        <item name="android:stateListAnimator">@null</item>
+    </style>
 </resources>

@@ -41,6 +41,8 @@ public class CompareAvailabilityActivity extends AppCompatActivity implements Co
         setContentView(R.layout.activity_compare_availability);
         findViewById(R.id.compare_back_button).setOnClickListener(v -> finish());
         controller = new CompareAvailabilityController(findViewById(android.R.id.content), this, SOURCE, MAX_ALTERNATIVES);
+// when the phone turns we keep the ranking and the slot the user picked
+        controller.restoreState(savedInstanceState);
         selectedGroupId = savedInstanceState != null
                 ? savedInstanceState.getString(EXTRA_GROUP_ID)
                 : getIntent().getStringExtra(EXTRA_GROUP_ID);
@@ -51,6 +53,15 @@ public class CompareAvailabilityActivity extends AppCompatActivity implements Co
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putString(EXTRA_GROUP_ID, selectedGroupId);
+        controller.saveState(outState);
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (controller != null) {
+            controller.stop();
+        }
+        super.onDestroy();
     }
 
     // the chips come from GroupRepository, the same groups the dashboard shows
@@ -95,7 +106,8 @@ public class CompareAvailabilityActivity extends AppCompatActivity implements Co
         for (Group group : groups) {
             boolean selected = group.getId().equals(selectedGroupId);
             TextView chip = new TextView(this);
-            chip.setText(group.getIcon().isEmpty() ? group.getName() : group.getIcon() + "  " + group.getName());
+// only the name of the group, without the emoji
+            chip.setText(group.getName());
             chip.setTextSize(12);
             chip.setTypeface(chip.getTypeface(), android.graphics.Typeface.BOLD);
             chip.setTextColor(getColor(selected ? R.color.brand_primary : R.color.brand_dark));
@@ -142,8 +154,10 @@ public class CompareAvailabilityActivity extends AppCompatActivity implements Co
 
     // the screen stays open under New Activity, so closing the form comes back to the slots
     @Override
-    public void onSlotChosen(Group group, TimeSlot slot, int position) {
+    public void onSlotChosen(Group group, TimeSlot slot, int position, List<TimeSlot> shown) {
         CreateActivitySheet.newInstance(group.getId(), group.getSize(), slot.formatRange(), position)
+                .withShownSlots(shown)
+                .withEntryPoint(com.example.parchapp.analytics.AnalyticsEvents.ENTRY_SLOT)
                 .show(getSupportFragmentManager(), "create_activity");
     }
 

@@ -3,6 +3,7 @@ package com.example.parchapp.data;
 import android.content.Context;
 
 import com.example.parchapp.BuildConfig;
+import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.domain.StatusService;
 import com.example.parchapp.util.MainThread;
 import com.google.firebase.FirebaseApp;
@@ -20,12 +21,18 @@ public final class Repositories {
     private static ActivityRepository activities;
     private static AlertsRepository alerts;
     private static InsightsRepository insights;
+    private static ResponseTimeInsightsRepository responseTimeInsights;
     private static RecommendationDecisionRepository recommendationDecisions;
     private static CampusPlaceRepository places;
     private static AuthRepository auth;
     private static PrivacySettingsRepository privacySettings;
+    private static ProfileRepository profileDetails;
+    private static ProfilePhotoRepository profilePhotos;
     private static StatusService status;
+    private static PresenceRepository presence;
+    private static AvailabilityStatusSyncCoordinator availabilityStatusSync;
     private static ScheduleRepository schedules;
+    private static final GroupMemoryCache groupCache = new GroupMemoryCache();
 
     private Repositories() {
     }
@@ -55,6 +62,9 @@ public final class Repositories {
                 firebaseAuth.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 9099);
             }
             auth = new FirebaseAuthRepository(firebaseAuth);
+            profileDetails = new FirebaseProfileRepository(context, functions);
+            profilePhotos = new FirebaseProfilePhotoRepository(functions, firebaseAuth);
+            presence = new FirebasePresenceRepository(functions);
             privacySettings = new FirebasePrivacySettingsRepository(context, functions);
             FirebaseFirestore db = FirebaseFirestore.getInstance();
             if (BuildConfig.USE_FIREBASE_EMULATORS) {
@@ -69,24 +79,34 @@ public final class Repositories {
             activities = new CompositeActivityRepository(
                     new FirestoreActivityRepository(db),
                     new FirebaseActivityRepository(functions));
-            alerts = new FirebaseAlertsRepository(functions);
-            insights = new FirestoreInsightsRepository(db);
+            // eventual connectivity: the last alert list is kept on the phone and shown when offline
+            alerts = new OfflineAlertsRepository(context, new FirebaseAlertsRepository(functions));
+            insights = new FirestoreInsightsRepository(db, new SlotAcceptanceFile(
+                    new java.io.File(context.getFilesDir(), "bq3_slot_acceptance.json")));
+            responseTimeInsights = new FirestoreResponseTimeInsightsRepository(db);
             places = new FirestoreCampusPlaceRepository(db);
             // schedules come from the backend callables getScheduleFriends and getScheduleDay
-            schedules = new FunctionsScheduleRepository(functions);
+            // like the Flutter app, the last friends and days are kept on the phone and shown when offline
+            schedules = new OfflineScheduleRepository(context, new FunctionsScheduleRepository(functions));
         } else {
             auth = new DisabledAuthRepository();
+            profileDetails = null;
+            presence = null;
             privacySettings = new DisabledPrivacySettingsRepository(context);
             groups = new EmptyGroupRepository();
             activities = new DisabledActivityRepository();
             alerts = new DisabledAlertsRepository();
             insights = callback -> MainThread.post(() ->
                     callback.onSuccess(InsightsRepository.DEFAULT_RECOMMENDED_POSITION));
+            responseTimeInsights = callback -> MainThread.post(() ->
+                    callback.onSuccess(java.util.Collections.emptyList()));
             // without a backend there is no place data, so the card says travel time is unavailable
             places = callback -> MainThread.post(() -> callback.onSuccess(java.util.Collections.emptyList()));
             schedules = new EmptyScheduleRepository();
         }
-        status = new StatusService(context);
+        status = new StatusService(context, firebaseAvailable);
+        availabilityStatusSync = new AvailabilityStatusSyncCoordinator(status, presence,
+                AnalyticsTracker.getInstance());
     }
 
     /* A fake key that only has the format of a Google API key ("AIza" plus 35 characters). Built at runtime so secret scanners do not flag a non-secret. */
@@ -94,6 +114,10 @@ public final class Repositories {
         char[] padding = new char[35];
         java.util.Arrays.fill(padding, '0');
         return "AI" + "za" + new String(padding);
+    }
+
+    public static GroupMemoryCache groupCache() {
+        return groupCache;
     }
 
     public static boolean isFirebaseAvailable() {
@@ -125,6 +149,10 @@ public final class Repositories {
         return insights;
     }
 
+    public static ResponseTimeInsightsRepository responseTimeInsights() {
+        return responseTimeInsights;
+    }
+
     public static CampusPlaceRepository places() {
         return places;
     }
@@ -137,11 +165,24 @@ public final class Repositories {
         return privacySettings;
     }
 
+    public static ProfileRepository profileDetails() {
+        return profileDetails;
+    }
+
+    /** null when the app has no authenticated Firebase backend. */
+    public static ProfilePhotoRepository profilePhotos() {
+        return profilePhotos;
+    }
+
     public static ScheduleRepository schedules() {
         return schedules;
     }
 
     public static StatusService status() {
         return status;
+    }
+
+    public static AvailabilityStatusSyncCoordinator availabilityStatusSync() {
+        return availabilityStatusSync;
     }
 }

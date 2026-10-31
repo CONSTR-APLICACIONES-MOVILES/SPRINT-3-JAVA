@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- SystemBarsInsets: marks a screen whose content already keeps clear of the system bars -->
+    <item name="system_bars_insets_applied" type="id" />
+</resources>

@@ -1,13 +1,20 @@
 package com.example.parchapp.data;
 
+import androidx.annotation.Nullable;
+
 import com.example.parchapp.domain.model.ActivityDetails;
+import com.example.parchapp.domain.model.ComparisonEvidence;
 import com.example.parchapp.domain.model.PlannedActivity;
 import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.MainThread;
 import com.google.firebase.functions.FirebaseFunctions;
+import com.google.firebase.functions.FirebaseFunctionsException;
+
+import java.util.ArrayList;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -21,6 +28,17 @@ public final class FirebaseActivityRepository implements ActivityActionsReposito
 
     @Override
     public void createActivity(PlannedActivity activity, Callback<PlannedActivity> callback) {
+        createActivity(activity, null, callback);
+    }
+
+    @Override
+    public void createActivity(PlannedActivity activity, @Nullable ComparisonEvidence evidence,
+                               Callback<PlannedActivity> callback) {
+        publish(activity, evidence, true, callback);
+    }
+
+    private void publish(PlannedActivity activity, @Nullable ComparisonEvidence evidence, boolean retryWithoutEvidence,
+                         Callback<PlannedActivity> callback) {
         Map<String, Object> fields = new HashMap<>();
         fields.put("title", activity.getTitle());
         fields.put("category", activity.getCategory());
@@ -38,6 +56,7 @@ public final class FirebaseActivityRepository implements ActivityActionsReposito
             input.put("endTime", activity.getEndTime());
             input.put("timeZone", "America/Bogota");
         }
+        boolean withEvidence = putAttribution(input, activity, evidence);
         functions.getHttpsCallable("publishActivity").call(input)
                 .addOnSuccessListener(result -> {
                     Object id = map(result.getData()).get("activityId");
@@ -48,7 +67,30 @@ public final class FirebaseActivityRepository implements ActivityActionsReposito
                         MainThread.post(() -> callback.onSuccess(activity.withId(id.toString())));
                     }
                 })
-                .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+                .addOnFailureListener(error -> {
+                    // bq9: the comparison expires after a few minutes; a late plan is still created, only without it
+                    if (withEvidence && retryWithoutEvidence && error instanceof FirebaseFunctionsException
+                            && ((FirebaseFunctionsException) error).getCode() == FirebaseFunctionsException.Code.FAILED_PRECONDITION) {
+                        publish(activity, null, false, callback);
+                        return;
+                    }
+                    MainThread.post(() -> callback.onError(error));
+                });
+    }
+
+    /* BQ9: the same publishActivity fields as the Flutter app. With a comparison: its participants and evidence id,
+     * direct(): measured as made without comparing, null: left unknown. Returns true when evidence was sent. */
+    static boolean putAttribution(Map<String, Object> input, PlannedActivity activity, @Nullable ComparisonEvidence evidence) {
+        if (evidence == null) {
+            return false;
+        }
+        input.put("measurementVersion", 1);
+        if (!evidence.appliesTo(activity.getDate())) {
+            return false;
+        }
+        input.put("participantIds", new ArrayList<>(evidence.getParticipantIds()));
+        input.put("comparisonEvidenceId", evidence.getId());
+        return true;
     }
 
     @Override
@@ -60,12 +102,27 @@ public final class FirebaseActivityRepository implements ActivityActionsReposito
                     Map<?, ?> data = map(result.getData());
                     Object rawReminder = data.get("reminderMinutesBefore");
                     Integer reminder = rawReminder instanceof Number ? ((Number) rawReminder).intValue() : null;
+                    Object rawDuration = data.get("durationMinutes");
+                    Integer duration = rawDuration instanceof Number ? ((Number) rawDuration).intValue() : null;
+                    int totalParticipants = 0;
+                    int acceptedParticipants = 0;
+                    Object rawParticipants = data.get("participants");
+                    if (rawParticipants instanceof List) {
+                        for (Object rawParticipant : (List<?>) rawParticipants) {
+                            if (!(rawParticipant instanceof Map)) continue;
+                            totalParticipants++;
+                            Object response = ((Map<?, ?>) rawParticipant).get("activityRsvpStatus");
+                            if ("accepted".equals(response)) acceptedParticipants++;
+                        }
+                    }
                     ActivityDetails details = new ActivityDetails(string(data.get("id")),
                             string(data.get("groupId")), string(data.get("title")),
                             string(data.get("category")), string(data.get("date")),
                             string(data.get("time")), string(data.get("location")),
                              string(data.get("status")), string(data.get("startTime")),
-                             string(data.get("endTime")), reminder, string(data.get("createdBy")));
+                             string(data.get("endTime")), reminder, string(data.get("createdBy")),
+                            duration, Boolean.TRUE.equals(data.get("cancelled")),
+                            totalParticipants, acceptedParticipants);
                     MainThread.post(() -> callback.onSuccess(details));
                 })
                 .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));

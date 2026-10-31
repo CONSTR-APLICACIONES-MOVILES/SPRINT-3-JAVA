@@ -55,26 +55,6 @@
                 <TextView android:id="@+id/top_group_subtitle_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/brand_slate" android:textSize="10sp" android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
-
-        <ImageButton
-            android:id="@+id/share_button"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Share group"
-            android:padding="8dp"
-            android:src="@drawable/ic_share"
-            android:tint="@color/brand_slate" />
-
-        <ImageButton
-            android:id="@+id/more_options_button"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="More options"
-            android:padding="8dp"
-            android:src="@drawable/ic_more_vert"
-            android:tint="@color/brand_slate" />
     </LinearLayout>
 
     <include layout="@layout/view_offline_banner" />
@@ -110,6 +90,8 @@
 
                 <TextView android:id="@+id/group_name_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:textColor="@android:color/white" android:textSize="19sp" android:textStyle="bold" />
                 <TextView android:id="@+id/group_description_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textColor="#D9E5FF" android:textSize="12sp" />
+                <!-- says if the group comes from the server now or from the copy on the phone, and when it was synced -->
+                <TextView android:id="@+id/group_sync_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textColor="#D9E5FF" android:textSize="11sp" android:visibility="gone" />
                 <TextView android:id="@+id/campus_status_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="◎  Checking your location…" android:textColor="#D9E5FF" android:textSize="11sp" />
 
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:background="#193F87" android:orientation="vertical" android:padding="12dp">
@@ -154,6 +136,18 @@
                     <androidx.appcompat.widget.AppCompatButton android:id="@+id/plan_details_button" android:layout_width="0dp" android:layout_height="38dp" android:layout_marginEnd="4dp" android:layout_weight="1" android:background="@drawable/bg_light_blue" android:text="Plan Details" android:textAllCaps="false" android:textColor="@color/brand_primary" android:textSize="10sp" android:textStyle="bold" />
                     <androidx.appcompat.widget.AppCompatButton android:id="@+id/add_calendar_button" android:layout_width="0dp" android:layout_height="38dp" android:layout_marginStart="4dp" android:layout_weight="1" android:background="@drawable/bg_primary_pill" android:text="Add to Calendar" android:textAllCaps="false" android:textColor="@android:color/white" android:textSize="10sp" android:textStyle="bold" />
                 </LinearLayout>
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/group_suggested_times_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="38dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_light_blue"
+                    android:text="Suggested Times"
+                    android:textAllCaps="false"
+                    android:textColor="@color/brand_primary"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <!-- Roommates -->
@@ -188,7 +182,6 @@
                     <TextView android:id="@+id/member_summary_0" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/brand_slate" android:textSize="10sp" />
                     <TextView android:id="@+id/member_status_0" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textColor="@color/brand_success_dark" android:textSize="10sp" android:textStyle="bold" />
                 </LinearLayout>
-                <ImageButton android:id="@+id/chat_alex_button" android:layout_width="34dp" android:layout_height="34dp" android:background="@drawable/bg_icon_badge_square" android:backgroundTint="#F8FAFC" android:contentDescription="Chat with Alex" android:padding="8dp" android:src="@drawable/ic_chat" android:tint="@color/brand_slate" />
             </LinearLayout>
 
             <!-- Roommate: Mateo -->
@@ -202,7 +195,6 @@
                     <TextView android:id="@+id/member_summary_1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/brand_slate" android:textSize="10sp" />
                     <TextView android:id="@+id/member_status_1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textColor="@color/brand_success_dark" android:textSize="10sp" android:textStyle="bold" />
                 </LinearLayout>
-                <ImageButton android:id="@+id/chat_mateo_button" android:layout_width="34dp" android:layout_height="34dp" android:background="@drawable/bg_icon_badge_square" android:backgroundTint="#F8FAFC" android:contentDescription="Chat with Mateo" android:padding="8dp" android:src="@drawable/ic_chat" android:tint="@color/brand_slate" />
             </LinearLayout>
 
             <!-- Roommate: Camila -->
@@ -216,7 +208,6 @@
                     <TextView android:id="@+id/member_summary_2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/brand_slate" android:textSize="10sp" />
                     <TextView android:id="@+id/member_status_2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textColor="@color/brand_success_dark" android:textSize="10sp" android:textStyle="bold" />
                 </LinearLayout>
-                <ImageButton android:id="@+id/chat_camila_button" android:layout_width="34dp" android:layout_height="34dp" android:background="@drawable/bg_icon_badge_square" android:backgroundTint="#F8FAFC" android:contentDescription="Chat with Camila" android:padding="8dp" android:src="@drawable/ic_chat" android:tint="@color/brand_slate" />
             </LinearLayout>
 
             <!-- Roommate: Lucas -->
@@ -230,14 +221,13 @@
                     <TextView android:id="@+id/member_summary_3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/brand_slate" android:textSize="10sp" />
                     <TextView android:id="@+id/member_status_3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textColor="@color/brand_success_dark" android:textSize="10sp" android:textStyle="bold" />
                 </LinearLayout>
-                <ImageButton android:id="@+id/chat_lucas_button" android:layout_width="34dp" android:layout_height="34dp" android:background="@drawable/bg_icon_badge_square" android:backgroundTint="#F8FAFC" android:contentDescription="Chat with Lucas" android:padding="8dp" android:src="@drawable/ic_chat" android:tint="@color/brand_slate" />
             </LinearLayout>
 
             <!-- Quick actions -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp">
                 <androidx.appcompat.widget.AppCompatButton android:id="@+id/propose_plan_button" android:layout_width="0dp" android:layout_height="72dp" android:layout_marginEnd="4dp" android:layout_weight="1" android:background="@drawable/bg_dashboard_card" android:drawablePadding="6dp" android:paddingTop="13dp" android:paddingBottom="11dp" android:drawableTint="@color/brand_primary" android:drawableTop="@drawable/ic_calendar" android:gravity="center" android:text="Propose Plan" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" />
-                <androidx.appcompat.widget.AppCompatButton android:id="@+id/sync_schedules_button" android:layout_width="0dp" android:layout_height="72dp" android:layout_marginStart="2dp" android:layout_marginEnd="2dp" android:layout_weight="1" android:background="@drawable/bg_dashboard_card" android:drawablePadding="6dp" android:paddingTop="13dp" android:paddingBottom="11dp" android:drawableTint="@color/brand_success" android:drawableTop="@drawable/ic_refresh" android:gravity="center" android:text="Sync Schedules" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" />
-                <androidx.appcompat.widget.AppCompatButton android:id="@+id/house_chat_button" android:layout_width="0dp" android:layout_height="72dp" android:layout_marginStart="4dp" android:layout_weight="1" android:background="@drawable/bg_dashboard_card" android:drawablePadding="6dp" android:paddingTop="13dp" android:paddingBottom="11dp" android:drawableTint="@color/brand_indigo" android:drawableTop="@drawable/ic_chat" android:gravity="center" android:text="House Chat" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" />
+                <androidx.appcompat.widget.AppCompatButton android:id="@+id/sync_schedules_button" android:layout_width="0dp" android:layout_height="72dp" android:layout_marginStart="4dp" android:layout_weight="1" android:background="@drawable/bg_dashboard_card" android:drawablePadding="6dp" android:paddingTop="13dp" android:paddingBottom="11dp" android:drawableTint="@color/brand_success" android:drawableTop="@drawable/ic_refresh" android:gravity="center" android:text="Sync Schedules" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" />
+                <androidx.appcompat.widget.AppCompatButton android:id="@+id/share_group_link_button" android:layout_width="0dp" android:layout_height="72dp" android:layout_marginStart="4dp" android:layout_weight="1" android:background="@drawable/bg_dashboard_card" android:drawablePadding="6dp" android:paddingTop="13dp" android:paddingBottom="11dp" android:drawableTint="@color/brand_indigo" android:drawableTop="@drawable/ic_share" android:gravity="center" android:text="@string/group_share_link" android:textAllCaps="false" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" android:visibility="gone" />
             </LinearLayout>
 
             <!-- Recent activity -->

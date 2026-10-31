@@ -54,7 +54,6 @@ public class PlanDetailsSheet extends BottomSheetDialogFragment {
 
         view.findViewById(R.id.sheet_close_btn).setOnClickListener(v -> dismiss());
         view.findViewById(R.id.btn_plan_close).setOnClickListener(v -> dismiss());
-        view.findViewById(R.id.btn_open_map).setEnabled(false);
         view.findViewById(R.id.btn_add_to_calendar).setOnClickListener(v -> {
             if (ExternalActions.openCalendar(requireContext(), title, date, time, location)) {
                 Toast.makeText(requireContext(), "Calendar event ready to save", Toast.LENGTH_SHORT).show();

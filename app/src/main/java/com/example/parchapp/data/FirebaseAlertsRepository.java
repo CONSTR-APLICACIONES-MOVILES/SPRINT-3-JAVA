@@ -28,13 +28,16 @@ final class FirebaseAlertsRepository implements AlertsRepository {
                     if (rawAlerts instanceof List) {
                         for (Object raw : (List<?>) rawAlerts) {
                             Map<?, ?> data = map(raw);
-                            Object rawSequence = data.get("sequence");
                             alerts.add(new AlertItem(string(data.get("id")), string(data.get("kind")),
                                     string(data.get("title")), string(data.get("description")),
                                     string(data.get("createdAt")), Boolean.TRUE.equals(data.get("isRead")),
                                     nullableString(data.get("response")), string(data.get("studySessionId")),
-                                    string(data.get("groupId")), nullableString(data.get("strategy")),
-                                    rawSequence instanceof Number ? ((Number) rawSequence).intValue() : 0));
+                                    string(data.get("groupId")), integer(data.get("groupSize")),
+                                    nullableString(data.get("reminderId")),
+                                    nullableString(data.get("reminderPurpose")),
+                                    nullableString(data.get("strategy")),
+                                    integer(data.get("sequence")), nullableInteger(data.get("delayMinutes")),
+                                    nullableString(data.get("sentAt"))));
                         }
                     }
                     MainThread.post(() -> callback.onSuccess(alerts));
@@ -85,5 +88,13 @@ final class FirebaseAlertsRepository implements AlertsRepository {
 
     private static String nullableString(Object value) {
         return value == null ? null : value.toString();
+    }
+
+    private static int integer(Object value) {
+        return value instanceof Number ? ((Number) value).intValue() : 0;
+    }
+
+    private static Integer nullableInteger(Object value) {
+        return value instanceof Number ? ((Number) value).intValue() : null;
     }
 }

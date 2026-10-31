@@ -56,6 +56,8 @@ public class TravelTimeService {
     static final String MAPS_SOURCE = "Google Maps";
 // f7: one client for the whole app, so all the screens share the same background thread
     private static final DistanceMatrixClient MAPS = new DistanceMatrixClient(BuildConfig.MAPS_API_KEY);
+    /* F7: a saved time is only reused while the user is still near the place where it was measured. */
+    static final double CACHE_RADIUS_METERS = 300;
 
     private final Context context;
 
@@ -77,22 +79,35 @@ public class TravelTimeService {
                     listener.onProblem(Problem.NO_PLACE);
                     return;
                 }
-                // f7: first the cache, so reopening the dashboard does not wait for the location or measure again
-                Integer cached = activity.getId() == null ? null
-                        : Repositories.activities().getCachedTravelMinutes(activity.getId());
-                if (cached != null) {
-                    listener.onTravel(result(activity, cached, CACHED_SOURCE, place));
-                    return;
-                }
+                Integer cachedForPlace = activity.getId() == null ? null
+                        : Repositories.activities().getCachedTravelMinutesForDestination(
+                                activity.getId(), place.getId());
                 if (!hasLocationPermission()) {
-                    listener.onProblem(Problem.NO_PERMISSION);
+                    if (cachedForPlace != null) {
+                        listener.onTravel(result(activity, cachedForPlace, CACHED_SOURCE, place));
+                    } else {
+                        listener.onProblem(Problem.NO_PERMISSION);
+                    }
                     return;
                 }
                 readLocation(location -> {
                     if (location == null) {
-                        listener.onProblem(Problem.NO_LOCATION);
+                        if (cachedForPlace != null) {
+                            listener.onTravel(result(activity, cachedForPlace, CACHED_SOURCE, place));
+                        } else {
+                            listener.onProblem(Problem.NO_LOCATION);
+                        }
                     } else {
-                        measure(activity, place, location, listener);
+                        Integer cachedNearby = activity.getId() == null ? null
+                                : Repositories.activities().getCachedTravelMinutesNear(activity.getId(),
+                                        location.getLatitude(), location.getLongitude(), place.getId(),
+                                        CACHE_RADIUS_METERS);
+                        if (cachedNearby != null) {
+                        // f7: same place as last time, so the saved time is still right and we do not call maps again
+                            listener.onTravel(result(activity, cachedNearby, CACHED_SOURCE, place));
+                        } else {
+                            measure(activity, place, location, listener);
+                        }
                     }
                 });
             }
@@ -115,7 +130,8 @@ public class TravelTimeService {
                     @Override
                     public void onSuccess(Integer minutes) {
                         if (activity.getId() != null) {
-                            Repositories.activities().cacheTravelMinutes(activity.getId(), minutes);
+                            Repositories.activities().cacheTravelMinutesForPlace(activity.getId(), minutes,
+                                    from.getLatitude(), from.getLongitude(), place.getId());
                         }
                         listener.onTravel(result(activity, minutes, MAPS_SOURCE, place));
                     }
@@ -142,6 +158,12 @@ public class TravelTimeService {
                 && PlanContext.isLate(nowMinute, minutes, PlanContext.startMinute(activity.getTime()),
                 PlanContext.endMinute(activity.getTime()));
         return new Result(minutes, source, place, late);
+    }
+
+    /* F7: true when the user is within CACHE_RADIUS_METERS of where the saved time was measured. */
+    static boolean isNearOrigin(@Nullable double[] origin, double lat, double lng) {
+        return origin != null
+                && PlanContext.distanceMeters(origin[0], origin[1], lat, lng) <= CACHE_RADIUS_METERS;
     }
 
     private interface LocationCallback {

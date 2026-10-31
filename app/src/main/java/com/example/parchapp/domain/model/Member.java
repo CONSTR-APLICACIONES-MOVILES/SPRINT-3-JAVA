@@ -34,6 +34,15 @@ public class Member {
         return initials;
     }
 
+// f6: groups made by the backend can have empty initials, then we use the first letter of the name
+    public String getDisplayInitials() {
+        if (initials != null && !initials.isEmpty()) {
+            return initials;
+        }
+        String shown = name == null ? "" : name.trim();
+        return shown.isEmpty() ? "?" : shown.substring(0, 1).toUpperCase();
+    }
+
     public List<TimeBlock> getBusyBlocks() {
         return Collections.unmodifiableList(busyBlocks);
     }

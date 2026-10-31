@@ -40,7 +40,9 @@ class ConnectivityMonitor {
 
             @Override
             public void onLost(@NonNull Network network) {
-                updateOnline(isActiveNetworkOnline());
+                // the default network is gone; asking for the active one here can still return it,
+                // so we go offline now and onAvailable brings us back when a new default network appears
+                updateOnline(false);
             }
         });
     }

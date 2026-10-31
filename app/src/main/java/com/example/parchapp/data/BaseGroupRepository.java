@@ -15,6 +15,8 @@ abstract class BaseGroupRepository implements GroupRepository {
 
     private final Map<String, List<GroupListener>> listenersByGroup = new HashMap<>();
     private final Map<String, Group> latestByGroup = new HashMap<>();
+// last sync state of each group, true when the data came from the copy on the phone
+    private final Map<String, Boolean> fromCacheByGroup = new HashMap<>();
 
     protected abstract void startObserving(String groupId);
 
@@ -35,6 +37,9 @@ abstract class BaseGroupRepository implements GroupRepository {
             startObserving(groupId);
         } else if (latestByGroup.containsKey(groupId)) {
             listener.onGroupChanged(latestByGroup.get(groupId));
+            if (fromCacheByGroup.containsKey(groupId)) {
+                listener.onGroupSyncChanged(groupId, fromCacheByGroup.get(groupId));
+            }
         }
     }
 
@@ -48,6 +53,7 @@ abstract class BaseGroupRepository implements GroupRepository {
         if (listeners.isEmpty()) {
             listenersByGroup.remove(groupId);
             latestByGroup.remove(groupId);
+            fromCacheByGroup.remove(groupId);
             stopObserving(groupId);
         }
     }
@@ -61,6 +67,18 @@ abstract class BaseGroupRepository implements GroupRepository {
         latestByGroup.remove(groupId);
         for (GroupListener listener : new ArrayList<>(listeners)) {
             listener.onGroupUnavailable(groupId);
+        }
+    }
+
+// tells every screen if the group now comes from the server or from the copy on the phone
+    protected final void notifySync(String groupId, boolean fromCache) {
+        List<GroupListener> listeners = listenersByGroup.get(groupId);
+        if (listeners == null) {
+            return;
+        }
+        fromCacheByGroup.put(groupId, fromCache);
+        for (GroupListener listener : new ArrayList<>(listeners)) {
+            listener.onGroupSyncChanged(groupId, fromCache);
         }
     }
 

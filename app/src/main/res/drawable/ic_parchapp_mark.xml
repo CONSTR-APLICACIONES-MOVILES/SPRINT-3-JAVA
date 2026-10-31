@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- parchapp logo: a calendar in three panels from blue to green -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+
+    <!-- moves the calendar to the middle of the icon -->
+    <group
+        android:translateX="6"
+        android:translateY="-3.25">
+
+    <!-- binder rings on top of each panel -->
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M17,20 a3.5,3.5 0,0 1,7 0 v10 h-7 z" />
+    <path
+        android:fillColor="#22A8D8"
+        android:pathData="M40.5,20 a3.5,3.5 0,0 1,7 0 v10 h-7 z" />
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M64,20 a3.5,3.5 0,0 1,7 0 v10 h-7 z" />
+
+    <!-- left panel, blue -->
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M20,26 H32 V90 H20 A12,12 0,0 1,8 78 V38 A12,12 0,0 1,20 26 Z" />
+
+    <!-- middle panel, from blue to teal -->
+    <path android:pathData="M34,26 H54 V90 H34 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:endColor="#22C7A0"
+                android:endX="54"
+                android:endY="58"
+                android:startColor="#3FA9F5"
+                android:startX="34"
+                android:startY="58"
+                android:type="linear" />
+        </aapt:attr>
+    </path>
+
+    <!-- right panel, green -->
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M56,26 H68 A12,12 0,0 1,80 38 V78 A12,12 0,0 1,68 90 H56 Z" />
+
+    <!-- days of the calendar, 2 columns by 4 rows in the side panels -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M13,40h5.5v5.5h-5.5z M22,40h5.5v5.5h-5.5z M13,49h5.5v5.5h-5.5z M22,49h5.5v5.5h-5.5z M13,58h5.5v5.5h-5.5z M22,58h5.5v5.5h-5.5z M13,67h5.5v5.5h-5.5z M22,67h5.5v5.5h-5.5z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M60.5,40h5.5v5.5h-5.5z M69.5,40h5.5v5.5h-5.5z M60.5,49h5.5v5.5h-5.5z M69.5,49h5.5v5.5h-5.5z M60.5,58h5.5v5.5h-5.5z M69.5,58h5.5v5.5h-5.5z M60.5,67h5.5v5.5h-5.5z M69.5,67h5.5v5.5h-5.5z" />
+
+    <!-- today, the bigger day in the middle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M41,51 h6 a2.5,2.5 0,0 1,2.5 2.5 v6 a2.5,2.5 0,0 1,-2.5 2.5 h-6 a2.5,2.5 0,0 1,-2.5 -2.5 v-6 a2.5,2.5 0,0 1,2.5 -2.5 z" />
+
+    </group>
+</vector>

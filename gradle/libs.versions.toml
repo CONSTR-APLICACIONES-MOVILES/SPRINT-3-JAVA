@@ -11,6 +11,10 @@ firebaseBom = "34.3.0"
 googleServices = "4.4.3"
 googleAuth = "21.4.0"
 playServicesLocation = "21.3.0"
+cameraX = "1.4.2"
+exifInterface = "1.3.7"
+room = "2.7.2"
+collection = "1.4.2"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -27,6 +31,14 @@ firebase-functions = { group = "com.google.firebase", name = "firebase-functions
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "googleAuth" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "cameraX" }
+camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "cameraX" }
+camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "cameraX" }
+camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "cameraX" }
+exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifInterface" }
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+collection = { group = "androidx.collection", name = "collection", version.ref = "collection" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

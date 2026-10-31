@@ -6,68 +6,10 @@
     android:orientation="vertical">
 
     <!-- Header -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:background="@color/brand_background"
-        android:gravity="center_vertical"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp">
+    <include layout="@layout/view_top_header" />
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="ParchApp"
-            android:textColor="@color/brand_primary"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-        <ImageButton
-            android:id="@+id/header_search_btn"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:background="@drawable/bg_light_blue"
-            android:contentDescription="@string/cd_search"
-            android:padding="9dp"
-            android:src="@drawable/ic_search"
-            android:tint="@color/brand_dark" />
-
-        <FrameLayout
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:layout_marginStart="8dp">
-            <ImageButton
-                android:id="@+id/header_notif_btn"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
-                android:background="@drawable/bg_light_blue"
-                android:contentDescription="@string/cd_notifications"
-                android:padding="9dp"
-                android:src="@drawable/ic_notifications"
-                android:tint="@color/brand_dark" />
-            <View
-                android:layout_width="8dp"
-                android:layout_height="8dp"
-                android:layout_gravity="top|end"
-                android:layout_marginTop="4dp"
-                android:layout_marginEnd="4dp"
-                android:background="@drawable/bg_oval_solid"
-                android:backgroundTint="@color/brand_rose" />
-        </FrameLayout>
-
-        <TextView
-            android:id="@+id/header_user_initials"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/bg_primary_pill"
-            android:gravity="center"
-            android:textColor="@android:color/white"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
+    <!-- eventual connectivity: the shared offline banner, shown while there is no network -->
+    <include layout="@layout/view_offline_banner" />
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -89,6 +31,7 @@
 
             <LinearLayout android:id="@+id/groups_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
             <androidx.appcompat.widget.AppCompatButton android:id="@+id/create_group_from_list" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="12dp" android:background="@drawable/bg_dashed_blue" android:drawableStart="@drawable/ic_add" android:drawablePadding="8dp" android:drawableTint="@color/brand_primary" android:gravity="center" android:paddingStart="24dp" android:paddingEnd="24dp" android:text="@string/create_new_group" android:textAllCaps="false" android:textColor="@color/brand_primary" android:textSize="14sp" android:textStyle="bold" />
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/join_with_invite_button" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="10dp" android:background="@drawable/bg_dashed_blue" android:gravity="center" android:paddingStart="24dp" android:paddingEnd="24dp" android:text="@string/invite_join_title" android:textAllCaps="false" android:textColor="@color/brand_primary" android:textSize="14sp" android:textStyle="bold" />
         </LinearLayout>
     </ScrollView>
 

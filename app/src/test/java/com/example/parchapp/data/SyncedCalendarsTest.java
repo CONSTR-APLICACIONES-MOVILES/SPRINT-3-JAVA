@@ -41,6 +41,18 @@ public class SyncedCalendarsTest {
             }
             callback.onSuccess(result);
         }
+
+        @Override
+        public void validatePlanningSlot(List<String> participantIds, String startTime, String endTime,
+                                         Callback<String> callback) {
+            callback.onError(new UnsupportedOperationException());
+        }
+
+        @Override
+        public void importCalendarAvailability(String startDate, int days, List<String[]> intervals,
+                                               Callback<Integer> callback) {
+            callback.onError(new UnsupportedOperationException());
+        }
     }
 
     private static List<Member> group(int size) {

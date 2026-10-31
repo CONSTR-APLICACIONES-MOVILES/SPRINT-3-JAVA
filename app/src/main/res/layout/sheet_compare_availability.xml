@@ -29,6 +29,9 @@
         <TextView android:id="@+id/chip_rank_soonest" android:layout_width="0dp" android:layout_height="34dp" android:layout_marginStart="4dp" android:layout_weight="1" android:background="@drawable/bg_chip_unselected" android:gravity="center" android:text="@string/rank_soonest" android:textColor="@color/brand_dark" android:textSize="11sp" android:textStyle="bold" />
     </LinearLayout>
 
+    <!-- bq3: percent of suggested slots accepted without changes and the best position -->
+    <TextView android:id="@+id/bq3_insight_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/bg_light_blue" android:padding="12dp" android:textColor="@color/brand_primary" android:textSize="12sp" android:visibility="gone" />
+
     <TextView android:id="@+id/slots_status_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:gravity="center" android:padding="14dp" android:text="@string/calculating_slots" android:textColor="@color/brand_slate" android:textSize="12sp" />
 
     <LinearLayout android:id="@+id/best_slot_card" android:clickable="true" android:focusable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:background="@drawable/bg_green_chip" android:orientation="vertical" android:padding="14dp" android:visibility="gone">

@@ -17,6 +17,7 @@ import com.example.parchapp.data.AuthRepository;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.GoogleSignInFlow;
+import com.google.firebase.FirebaseNetworkException;
 
 /* F5: the Sign In view. Email and password, or Google, both go through AuthRepository (Firebase Auth). */
 public class MainActivity extends AppCompatActivity {
@@ -28,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText passwordInput;
     private Button signInButton;
     private GoogleSignInFlow googleSignIn;
+    private final OfflineBannerController offlineBanner = new OfflineBannerController();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +41,8 @@ public class MainActivity extends AppCompatActivity {
         passwordInput = findViewById(R.id.password_input);
         // the google flow registers an activity result launcher, so it has to be created here in onCreate
         googleSignIn = new GoogleSignInFlow(this, new OpenDashboardCallback());
+        // the shared banner talks about saved groups; here it says what works and what does not without network
+        ((TextView) findViewById(R.id.offline_banner_message)).setText(R.string.offline_banner_sign_in);
 
 // f5: firebase keeps the session, so getCurrentUser gives us the user that signed in before
         UserProfile restored = auth.getSignedInUser();
@@ -50,7 +54,13 @@ public class MainActivity extends AppCompatActivity {
             continueButton.setEnabled(false);
         }
 
-        findViewById(R.id.google_button).setOnClickListener(v -> googleSignIn.start());
+        findViewById(R.id.google_button).setOnClickListener(v -> {
+            // eventual connectivity: google opens its own screen, which fails offline, so we check before leaving the app
+            if (isOffline("sign in with Google")) {
+                return;
+            }
+            googleSignIn.start();
+        });
         signInButton.setOnClickListener(v -> signIn());
         // Next goes to the password and Done signs in, so the user does not have to close the keyboard to reach the button
         emailInput.setOnEditorActionListener((field, action, event) -> {
@@ -83,6 +93,9 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        if (isOffline("sign in with your email")) {
+            return;
+        }
         setSigningIn(true);
         auth.signIn(email, password, new Callback<UserProfile>() {
             @Override
@@ -95,6 +108,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onError(Exception error) {
                 setSigningIn(false);
+                // a lost connection is not a wrong password, so the message says what really happened
+                if (error instanceof FirebaseNetworkException) {
+                    showMessage("No connection. Check your internet and try again.");
+                    return;
+                }
                 // we dont say which one failed so nobody can check which emails have an account
                 showMessage("Email or password is incorrect");
             }
@@ -109,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void sendPasswordReset() {
         String email = emailInput.getText().toString().trim();
-        if (!isValidEmail(email)) {
+        if (!isValidEmail(email) || isOffline("reset your password")) {
             return;
         }
         auth.sendPasswordReset(email, new Callback<Void>() {
@@ -123,6 +141,31 @@ public class MainActivity extends AppCompatActivity {
                 showMessage("Could not send the reset email");
             }
         });
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        offlineBanner.start(findViewById(R.id.offline_banner));
+    }
+
+    @Override
+    protected void onStop() {
+        offlineBanner.stop();
+        super.onStop();
+    }
+
+    /* eventual connectivity (#43): signing in needs Firebase, so offline we do not try and we say why.
+     * The saved session does not need the network, so when there is one we point to Continue as. */
+    private boolean isOffline(String action) {
+        if (AnalyticsTracker.getInstance().isOnline()) {
+            return false;
+        }
+        UserProfile restored = auth.getSignedInUser();
+        showMessage(restored != null
+                ? "You're offline. Connect to " + action + ", or use Continue as " + restored.getFirstName() + "."
+                : "You're offline. Connect to the internet to " + action + ".");
+        return true;
     }
 
     private final class OpenDashboardCallback implements Callback<UserProfile> {
@@ -162,6 +205,7 @@ public class MainActivity extends AppCompatActivity {
     private void openDashboard(UserProfile user) {
         UserSession.setCurrentUser(user);
         AnalyticsTracker.getInstance().setUserId(user.getId());
+        Repositories.availabilityStatusSync().onUserAvailable();
         startActivity(new Intent(this, DashboardActivity.class));
     }
 

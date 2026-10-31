@@ -6,56 +6,10 @@
     android:orientation="vertical">
 
     <!-- Header -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:background="@color/brand_background"
-        android:gravity="center_vertical"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp">
+    <include layout="@layout/view_top_header" />
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="ParchApp"
-            android:textColor="@color/brand_primary"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-        <ImageButton
-            android:id="@+id/header_search_btn"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:background="@drawable/bg_light_blue"
-            android:contentDescription="@string/cd_search"
-            android:padding="9dp"
-            android:src="@drawable/ic_search"
-            android:tint="@color/brand_dark" />
-
-        <ImageButton
-            android:id="@+id/header_notif_btn"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/bg_light_blue"
-            android:contentDescription="@string/cd_notifications"
-            android:padding="9dp"
-            android:src="@drawable/ic_notifications"
-            android:tint="@color/brand_dark" />
-
-        <TextView
-            android:id="@+id/header_profile_btn"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/bg_primary_pill"
-            android:gravity="center"
-            android:text="AK"
-            android:textColor="@android:color/white"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-    </LinearLayout>
+    <!-- the same offline banner of the other screens, it shows only without connection -->
+    <include layout="@layout/view_offline_banner" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -114,11 +68,24 @@
                 android:layout_marginTop="6dp"
                 android:background="@drawable/bg_login_field"
                 android:hint="e.g. Bowling Night"
+                android:imeOptions="actionNext"
+                android:inputType="textCapSentences"
+                android:maxLength="80"
+                android:maxLines="1"
                 android:paddingStart="14dp"
                 android:paddingEnd="14dp"
                 android:textColor="@color/brand_dark"
                 android:textColorHint="@color/brand_slate"
                 android:textSize="13sp" />
+            <TextView
+                android:id="@+id/group_name_counter"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="end"
+                android:text="0/80"
+                android:textColor="@color/brand_slate"
+                android:textSize="11sp" />
 
             <!-- Date / Time -->
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="Activity Date &amp; Time" android:textColor="@color/brand_dark" android:textSize="13sp" android:textStyle="bold" />
@@ -133,7 +100,10 @@
                     android:drawableStart="@drawable/ic_calendar"
                     android:drawablePadding="8dp"
                     android:drawableTint="@color/brand_slate"
+                    android:cursorVisible="false"
+                    android:focusable="false"
                     android:hint="Select a date"
+                    android:inputType="none"
                     android:paddingStart="12dp"
                     android:textColor="@color/brand_dark"
                     android:textSize="11sp" />
@@ -147,203 +117,33 @@
                     android:drawableStart="@drawable/ic_clock"
                     android:drawablePadding="8dp"
                     android:drawableTint="@color/brand_slate"
+                    android:cursorVisible="false"
+                    android:focusable="false"
                     android:hint="Select a time"
+                    android:inputType="none"
                     android:paddingStart="12dp"
                     android:textColor="@color/brand_dark"
                     android:textSize="11sp" />
             </LinearLayout>
 
-            <!-- Invite participants -->
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="Invite participants" android:textColor="@color/brand_dark" android:textSize="13sp" android:textStyle="bold" />
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:background="@drawable/bg_light_blue" android:orientation="vertical" android:padding="14dp">
-                <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center_vertical">
-                    <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_link" android:tint="@color/brand_primary" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:text="GROUP SYNC LINK" android:textColor="@color/brand_primary" android:textSize="10sp" android:textStyle="bold" />
-                </LinearLayout>
-                <LinearLayout android:layout_width="match_parent" android:layout_height="42dp" android:layout_marginTop="10dp" android:background="@drawable/bg_google_button" android:gravity="center_vertical" android:paddingStart="10dp" android:paddingEnd="5dp">
-                    <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_link" android:tint="@color/brand_primary" />
-                    <TextView android:id="@+id/group_link_text" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1" android:ellipsize="end" android:singleLine="true" android:text="parchapp.me/g/bowling-a26" android:textColor="@color/brand_dark" android:textSize="10sp" android:textStyle="bold" />
-                    <androidx.appcompat.widget.AppCompatButton
-                        android:id="@+id/copy_group_link_button"
-                        android:layout_width="wrap_content"
-                        android:layout_height="34dp"
-                        android:background="@drawable/bg_primary_pill"
-                        android:drawableStart="@drawable/ic_copy"
-                        android:drawablePadding="4dp"
-                        android:drawableTint="@android:color/white"
-                        android:minWidth="0dp"
-                        android:paddingStart="10dp"
-                        android:paddingEnd="12dp"
-                        android:text="Copy Link"
-                        android:textAllCaps="false"
-                        android:textColor="@android:color/white"
-                        android:textSize="10sp" />
-                    <ImageButton
-                        android:id="@+id/share_group_link_button"
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:layout_marginStart="4dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:contentDescription="Share link"
-                        android:padding="6dp"
-                        android:src="@drawable/ic_share"
-                        android:tint="@color/brand_slate" />
-                </LinearLayout>
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Anyone with this link can join. New users will be added after they sign up." android:textColor="@color/brand_slate" android:textSize="10sp" />
-            </LinearLayout>
-
-            <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/show_qr_button"
-                android:layout_width="wrap_content"
-                android:layout_height="38dp"
-                android:layout_gravity="start"
-                android:layout_marginTop="3dp"
-                android:background="@android:color/transparent"
-                android:text="▦  Show QR code"
-                android:textAllCaps="false"
-                android:textColor="@color/brand_primary"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-
-            <!-- QR container -->
-            <LinearLayout
-                android:id="@+id/qr_container"
+            <!-- without connection the button turns off and this says why, the draft stays saved -->
+            <TextView
+                android:id="@+id/group_offline_notice"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_dashboard_card"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:padding="16dp"
-                android:visibility="gone">
-                <LinearLayout
-                    android:layout_width="140dp"
-                    android:layout_height="140dp"
-                    android:background="@drawable/bg_qr_frame"
-                    android:orientation="vertical"
-                    android:padding="10dp">
-                    <!-- 6x6 simulated QR matrix -->
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_qr_frame" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_qr_frame" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_qr_frame" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_qr_frame" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_qr_frame" />
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_qr_frame" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_qr_frame" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_qr_frame" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_qr_frame" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_qr_frame" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                        <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_margin="1dp" android:layout_weight="1" android:background="@drawable/bg_square_solid" />
-                    </LinearLayout>
-                </LinearLayout>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Scan to join &quot;Bowling Night&quot; instantly" android:textColor="@color/brand_slate" android:textSize="10sp" />
-            </LinearLayout>
-
-            <!-- Email invite -->
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="Or invite by email" android:textColor="@color/brand_dark" android:textSize="12sp" android:textStyle="bold" />
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp">
-                <EditText
-                    android:id="@+id/email_input_group"
-                    android:layout_width="0dp"
-                    android:layout_height="44dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_login_field"
-                    android:drawableStart="@drawable/ic_mail"
-                    android:drawablePadding="8dp"
-                    android:drawableTint="@color/brand_slate"
-                    android:hint="name@university.edu"
-                    android:inputType="textEmailAddress"
-                    android:paddingStart="12dp"
-                    android:textColor="@color/brand_dark"
-                    android:textSize="11sp" />
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/add_email_button"
-                    android:layout_width="62dp"
-                    android:layout_height="44dp"
-                    android:layout_marginStart="6dp"
-                    android:background="@drawable/bg_primary_pill"
-                    android:text="Add"
-                    android:textAllCaps="false"
-                    android:textColor="@android:color/white"
-                    android:textSize="11sp" />
-            </LinearLayout>
-            <LinearLayout android:id="@+id/email_chips" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:orientation="horizontal" />
-
-            <!-- Pending invitations: sample people from the mockup, hidden because the real invites are listed in email_chips -->
-            <LinearLayout android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:gravity="center_vertical">
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Pending invitations" android:textColor="@color/brand_dark" android:textSize="13sp" android:textStyle="bold" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="3 sent" android:textColor="@color/brand_slate" android:textSize="11sp" />
-            </LinearLayout>
-
-            <LinearLayout android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_dashboard_card" android:orientation="vertical" android:padding="4dp">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:padding="8dp">
-                    <TextView android:layout_width="36dp" android:layout_height="36dp" android:background="@drawable/bg_oval_solid" android:backgroundTint="@color/brand_primary" android:gravity="center" android:text="SJ" android:textColor="@android:color/white" android:textSize="11sp" android:textStyle="bold" />
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Sarah Jenkins" android:textColor="@color/brand_dark" android:textSize="12sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="sarah.j@campus.edu" android:textColor="@color/brand_slate" android:textSize="10sp" />
-                    </LinearLayout>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_pill_neutral" android:paddingStart="10dp" android:paddingTop="4dp" android:paddingEnd="10dp" android:paddingBottom="4dp" android:text="Pending" android:textColor="@color/brand_slate" android:textSize="10sp" android:textStyle="bold" />
-                </LinearLayout>
-                <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/brand_card_stroke" />
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:padding="8dp">
-                    <TextView android:layout_width="36dp" android:layout_height="36dp" android:background="@drawable/bg_oval_solid" android:backgroundTint="#94A3B8" android:gravity="center" android:text="MT" android:textColor="@android:color/white" android:textSize="11sp" android:textStyle="bold" />
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Marcus Thorne" android:textColor="@color/brand_dark" android:textSize="12sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="marcus.t@campus.edu" android:textColor="@color/brand_slate" android:textSize="10sp" />
-                    </LinearLayout>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_pill_neutral" android:paddingStart="10dp" android:paddingTop="4dp" android:paddingEnd="10dp" android:paddingBottom="4dp" android:text="Pending" android:textColor="@color/brand_slate" android:textSize="10sp" android:textStyle="bold" />
-                </LinearLayout>
-                <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/brand_card_stroke" />
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:padding="8dp">
-                    <TextView android:layout_width="36dp" android:layout_height="36dp" android:background="@drawable/bg_oval_solid" android:backgroundTint="#D97706" android:gravity="center" android:text="ER" android:textColor="@android:color/white" android:textSize="11sp" android:textStyle="bold" />
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Elena Rodriguez" android:textColor="@color/brand_dark" android:textSize="12sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="elena.r@external.org" android:textColor="@color/brand_slate" android:textSize="10sp" />
-                    </LinearLayout>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_pill_neutral" android:paddingStart="8dp" android:paddingTop="4dp" android:paddingEnd="8dp" android:paddingBottom="4dp" android:text="Not on ParchApp yet" android:textColor="@color/brand_slate" android:textSize="9sp" android:textStyle="bold" />
-                </LinearLayout>
-            </LinearLayout>
+                android:layout_marginTop="18dp"
+                android:background="@drawable/bg_light_blue"
+                android:padding="12dp"
+                android:text="@string/group_offline_notice"
+                android:textColor="@color/brand_primary"
+                android:textSize="12sp"
+                android:visibility="gone" />
 
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/create_group_button"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
-                android:layout_marginTop="22dp"
+                android:layout_marginTop="12dp"
                 android:background="@drawable/bg_primary_pill"
                 android:drawableStart="@drawable/ic_group"
                 android:drawablePadding="8dp"

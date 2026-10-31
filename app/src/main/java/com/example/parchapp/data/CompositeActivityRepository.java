@@ -3,6 +3,7 @@ package com.example.parchapp.data;
 import androidx.annotation.Nullable;
 
 import com.example.parchapp.domain.model.ActivityDetails;
+import com.example.parchapp.domain.model.ComparisonEvidence;
 import com.example.parchapp.domain.model.PlannedActivity;
 import com.example.parchapp.util.Callback;
 
@@ -24,8 +25,19 @@ final class CompositeActivityRepository implements ActivityRepository {
     }
 
     @Override
+    public void createActivity(PlannedActivity activity, @Nullable ComparisonEvidence evidence,
+                               Callback<PlannedActivity> callback) {
+        backend.createActivity(activity, evidence, callback);
+    }
+
+    @Override
     public void getActivities(String userId, Callback<List<PlannedActivity>> callback) {
         firestore.getActivities(userId, callback);
+    }
+
+    @Override
+    public List<PlannedActivity> loadActivities(String userId, boolean fromCache) throws Exception {
+        return firestore.loadActivities(userId, fromCache);
     }
 
     @Override
@@ -47,5 +59,24 @@ final class CompositeActivityRepository implements ActivityRepository {
     @Override
     public void cacheTravelMinutes(String activityId, int minutes) {
         firestore.cacheTravelMinutes(activityId, minutes);
+    }
+
+    @Nullable
+    @Override
+    public Integer getCachedTravelMinutesForDestination(String activityId, String destinationId) {
+        return firestore.getCachedTravelMinutesForDestination(activityId, destinationId);
+    }
+
+    @Nullable
+    @Override
+    public Integer getCachedTravelMinutesNear(String activityId, double latitude, double longitude,
+                                              String destinationId, double radiusMeters) {
+        return firestore.getCachedTravelMinutesNear(activityId, latitude, longitude, destinationId, radiusMeters);
+    }
+
+    @Override
+    public void cacheTravelMinutesForPlace(String activityId, int minutes, double latitude,
+                                           double longitude, String destinationId) {
+        firestore.cacheTravelMinutesForPlace(activityId, minutes, latitude, longitude, destinationId);
     }
 }

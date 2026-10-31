@@ -9,6 +9,7 @@ import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.Source;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,6 +57,28 @@ class FirestoreActivityRepository implements ActivityPlanRepository {
                 .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
     }
 
+    // runs on a worker thread: the same queries as getActivities, but it waits for them with Tasks.await
+    @Override
+    public List<PlannedActivity> loadActivities(String userId, boolean fromCache) throws Exception {
+        Source source = fromCache ? Source.CACHE : Source.DEFAULT;
+        QuerySnapshot groups = Tasks.await(db.collection("groups").whereArrayContains("memberIds", userId).get(source));
+        List<Task<QuerySnapshot>> queries = new ArrayList<>();
+        for (DocumentSnapshot group : groups.getDocuments()) {
+            queries.add(db.collection("activities").whereEqualTo("groupId", group.getId()).orderBy("createdAt").get(source));
+        }
+        List<PlannedActivity> activities = new ArrayList<>();
+        if (queries.isEmpty()) {
+            return activities;
+        }
+        for (Object result : Tasks.await(Tasks.whenAllSuccess(queries))) {
+            for (DocumentSnapshot activity : ((QuerySnapshot) result).getDocuments()) {
+                activities.add(fromSnapshot(activity));
+            }
+        }
+        activities.sort((left, right) -> Long.compare(right.getCreatedAt(), left.getCreatedAt()));
+        return activities;
+    }
+
     static PlannedActivity fromSnapshot(DocumentSnapshot snapshot) {
         // read it as a plain object: asking firestore for Map.class crashes because Map has generic types
         Object rawContext = snapshot.get("planningContext");
@@ -99,5 +122,22 @@ class FirestoreActivityRepository implements ActivityPlanRepository {
     @Override
     public void cacheTravelMinutes(String activityId, int minutes) {
         travelCache.put(activityId, minutes);
+    }
+
+    @Override
+    public Integer getCachedTravelMinutesForDestination(String activityId, String destinationId) {
+        return travelCache.getForDestination(activityId, destinationId);
+    }
+
+    @Override
+    public Integer getCachedTravelMinutesNear(String activityId, double latitude, double longitude,
+                                              String destinationId, double radiusMeters) {
+        return travelCache.getNearOrigin(activityId, latitude, longitude, destinationId, radiusMeters);
+    }
+
+    @Override
+    public void cacheTravelMinutesForPlace(String activityId, int minutes, double latitude,
+                                           double longitude, String destinationId) {
+        travelCache.put(activityId, minutes, latitude, longitude, destinationId);
     }
 }

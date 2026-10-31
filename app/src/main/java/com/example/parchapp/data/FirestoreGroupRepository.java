@@ -3,16 +3,19 @@ package com.example.parchapp.data;
 import android.util.Log;
 
 import com.example.parchapp.domain.model.Group;
+import com.example.parchapp.domain.model.GroupInvite;
 import com.example.parchapp.domain.model.Member;
 import com.example.parchapp.domain.model.TimeBlock;
 import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.MainThread;
+import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.Source;
 import com.google.firebase.functions.FirebaseFunctions;
 
@@ -27,11 +30,15 @@ import java.util.UUID;
 class FirestoreGroupRepository extends BaseGroupRepository {
     private static final String TAG = "FirestoreGroupRepo";
     private static final String COLLECTION = "groups";
+// the longest time the backend accepts, 7 days
+    private static final int INVITE_HOURS = 168;
 
     private final CollectionReference collection;
 // f6: the rules do not let the app write a new group, so the backend function creates it
     private final FirebaseFunctions functions;
     private final Map<String, ListenerRegistration> registrations = new HashMap<>();
+// last data of each group, a change of only the metadata does not draw the screen again
+    private final Map<String, Map<String, Object>> lastDataByGroup = new HashMap<>();
 
     FirestoreGroupRepository(FirebaseFirestore db, FirebaseFunctions functions) {
         collection = db.collection(COLLECTION);
@@ -73,6 +80,73 @@ class FirestoreGroupRepository extends BaseGroupRepository {
                 .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
     }
 
+// the backend only gives a code to the owner of the group
+    @Override
+    public void createGroupInvite(String groupId, String userId, Callback<String> callback) {
+        Map<String, Object> input = new HashMap<>();
+        input.put("requestId", UUID.randomUUID().toString());
+        input.put("kind", "group");
+        input.put("entityId", groupId);
+        input.put("hours", INVITE_HOURS);
+        input.put("clientUserId", userId);
+        functions.getHttpsCallable("createShareLink").call(input)
+                .addOnSuccessListener(result -> {
+                    Object code = responseField(result.getData(), "token");
+                    MainThread.post(() -> {
+                        if (code == null) {
+                            callback.onError(new IllegalStateException("Backend response did not contain token"));
+                        } else {
+                            callback.onSuccess(code.toString());
+                        }
+                    });
+                })
+                .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+    }
+
+    @Override
+    public void previewInvite(String code, Callback<GroupInvite> callback) {
+        Map<String, Object> input = new HashMap<>();
+        input.put("token", code);
+        functions.getHttpsCallable("resolveShareLink").call(input)
+                .addOnSuccessListener(result -> {
+                    Object data = result.getData();
+                    Object groupId = responseField(data, "entityId");
+                    MainThread.post(() -> {
+                        if (groupId == null || !"group".equals(responseField(data, "kind"))) {
+                            callback.onError(new IllegalArgumentException("This code is not a group invitation"));
+                        } else {
+                            callback.onSuccess(new GroupInvite(groupId.toString(),
+                                    asString(responseField(data, "title")),
+                                    Boolean.TRUE.equals(responseField(data, "member"))));
+                        }
+                    });
+                })
+                .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+    }
+
+    @Override
+    public void joinWithInvite(String code, String userId, Callback<String> callback) {
+        Map<String, Object> input = new HashMap<>();
+        input.put("token", code);
+        input.put("clientUserId", userId);
+        functions.getHttpsCallable("joinSharedGroup").call(input)
+                .addOnSuccessListener(result -> {
+                    Object groupId = responseField(result.getData(), "groupId");
+                    MainThread.post(() -> {
+                        if (groupId == null) {
+                            callback.onError(new IllegalStateException("Backend response did not contain groupId"));
+                        } else {
+                            callback.onSuccess(groupId.toString());
+                        }
+                    });
+                })
+                .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+    }
+
+    private static Object responseField(Object data, String field) {
+        return data instanceof Map ? ((Map<?, ?>) data).get(field) : null;
+    }
+
     @Override
     public void getGroup(String groupId, Callback<Group> callback) {
         DocumentReference ref = collection.document(groupId);
@@ -107,9 +181,23 @@ class FirestoreGroupRepository extends BaseGroupRepository {
                 .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
     }
 
+    // runs on a worker thread: Tasks.await blocks until firestore answers, which must never happen on the main thread
+    @Override
+    public List<Group> loadGroups(String userId, boolean fromCache) throws Exception {
+        QuerySnapshot snapshot = Tasks.await(collection.whereArrayContains("memberIds", userId)
+                .get(fromCache ? Source.CACHE : Source.DEFAULT));
+        List<Group> groups = new ArrayList<>();
+        for (DocumentSnapshot document : snapshot.getDocuments()) {
+            groups.add(fromSnapshot(document));
+        }
+        return groups;
+    }
+
     @Override
     protected void startObserving(String groupId) {
-        ListenerRegistration registration = collection.document(groupId).addSnapshotListener((snapshot, error) -> {
+// metadata changes too, so we also hear when the same data stops coming from the cache and comes from the server
+        ListenerRegistration registration = collection.document(groupId).addSnapshotListener(
+                com.google.firebase.firestore.MetadataChanges.INCLUDE, (snapshot, error) -> {
 // an error here usually means the user can not read the group anymore
             if (error != null) {
                 Log.w(TAG, "Listening to group " + groupId + " failed", error);
@@ -117,7 +205,12 @@ class FirestoreGroupRepository extends BaseGroupRepository {
                 return;
             }
             if (snapshot != null && snapshot.exists()) {
-                notifyListeners(fromSnapshot(snapshot));
+                Map<String, Object> data = snapshot.getData();
+                if (data == null || !data.equals(lastDataByGroup.get(groupId))) {
+                    lastDataByGroup.put(groupId, data);
+                    notifyListeners(fromSnapshot(snapshot));
+                }
+                notifySync(groupId, snapshot.getMetadata().isFromCache());
 // the document does not exist, for example it was deleted while the screen was open
             } else if (snapshot != null && !snapshot.getMetadata().isFromCache()) {
                 notifyUnavailable(groupId);
@@ -129,6 +222,7 @@ class FirestoreGroupRepository extends BaseGroupRepository {
     @Override
     protected void stopObserving(String groupId) {
         ListenerRegistration registration = registrations.remove(groupId);
+        lastDataByGroup.remove(groupId);
         if (registration != null) {
             registration.remove();
         }

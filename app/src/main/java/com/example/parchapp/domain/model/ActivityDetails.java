@@ -14,6 +14,10 @@ public final class ActivityDetails {
     private final String endTime;
     private final Integer reminderMinutesBefore;
     private final String createdBy;
+    private final int totalParticipants;
+    private final int acceptedParticipants;
+    private final Integer durationMinutes;
+    private final boolean cancelled;
 
     public ActivityDetails(String id, String groupId, String title, String category, String date,
                            String time, String location, String status, String startTime,
@@ -25,6 +29,15 @@ public final class ActivityDetails {
     public ActivityDetails(String id, String groupId, String title, String category, String date,
                            String time, String location, String status, String startTime,
                            String endTime, Integer reminderMinutesBefore, String createdBy) {
+        this(id, groupId, title, category, date, time, location, status, startTime, endTime,
+                reminderMinutesBefore, createdBy, null, false, 0, 0);
+    }
+
+    public ActivityDetails(String id, String groupId, String title, String category, String date,
+                           String time, String location, String status, String startTime,
+                           String endTime, Integer reminderMinutesBefore, String createdBy,
+                           Integer durationMinutes, boolean cancelled,
+                           int totalParticipants, int acceptedParticipants) {
         this.id = id;
         this.groupId = groupId;
         this.title = title;
@@ -37,6 +50,10 @@ public final class ActivityDetails {
         this.endTime = endTime;
         this.reminderMinutesBefore = reminderMinutesBefore;
         this.createdBy = createdBy;
+        this.durationMinutes = durationMinutes;
+        this.cancelled = cancelled;
+        this.totalParticipants = Math.max(0, totalParticipants);
+        this.acceptedParticipants = Math.max(0, Math.min(acceptedParticipants, this.totalParticipants));
     }
 
     public String getId() { return id; }
@@ -51,6 +68,10 @@ public final class ActivityDetails {
     public String getEndTime() { return endTime; }
     public Integer getReminderMinutesBefore() { return reminderMinutesBefore; }
     public String getCreatedBy() { return createdBy; }
+    public Integer getDurationMinutes() { return durationMinutes; }
+    public boolean isCancelled() { return cancelled; }
+    public int getTotalParticipants() { return totalParticipants; }
+    public int getAcceptedParticipants() { return acceptedParticipants; }
 
     public boolean hasScheduledTime() {
         return startTime != null && !startTime.isEmpty() && endTime != null && !endTime.isEmpty();

@@ -52,7 +52,10 @@ public class CreateAccountActivity extends AppCompatActivity {
                     .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP));
             finish();
         });
-        findViewById(R.id.create_google_button).setOnClickListener(v -> googleSignIn.start());
+        // eventual connectivity: creating an account needs Firebase, so offline we do not open Google and we say why
+        findViewById(R.id.create_google_button).setOnClickListener(v -> {
+            if (!OfflineGuard.blockIfOffline(this, "sign up with Google")) googleSignIn.start();
+        });
         bindRememberedGoogleAccount();
 
         setupVisibilityToggle(findViewById(R.id.toggle_password), passwordInput);
@@ -83,8 +86,12 @@ public class CreateAccountActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.google_account_name)).setText(preview.getFullName());
         ((TextView) findViewById(R.id.google_account_email)).setText(account.getEmail());
         findViewById(R.id.google_account_card).setVisibility(View.VISIBLE);
-        findViewById(R.id.google_account_row).setOnClickListener(v -> googleSignIn.start());
-        findViewById(R.id.use_another_google_account).setOnClickListener(v -> googleSignIn.startWithAnotherAccount());
+        findViewById(R.id.google_account_row).setOnClickListener(v -> {
+            if (!OfflineGuard.blockIfOffline(this, "sign up with Google")) googleSignIn.start();
+        });
+        findViewById(R.id.use_another_google_account).setOnClickListener(v -> {
+            if (!OfflineGuard.blockIfOffline(this, "sign up with Google")) googleSignIn.startWithAnotherAccount();
+        });
     }
 
     private static void moveOnNext(EditText field, EditText next) {
@@ -114,6 +121,21 @@ public class CreateAccountActivity extends AppCompatActivity {
         ((TextView) createButton).setText(creating ? R.string.creating_account : R.string.continue_label);
     }
 
+    private final OfflineBannerController offlineBanner = new OfflineBannerController();
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        ((TextView) findViewById(R.id.offline_banner_message)).setText(R.string.offline_banner_sign_up);
+        offlineBanner.start(findViewById(R.id.offline_banner));
+    }
+
+    @Override
+    protected void onStop() {
+        offlineBanner.stop();
+        super.onStop();
+    }
+
     private void createAccount() {
         String fullName = nameInput.getText().toString().trim();
         String email = emailInput.getText().toString().trim();
@@ -140,13 +162,17 @@ public class CreateAccountActivity extends AppCompatActivity {
             return;
         }
 
+        if (OfflineGuard.blockIfOffline(this, "create your account", "What you wrote stays here.")) {
+            return;
+        }
         setCreating(true);
         auth.register(fullName, email, password, new OpenDashboardCallback() {
             @Override
             public void onError(Exception error) {
                 setCreating(false);
                 Toast.makeText(CreateAccountActivity.this,
-                        "Could not create the account: " + error.getLocalizedMessage(),
+                        OfflineGuard.failureMessage(error, "create your account",
+                                "Could not create the account: " + error.getLocalizedMessage()),
                         Toast.LENGTH_LONG).show();
             }
         });
@@ -157,6 +183,7 @@ public class CreateAccountActivity extends AppCompatActivity {
         public void onSuccess(UserProfile user) {
             UserSession.setCurrentUser(user);
             AnalyticsTracker.getInstance().setUserId(user.getId());
+            Repositories.availabilityStatusSync().onUserAvailable();
             startActivity(new Intent(CreateAccountActivity.this, DashboardActivity.class));
             finishAffinity();
         }
