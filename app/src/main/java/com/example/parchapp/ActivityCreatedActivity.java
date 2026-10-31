@@ -13,6 +13,7 @@ import com.example.parchapp.analytics.AnalyticsEvents;
 import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.data.FirebaseRecommendationDecisionRepository;
 import com.example.parchapp.data.Repositories;
+import com.example.parchapp.domain.PlanContext;
 import com.example.parchapp.domain.model.ActivityDetails;
 import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.IconButtons;
@@ -140,14 +141,18 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         showSuccessContent();
         bindSummary(details.getTitle(), details.getDate(), details.getTime(), details.getLocation(),
                 categoryLabel(details.getCategory()), statusLabel(details.getStatus()), durationLabel(details));
-        View suggestedTimes = findViewById(R.id.suggested_times_button);
+        TextView suggestedTimes = findViewById(R.id.suggested_times_button);
         UserProfile currentUser = UserSession.getCurrentUser();
         boolean canSuggest = !details.isCancelled() && currentUser != null
                 && currentUser.getId().equals(details.getCreatedBy())
                 && Repositories.recommendationDecisions() != null;
         suggestedTimes.setVisibility(canSuggest ? View.VISIBLE : View.GONE);
-        suggestedTimes.setOnClickListener(v -> startActivity(
-                SuggestedTimesActivity.intent(this, details.getId())));
+// the backend only suggests times for today, for another day we compare that date in schedule
+        boolean today = PlanContext.isToday(details.getDate());
+        suggestedTimes.setText(today ? R.string.suggested_times : R.string.compare_day_in_schedule);
+        suggestedTimes.setOnClickListener(v -> startActivity(today
+                ? SuggestedTimesActivity.intent(this, details.getId())
+                : ScheduleActivity.intent(this, details.getDate())));
         if (!hasCompleteSchedule(details)) {
             reminderButton.setText("Reminder unavailable");
             reminderStatus.setText(R.string.activity_reminder_requires_schedule);

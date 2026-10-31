@@ -79,6 +79,29 @@ public final class PlanContext {
         return -1;
     }
 
+    /* Today in Bogota. The backend suggests times only for today, so the screens use this to show or hide them. */
+    public static boolean isToday(String date) {
+        return isToday(date, Calendar.getInstance(bogota()));
+    }
+
+    /* A "yyyy-MM-dd" date as a day at noon in Bogota, null when it has another format. */
+    public static Calendar parseDay(String date) {
+        if (date == null) {
+            return null;
+        }
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        format.setTimeZone(bogota());
+        format.setLenient(false);
+        try {
+            Calendar day = Calendar.getInstance(bogota());
+            day.setTime(format.parse(date.trim()));
+            day.set(Calendar.HOUR_OF_DAY, 12);
+            return day;
+        } catch (ParseException notAnIsoDate) {
+            return null;
+        }
+    }
+
     /* True when the plan's date is today ("Today", "Tonight" and empty dates count as today). */
     public static boolean isToday(String date, Calendar now) {
         if (date == null || date.trim().isEmpty()) {
