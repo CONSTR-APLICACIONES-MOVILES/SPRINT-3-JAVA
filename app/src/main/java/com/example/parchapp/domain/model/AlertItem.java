@@ -18,6 +18,11 @@ public final class AlertItem {
     private final int reminderSequence;
     private final Integer reminderDelayMinutes;
     private final String reminderSentAt;
+    // chat alerts (Sprint 4): the chat to open; the friend is null for a House Chat
+    private final String chatGroupName;
+    private final String chatFriendId;
+    private final String chatFriendName;
+    private final String chatFriendInitials;
 
     public AlertItem(String id, String kind, String title, String description, String createdAt,
                      boolean read, String response, String activityId, String groupId) {
@@ -34,6 +39,16 @@ public final class AlertItem {
                      boolean read, String response, String activityId, String groupId, int groupSize,
                      String reminderId, String reminderPurpose, String reminderStrategy,
                      int reminderSequence, Integer reminderDelayMinutes, String reminderSentAt) {
+        this(id, kind, title, description, createdAt, read, response, activityId, groupId, groupSize,
+                reminderId, reminderPurpose, reminderStrategy, reminderSequence, reminderDelayMinutes,
+                reminderSentAt, null, null, null, null);
+    }
+
+    public AlertItem(String id, String kind, String title, String description, String createdAt,
+                     boolean read, String response, String activityId, String groupId, int groupSize,
+                     String reminderId, String reminderPurpose, String reminderStrategy,
+                     int reminderSequence, Integer reminderDelayMinutes, String reminderSentAt,
+                     String chatGroupName, String chatFriendId, String chatFriendName, String chatFriendInitials) {
         this.id = id;
         this.kind = kind;
         this.title = title;
@@ -50,6 +65,10 @@ public final class AlertItem {
         this.reminderSequence = Math.max(0, reminderSequence);
         this.reminderDelayMinutes = reminderDelayMinutes;
         this.reminderSentAt = reminderSentAt;
+        this.chatGroupName = chatGroupName;
+        this.chatFriendId = chatFriendId;
+        this.chatFriendName = chatFriendName;
+        this.chatFriendInitials = chatFriendInitials;
     }
 
     public String getId() { return id; }
@@ -68,6 +87,10 @@ public final class AlertItem {
     public int getReminderSequence() { return reminderSequence; }
     public Integer getReminderDelayMinutes() { return reminderDelayMinutes; }
     public String getReminderSentAt() { return reminderSentAt; }
+    public String getChatGroupName() { return chatGroupName; }
+    public String getChatFriendId() { return chatFriendId; }
+    public String getChatFriendName() { return chatFriendName; }
+    public String getChatFriendInitials() { return chatFriendInitials; }
 
     public String getCategoryKey() {
         switch (kind) {
@@ -85,13 +108,15 @@ public final class AlertItem {
             case "invitation":
             case "reminder": return "high";
             case "groupInvite":
-            case "timeChanged": return "medium";
+            case "timeChanged":
+            case "chatMessage": return "medium";
             default: return "low";
         }
     }
 
     public boolean isActivityInvitation() { return "invitation".equals(kind); }
     public boolean isGroupInvitation() { return "groupInvite".equals(kind); }
+    public boolean isChatMessage() { return "chatMessage".equals(kind); }
     public boolean isDeliveredReminder() {
         return "reminder".equals(kind) && reminderId != null && !reminderId.trim().isEmpty()
                 && reminderStrategy != null && !reminderStrategy.trim().isEmpty()
