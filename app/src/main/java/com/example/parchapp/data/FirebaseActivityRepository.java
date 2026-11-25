@@ -3,6 +3,7 @@ package com.example.parchapp.data;
 import androidx.annotation.Nullable;
 
 import com.example.parchapp.domain.model.ActivityDetails;
+import com.example.parchapp.domain.model.ActivityParticipants;
 import com.example.parchapp.domain.model.ComparisonEvidence;
 import com.example.parchapp.domain.model.PlannedActivity;
 import com.example.parchapp.util.Callback;
@@ -134,6 +135,46 @@ public final class FirebaseActivityRepository implements ActivityActionsReposito
         input.put("activityId", activityId);
         input.put("minutesBefore", minutesBefore);
         functions.getHttpsCallable("setActivityReminder").call(input)
+                .addOnSuccessListener(result -> MainThread.post(() -> callback.onSuccess(null)))
+                .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+    }
+
+    @Override
+    public void getActivityParticipants(String activityId, Callback<ActivityParticipants> callback) {
+        Map<String, Object> input = new HashMap<>();
+        input.put("activityId", activityId);
+        functions.getHttpsCallable("getActivityParticipants").call(input)
+                .addOnSuccessListener(result -> {
+                    Map<?, ?> data = map(result.getData());
+                    ActivityParticipants participants = ActivityParticipants.from(data);
+                    MainThread.post(() -> callback.onSuccess(participants));
+                })
+                .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+    }
+
+    @Override
+    public void changeActivityParticipants(String activityId, String action, @Nullable String userId,
+                                           String expectedVersion, String clientUserId,
+                                           Callback<Void> callback) {
+        Map<String, Object> input = new HashMap<>();
+        input.put("activityId", activityId);
+        input.put("action", action);
+        input.put("expectedVersion", expectedVersion);
+        input.put("clientUserId", clientUserId);
+        if (userId != null) input.put("userId", userId);
+        functions.getHttpsCallable("changeActivityParticipants").call(input)
+                .addOnSuccessListener(result -> MainThread.post(() -> callback.onSuccess(null)))
+                .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+    }
+
+    @Override
+    public void inviteGroupFriend(String groupId, String userId, String clientUserId,
+                                  Callback<Void> callback) {
+        Map<String, Object> input = new HashMap<>();
+        input.put("groupId", groupId);
+        input.put("userId", userId);
+        input.put("clientUserId", clientUserId);
+        functions.getHttpsCallable("inviteGroupFriend").call(input)
                 .addOnSuccessListener(result -> MainThread.post(() -> callback.onSuccess(null)))
                 .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
     }
