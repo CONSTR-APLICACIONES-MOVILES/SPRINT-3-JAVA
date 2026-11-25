@@ -117,6 +117,13 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         findViewById(R.id.create_plan_button).setOnClickListener(v -> openCreatePlan());
 // they wait until the group is loaded, the form needs its id and size
         setPlanButtonsEnabled(false);
+// sprint 4: house chat opens the chat of the whole group
+        findViewById(R.id.house_chat_button).setOnClickListener(v -> {
+            String id = getIntent().getStringExtra(EXTRA_GROUP_ID);
+            if (id != null) {
+                startActivity(ChatActivity.forGroup(this, id, currentGroup == null ? null : currentGroup.getName()));
+            }
+        });
 // sync schedules opens compare availability with this group
         findViewById(R.id.sync_schedules_button).setOnClickListener(v -> {
             String id = getIntent().getStringExtra(EXTRA_GROUP_ID);
@@ -333,6 +340,8 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         int[] names = {R.id.member_name_0, R.id.member_name_1, R.id.member_name_2, R.id.member_name_3};
         int[] summaries = {R.id.member_summary_0, R.id.member_summary_1, R.id.member_summary_2, R.id.member_summary_3};
         int[] statuses = {R.id.member_status_0, R.id.member_status_1, R.id.member_status_2, R.id.member_status_3};
+        int[] chatButtons = {R.id.member_chat_0, R.id.member_chat_1, R.id.member_chat_2, R.id.member_chat_3};
+        UserProfile me = UserSession.getCurrentUser();
         findViewById(R.id.group_members_header).setVisibility(members.isEmpty() ? View.GONE : View.VISIBLE);
 // when there are more members than cards we say how many are not shown
         int hidden = Math.max(0, members.size() - cards.length);
@@ -351,6 +360,12 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
 // f6: the summary and the status of each member are other features, so we leave them empty
             ((TextView) findViewById(summaries[i])).setText("");
             ((TextView) findViewById(statuses[i])).setText("");
+// sprint 4: the chat button opens a chat between me and this member, there is no chat with myself
+            View chat = findViewById(chatButtons[i]);
+            boolean isMe = me != null && me.getId().equals(member.getId());
+            chat.setVisibility(isMe ? View.GONE : View.VISIBLE);
+            chat.setOnClickListener(isMe ? null : v ->
+                    startActivity(ChatActivity.forMember(this, group.getId(), group.getName(), member)));
         }
     }
 
