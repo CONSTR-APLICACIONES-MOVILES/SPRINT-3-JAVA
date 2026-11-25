@@ -34,7 +34,9 @@ final class SlotAcceptanceFile {
         try (Writer writer = new OutputStreamWriter(new FileOutputStream(temporary), StandardCharsets.UTF_8)) {
             writer.write(toJson(insight));
         }
-        if (!temporary.renameTo(file)) {
+// on android the rename replaces the old file in one step; some file systems (windows, where the unit tests
+// run) do not replace an existing file, so then the old one is removed first and the rename is tried again
+        if (!temporary.renameTo(file) && !(file.delete() && temporary.renameTo(file))) {
             throw new IOException("Could not replace " + file.getName());
         }
     }
