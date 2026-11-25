@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- a common free slot shared in the chat by any member -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_chat_slot"
+        android:gravity="center_vertical"
+        android:padding="12dp">
+        <ImageView android:layout_width="36dp" android:layout_height="36dp" android:background="@drawable/bg_icon_badge_square" android:backgroundTint="@color/brand_success" android:importantForAccessibility="no" android:padding="8dp" android:src="@drawable/ic_calendar" android:tint="@android:color/white" />
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="PARCHAPP COMMON SLOT" android:textColor="@color/brand_success_dark" android:textSize="10sp" android:textStyle="bold" />
+            <TextView android:id="@+id/chat_slot_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textColor="@color/brand_dark" android:textSize="14sp" android:textStyle="bold" />
+            <TextView android:id="@+id/chat_slot_meta" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textColor="@color/brand_slate" android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

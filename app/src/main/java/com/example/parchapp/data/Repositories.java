@@ -32,6 +32,7 @@ public final class Repositories {
     private static PresenceRepository presence;
     private static AvailabilityStatusSyncCoordinator availabilityStatusSync;
     private static ScheduleRepository schedules;
+    private static ChatRepository chats;
     private static final GroupMemoryCache groupCache = new GroupMemoryCache();
 
     private Repositories() {
@@ -88,6 +89,8 @@ public final class Repositories {
             // schedules come from the backend callables getScheduleFriends and getScheduleDay
             // like the Flutter app, the last friends and days are kept on the phone and shown when offline
             schedules = new OfflineScheduleRepository(context, new FunctionsScheduleRepository(functions));
+            // House Chat and chats between two members, in real time from Firestore
+            chats = new FirestoreChatRepository(db);
         } else {
             auth = new DisabledAuthRepository();
             profileDetails = null;
@@ -176,6 +179,11 @@ public final class Repositories {
 
     public static ScheduleRepository schedules() {
         return schedules;
+    }
+
+    /* null without Firebase: the messages only exist on the backend */
+    public static ChatRepository chats() {
+        return chats;
     }
 
     public static StatusService status() {
