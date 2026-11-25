@@ -35,6 +35,7 @@ import com.example.parchapp.domain.model.DaySchedule;
 import com.example.parchapp.domain.model.ScheduleFriend;
 import com.example.parchapp.domain.model.TimeBlock;
 import com.example.parchapp.domain.model.TimeSlot;
+import com.example.parchapp.util.BackgroundThreads;
 import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.GoogleCalendarImport;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -366,20 +367,39 @@ public class ScheduleActivity extends AppCompatActivity {
     // ---------- Render ----------
 
     private void render() {
+        BackgroundThreads.beginSection("Schedule.render");
+        try {
+            renderAll();
+        } finally {
+            BackgroundThreads.endSection();
+        }
+    }
+
+    private void renderAll() {
         findViewById(R.id.schedule_loading).setVisibility(status == Status.LOADING ? View.VISIBLE : View.GONE);
         findViewById(R.id.schedule_error).setVisibility(status == Status.ERROR ? View.VISIBLE : View.GONE);
         findViewById(R.id.schedule_content).setVisibility(status == Status.ERROR ? View.GONE : View.VISIBLE);
         findViewById(R.id.schedule_summary).setVisibility(status == Status.ERROR ? View.GONE : View.VISIBLE);
         findViewById(R.id.schedule_fab).setVisibility(status == Status.READY ? View.VISIBLE : View.GONE);
         ((TextView) findViewById(R.id.schedule_error_text)).setText(error == null ? "Unable to load schedule." : error);
-        renderChips();
-        renderImport();
-        renderDurations();
-        renderWeek();
-        renderTimeline();
-        renderBanner();
+        traced("Schedule.renderChips", this::renderChips);
+        traced("Schedule.renderImport", this::renderImport);
+        traced("Schedule.renderDurations", this::renderDurations);
+        traced("Schedule.renderWeek", this::renderWeek);
+        traced("Schedule.renderTimeline", this::renderTimeline);
+        traced("Schedule.renderBanner", this::renderBanner);
         if (refreshSlotsSheet != null) {
             refreshSlotsSheet.run();
+        }
+    }
+
+    // profiling: every part of the screen is its own section in Perfetto and in the Android Studio CPU profiler
+    private static void traced(String section, Runnable part) {
+        BackgroundThreads.beginSection(section);
+        try {
+            part.run();
+        } finally {
+            BackgroundThreads.endSection();
         }
     }
 
@@ -823,8 +843,8 @@ public class ScheduleActivity extends AppCompatActivity {
             return;
         }
         selectedSlot = index;
-        renderTimeline();
-        renderBanner();
+        traced("Schedule.renderTimeline", this::renderTimeline);
+        traced("Schedule.renderBanner", this::renderBanner);
         if (refreshSlotsSheet != null) {
             refreshSlotsSheet.run();
         }
