@@ -15,6 +15,11 @@ public abstract class ScheduleDayDao {
     @Query("SELECT * FROM schedule_days WHERE owner = :owner AND dayKey = :dayKey")
     public abstract ScheduleDayEntity day(String owner, String dayKey);
 
+    // offline: the newest copy of that date with any friends; my own blocks are in every copy of the day
+    @Nullable
+    @Query("SELECT * FROM schedule_days WHERE owner = :owner AND dayKey LIKE :date || '.%' ORDER BY savedAt DESC LIMIT 1")
+    public abstract ScheduleDayEntity newestOfDate(String owner, String date);
+
     // saving the same day again replaces the row and makes it the newest
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     public abstract void put(ScheduleDayEntity day);

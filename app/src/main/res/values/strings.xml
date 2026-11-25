@@ -323,6 +323,14 @@ It works for 7 days.</string>
     <string name="schedule_importing">Importing</string>
     <string name="schedule_sync_again">Sync again</string>
     <string name="schedule_try_again">Try again</string>
+    <string name="schedule_imported">Imported</string>
+    <string name="schedule_updated_offline_title">Schedule</string>
+    <string name="schedule_updated_online_title">Schedule updated</string>
+    <string name="schedule_last_updated">Last updated: %1$s</string>
+    <string name="schedule_last_updated_none">Last updated: Not available</string>
+    <string name="schedule_refresh">Refresh schedule</string>
+    <string name="schedule_friends_offline">Friends need a connection</string>
+    <string name="schedule_offline_no_copy">You are offline and there is no saved schedule for this day yet. Connect to the internet and retry.</string>
     <string name="schedule_less_hours">One hour less</string>
     <string name="schedule_more_hours">One hour more</string>
     <string name="schedule_less_minutes">One minute less</string>

@@ -45,6 +45,8 @@ public class OfflineScheduleRepository implements ScheduleRepository {
     private volatile boolean lastFromSaved;
     private volatile long lastSavedAt;
     private final ScheduleDayCache<List<DaySchedule>> memory = new ScheduleDayCache<>(SystemClock::elapsedRealtime);
+    // when each day in memory came from the backend (System.currentTimeMillis), for the "Last updated" banner
+    private final java.util.Map<String, Long> fetchedAt = new java.util.concurrent.ConcurrentHashMap<>();
 
     OfflineScheduleRepository(Context context, ScheduleRepository remote) {
         this.remote = remote;
@@ -58,7 +60,8 @@ public class OfflineScheduleRepository implements ScheduleRepository {
         return lastFromSaved;
     }
 
-    /* when the copy on screen was saved (System.currentTimeMillis), 0 when unknown */
+    /* when the day on screen came from the backend (System.currentTimeMillis): now for a fresh answer, the time it
+     * was fetched for a day from memory, the time it was saved for a copy from the phone; 0 when unknown */
     public long getShownSavedAt() {
         return lastSavedAt;
     }
@@ -99,6 +102,8 @@ public class OfflineScheduleRepository implements ScheduleRepository {
         List<DaySchedule> cached = memory.get(key);
         if (cached != null) {
             lastFromSaved = false;
+            Long fetched = fetchedAt.get(key);
+            lastSavedAt = fetched == null ? 0 : fetched;
             Log.d(PERF, String.format(Locale.US, "Schedule %s from memory in %d ms", date, SystemClock.elapsedRealtime() - started));
             callback.onSuccess(cached);
             return;
@@ -108,6 +113,8 @@ public class OfflineScheduleRepository implements ScheduleRepository {
             @Override
             public void onSuccess(List<DaySchedule> schedules) {
                 lastFromSaved = false;
+                lastSavedAt = System.currentTimeMillis();
+                fetchedAt.put(key, lastSavedAt);
                 memory.put(key, schedules);
                 saveDay(owner, dayKey, daysToJson(schedules));
                 Log.d(PERF, String.format(Locale.US, "Schedule %s from network in %d ms", date, SystemClock.elapsedRealtime() - started));
@@ -120,14 +127,22 @@ public class OfflineScheduleRepository implements ScheduleRepository {
             public void onError(Exception error) {
                 DB_QUEUE.execute(() -> {
                     ScheduleDayEntity saved = readDay(owner, dayKey);
+                    // offline Schedule only asks for my own day; when that exact copy is missing, my blocks are
+                    // taken from a copy of the same date that was saved together with friends
+                    boolean mineOnly = saved == null && friendIds.isEmpty();
+                    if (mineOnly) {
+                        saved = readNewestOfDate(owner, date);
+                    }
+                    ScheduleDayEntity found = saved;
                     MainThread.post(() -> {
-                        if (saved == null) {
+                        if (found == null) {
                             callback.onError(error);
                             return;
                         }
                         lastFromSaved = true;
-                        lastSavedAt = saved.savedAt;
-                        callback.onSuccess(daysFromJson(saved.json));
+                        lastSavedAt = found.savedAt;
+                        List<DaySchedule> schedules = daysFromJson(found.json);
+                        callback.onSuccess(mineOnly ? onlyOwner(schedules, owner) : schedules);
                     });
                 });
             }
@@ -205,6 +220,27 @@ public class OfflineScheduleRepository implements ScheduleRepository {
             Log.w(TAG, "Could not read the saved Schedule day", error);
             return null;
         }
+    }
+
+    @Nullable
+    private ScheduleDayEntity readNewestOfDate(String owner, String date) {
+        try {
+            return days.newestOfDate(owner, date);
+        } catch (RuntimeException error) {
+            Log.w(TAG, "Could not read the saved Schedule day", error);
+            return null;
+        }
+    }
+
+    /* the schedules of one person from a saved day; the friends in that copy are dropped */
+    static List<DaySchedule> onlyOwner(List<DaySchedule> schedules, String owner) {
+        List<DaySchedule> mine = new ArrayList<>();
+        for (DaySchedule schedule : schedules) {
+            if (owner.equals(schedule.getOwnerId())) {
+                mine.add(schedule);
+            }
+        }
+        return mine;
     }
 
     /* before version 2 the days were saved in SharedPreferences; they now live in room, so the old copies

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Schedule, the same layout as the Flutter ScheduleView: friend bar, Google Calendar card, duration, week, two lanes and the floating common slots banner -->
+<!-- Schedule, the same layout as the Flutter ScheduleView (sch-back): last updated banner, friend bar, Google Calendar card, duration, week, two lanes and the floating common slots banner -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -8,6 +8,69 @@
     android:orientation="vertical">
 
     <include layout="@layout/view_top_header" />
+
+    <!-- Last updated banner, like the Flutter ScheduleLastUpdatedBanner: amber and kept while offline, with the
+         time of the copy on screen and a refresh button; green for a few seconds once it updates after reconnecting -->
+    <LinearLayout
+        android:id="@+id/schedule_updated_banner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="6dp"
+        android:background="@drawable/bg_sch_updated_offline"
+        android:gravity="center_vertical"
+        android:minHeight="44dp"
+        android:paddingStart="12dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="4dp"
+        android:paddingBottom="8dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/schedule_updated_icon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_cloud_off"
+            android:tint="#946200" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/schedule_updated_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/schedule_updated_offline_title"
+                android:textColor="#946200"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/schedule_updated_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:textColor="#334155"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/schedule_updated_refresh"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/schedule_refresh"
+            android:padding="10dp"
+            android:src="@drawable/ic_refresh"
+            android:tint="#946200" />
+    </LinearLayout>
 
     <!-- Friend bar: Me, the compared friends, Add friends and Comparing (N) -->
     <LinearLayout
@@ -51,7 +114,7 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Google Calendar import -->
+    <!-- Google Calendar, the compact card of the Flutter integrations row: icon, title, status and an Import pill -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -64,32 +127,32 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_sch_card"
+            android:background="@drawable/bg_sch_calendar_card"
             android:gravity="center_vertical"
-            android:paddingStart="12dp"
-            android:paddingTop="10dp"
-            android:paddingEnd="12dp"
-            android:paddingBottom="10dp">
+            android:paddingStart="8dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="6dp">
 
             <ImageView
-                android:layout_width="34dp"
-                android:layout_height="34dp"
-                android:background="@drawable/bg_sch_icon_box"
+                android:layout_width="19dp"
+                android:layout_height="19dp"
                 android:contentDescription="@null"
-                android:padding="7dp"
                 android:src="@drawable/ic_calendar"
                 android:tint="@color/brand_primary" />
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
+                android:layout_marginStart="6dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
                     android:text="@string/schedule_calendar_title"
                     android:textColor="#111827"
                     android:textSize="12sp"
@@ -99,7 +162,6 @@
                     android:id="@+id/schedule_import_subtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
                     android:ellipsize="end"
                     android:maxLines="2"
                     android:text="@string/schedule_import_idle"
@@ -109,13 +171,12 @@
 
             <TextView
                 android:id="@+id/schedule_import_btn"
-                android:layout_width="105dp"
-                android:layout_height="34dp"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/bg_sch_import_btn"
-                android:drawableStart="@drawable/ic_download"
-                android:drawablePadding="4dp"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginStart="5dp"
+                android:background="@drawable/bg_sch_import_pill"
                 android:gravity="center"
+                android:minWidth="64dp"
                 android:paddingStart="10dp"
                 android:paddingEnd="10dp"
                 android:text="@string/schedule_import"
@@ -240,15 +301,6 @@
             android:layout_marginTop="6dp"
             android:orientation="horizontal" />
     </LinearLayout>
-
-    <com.google.android.material.progressindicator.LinearProgressIndicator
-        android:id="@+id/schedule_loading"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:indeterminate="true"
-        android:visibility="gone"
-        app:indicatorColor="@color/brand_primary"
-        app:trackThickness="2dp" />
 
     <FrameLayout
         android:layout_width="match_parent"
