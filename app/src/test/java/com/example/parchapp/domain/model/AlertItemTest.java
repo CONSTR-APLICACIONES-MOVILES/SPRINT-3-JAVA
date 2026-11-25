@@ -33,4 +33,14 @@ public class AlertItemTest {
         assertEquals("high", reminder.getPriorityKey());
         assertEquals("schedule", timeChange.getCategoryKey());
     }
+
+    @Test
+    public void classifiesChatMessagesAsGroupAlerts() {
+        AlertItem chat = new AlertItem("chat_1", "chatMessage", "New message in Study Group", "Ana: hola",
+                "2026-11-25T15:00:00.000Z", false, null, null, "group-1");
+
+        assertTrue(chat.isChatMessage());
+        assertEquals("groups", chat.getCategoryKey());
+        assertEquals("medium", chat.getPriorityKey());
+    }
 }

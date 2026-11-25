@@ -194,6 +194,7 @@
     <string name="alerts_category_reminder">Reminder</string>
     <string name="alerts_category_schedule">Schedule update</string>
     <string name="alerts_category_friend">Friend request</string>
+    <string name="alerts_category_chat">Chat message</string>
     <string name="alerts_action_saved">Response saved</string>
     <string name="alerts_action_error">Could not save that action. Try again.</string>
     <string name="alerts_response_saved">Your response: %1$s</string>

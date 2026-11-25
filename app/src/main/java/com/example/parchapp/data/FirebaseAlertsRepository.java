@@ -21,7 +21,10 @@ final class FirebaseAlertsRepository implements AlertsRepository {
 
     @Override
     public void getAlerts(Callback<List<AlertItem>> callback) {
-        functions.getHttpsCallable("getAlerts").call(Collections.emptyMap())
+        // includeChat: the backend also sends the new chat messages (Sprint 4) as alerts
+        Map<String, Object> input = new HashMap<>();
+        input.put("includeChat", true);
+        functions.getHttpsCallable("getAlerts").call(input)
                 .addOnSuccessListener(result -> {
                     Object rawAlerts = map(result.getData()).get("alerts");
                     List<AlertItem> alerts = new ArrayList<>();
@@ -37,7 +40,11 @@ final class FirebaseAlertsRepository implements AlertsRepository {
                                     nullableString(data.get("reminderPurpose")),
                                     nullableString(data.get("strategy")),
                                     integer(data.get("sequence")), nullableInteger(data.get("delayMinutes")),
-                                    nullableString(data.get("sentAt"))));
+                                    nullableString(data.get("sentAt")),
+                                    nullableString(data.get("groupName")),
+                                    nullableString(data.get("chatFriendId")),
+                                    nullableString(data.get("chatFriendName")),
+                                    nullableString(data.get("chatFriendInitials"))));
                         }
                     }
                     MainThread.post(() -> callback.onSuccess(alerts));

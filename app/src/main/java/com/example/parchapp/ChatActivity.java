@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.parchapp.data.ChatRepository;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.domain.availability.AvailabilityEngine;
+import com.example.parchapp.domain.model.AlertItem;
 import com.example.parchapp.domain.model.ChatMessage;
 import com.example.parchapp.domain.model.Group;
 import com.example.parchapp.domain.model.Member;
@@ -46,6 +47,9 @@ public class ChatActivity extends AppCompatActivity {
     private RecyclerView list;
     private LinearLayoutManager layout;
     private EditText input;
+    // null only for a direct chat opened from an alert when both people share no group
+    @Nullable
+    private String groupId;
     // the people of this chat with their busy blocks, for the common slot; null until the group arrives
     @Nullable
     private List<Member> people;
@@ -63,19 +67,33 @@ public class ChatActivity extends AppCompatActivity {
                 .putExtra(EXTRA_FRIEND_INITIALS, member.getDisplayInitials());
     }
 
+    // from the notifications screen: the chat of a new message alert
+    static Intent forAlert(Context context, AlertItem alert) {
+        String groupId = alert.getGroupId() == null || alert.getGroupId().isEmpty() ? null : alert.getGroupId();
+        Intent intent = new Intent(context, ChatActivity.class)
+                .putExtra(EXTRA_GROUP_ID, groupId)
+                .putExtra(EXTRA_GROUP_NAME, alert.getChatGroupName());
+        if (alert.getChatFriendId() != null) {
+            intent.putExtra(EXTRA_FRIEND_ID, alert.getChatFriendId())
+                    .putExtra(EXTRA_FRIEND_NAME, alert.getChatFriendName())
+                    .putExtra(EXTRA_FRIEND_INITIALS, alert.getChatFriendInitials());
+        }
+        return intent;
+    }
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
         me = UserSession.getCurrentUser();
         chats = Repositories.chats();
-        String groupId = getIntent().getStringExtra(EXTRA_GROUP_ID);
-        if (me == null || chats == null || groupId == null) {
+        groupId = getIntent().getStringExtra(EXTRA_GROUP_ID);
+        String friendId = getIntent().getStringExtra(EXTRA_FRIEND_ID);
+        if (me == null || chats == null || (groupId == null && friendId == null)) {
             Toast.makeText(this, "The chat needs an account and a connection to ParchApp", Toast.LENGTH_LONG).show();
             finish();
             return;
         }
-        String friendId = getIntent().getStringExtra(EXTRA_FRIEND_ID);
         chat = new ChatRepository.ChatRef(groupId, friendId);
         bindHeader(getIntent().getStringExtra(EXTRA_GROUP_NAME));
 
@@ -92,7 +110,9 @@ public class ChatActivity extends AppCompatActivity {
         findViewById(R.id.chat_back_button).setOnClickListener(v -> finish());
         findViewById(R.id.chat_send_button).setOnClickListener(v -> sendText());
         findViewById(R.id.chat_slot_button).setOnClickListener(v -> shareCommonSlot());
-        loadPeople(groupId, friendId);
+        if (groupId != null) {
+            loadPeople(groupId, friendId);
+        }
     }
 
     private void bindHeader(String groupName) {
@@ -103,7 +123,8 @@ public class ChatActivity extends AppCompatActivity {
             avatar.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
                     ChatAdapter.avatarColor(getIntent().getStringExtra(EXTRA_FRIEND_ID))));
             ((TextView) findViewById(R.id.chat_title)).setText(getIntent().getStringExtra(EXTRA_FRIEND_NAME));
-            ((TextView) findViewById(R.id.chat_subtitle)).setText("Direct chat · " + group);
+            ((TextView) findViewById(R.id.chat_subtitle)).setText(
+                    groupName == null ? "Direct chat" : "Direct chat · " + groupName);
         } else {
             avatar.setText(group.isEmpty() ? "G" : group.substring(0, 1).toUpperCase());
             ((TextView) findViewById(R.id.chat_title)).setText(group);
@@ -192,6 +213,10 @@ public class ChatActivity extends AppCompatActivity {
 
     // F4 in the chat: the best common free slot left today for the people of this chat
     private void shareCommonSlot() {
+        if (groupId == null) {
+            Toast.makeText(this, "Open this chat from a group to share a common slot", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (people == null || people.size() < 2) {
             Toast.makeText(this, "Loading the group schedules, try again in a moment", Toast.LENGTH_SHORT).show();
             return;
