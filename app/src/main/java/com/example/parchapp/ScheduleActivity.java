@@ -35,6 +35,7 @@ import com.example.parchapp.domain.model.DaySchedule;
 import com.example.parchapp.domain.model.ScheduleFriend;
 import com.example.parchapp.domain.model.TimeBlock;
 import com.example.parchapp.domain.model.TimeSlot;
+import com.example.parchapp.util.BackgroundThreads;
 import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.GoogleCalendarImport;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -53,6 +54,15 @@ import java.util.TimeZone;
 
 /* Schedule, the same screen as the Flutter ScheduleView: compare my busy blocks with the selected friends', pick a duration and a day of 2026, import Google Calendar, and plan on a common slot after the backend checks it is still free. Java extras kept: the Comparing on/off switch, the now line, tapping slots on the timeline, warnings for calendars that are not synced and the 10 friends limit. Only busy intervals are shown, never event details. */
 public class ScheduleActivity extends AppCompatActivity {
+    // micro-optimization 3: the colors are parsed once, not from their text for every view on every render
+    private static final int C_111827 = Color.parseColor("#111827");
+    private static final int C_64748B = Color.parseColor("#64748B");
+    private static final int C_C8D6FF = Color.parseColor("#C8D6FF");
+    private static final int C_E2E8F0 = Color.parseColor("#E2E8F0");
+    private static final int C_E8EDF5 = Color.parseColor("#E8EDF5");
+    private static final int C_EF4444 = Color.parseColor("#EF4444");
+    private static final int C_F43F5E = Color.parseColor("#F43F5E");
+
     private static final String TAG = "ScheduleActivity";
     private static final TimeZone BOGOTA = TimeZone.getTimeZone("America/Bogota");
     private static final int[] QUICK_DURATIONS = {30, 45, 60, 120};
@@ -208,7 +218,7 @@ public class ScheduleActivity extends AppCompatActivity {
         }
         loadingFriends = true;
         status = Status.LOADING;
-        render();
+        render(PART_DAY);
         repository.getFriends(new Callback<List<ScheduleFriend>>() {
             @Override
             public void onSuccess(List<ScheduleFriend> result) {
@@ -222,7 +232,7 @@ public class ScheduleActivity extends AppCompatActivity {
                 for (int i = 0; i < friends.size() && selectedIds.size() < DEFAULT_SELECTED_FRIENDS; i++) {
                     selectedIds.add(friends.get(i).getId());
                 }
-                refreshDay();
+                refreshDay(PART_CHIPS);
             }
 
             @Override
@@ -237,6 +247,11 @@ public class ScheduleActivity extends AppCompatActivity {
     }
 
     private void refreshDay() {
+        refreshDay(0);
+    }
+
+    // changedParts: what the caller changed besides the day (the friends, the selected day...)
+    private void refreshDay(int changedParts) {
         int version = ++requestVersion;
         List<String> ids = comparing ? new ArrayList<>(selectedIds) : new ArrayList<>();
         String date = dateKey(selectedDay);
@@ -245,7 +260,7 @@ public class ScheduleActivity extends AppCompatActivity {
         schedules = new ArrayList<>();
         slots = new ArrayList<>();
         selectedSlot = -1;
-        render();
+        render(PART_DAY | changedParts);
         repository.getDay(date, ids, new Callback<List<DaySchedule>>() {
             @Override
             public void onSuccess(List<DaySchedule> result) {
@@ -256,7 +271,7 @@ public class ScheduleActivity extends AppCompatActivity {
                 schedules = mineFirst(result, ids);
                 computeSlots();
                 status = Status.READY;
-                render();
+                render(PART_DAY);
                 scrollToFocus();
             }
 
@@ -268,7 +283,7 @@ public class ScheduleActivity extends AppCompatActivity {
                 }
                 status = Status.ERROR;
                 error = "Unable to compare availability.";
-                render();
+                render(PART_DAY);
             }
         });
     }
@@ -306,7 +321,7 @@ public class ScheduleActivity extends AppCompatActivity {
         // the busy blocks do not change with the duration, so the slots are computed again right away
         if (status == Status.READY) {
             computeSlots();
-            render();
+            render(PART_DAY);
         }
     }
 
@@ -320,7 +335,7 @@ public class ScheduleActivity extends AppCompatActivity {
             selectedIds.add(id);
         }
         comparing = true;
-        refreshDay();
+        refreshDay(PART_CHIPS);
     }
 
     // Java team: hides or shows the friends without losing the selection
@@ -331,12 +346,12 @@ public class ScheduleActivity extends AppCompatActivity {
             return;
         }
         comparing = !comparing;
-        refreshDay();
+        refreshDay(PART_CHIPS);
     }
 
     private void selectDay(Calendar day) {
         selectedDay = day;
-        refreshDay();
+        refreshDay(PART_WEEK);
     }
 
     private void changeWeek(int offset) {
@@ -365,21 +380,55 @@ public class ScheduleActivity extends AppCompatActivity {
 
     // ---------- Render ----------
 
+    // micro-optimization 1: the parts of the screen; a change only draws again the parts it touches
+    private static final int PART_CHIPS = 1;
+    private static final int PART_IMPORT = 1 << 1;
+    private static final int PART_DURATIONS = 1 << 2;
+    private static final int PART_WEEK = 1 << 3;
+    private static final int PART_TIMELINE = 1 << 4;
+    private static final int PART_BANNER = 1 << 5;
+    private static final int PART_ALL = PART_CHIPS | PART_IMPORT | PART_DURATIONS | PART_WEEK | PART_TIMELINE | PART_BANNER;
+    // what a new day or a new answer always changes: the blocks, the common slots and their banner
+    private static final int PART_DAY = PART_TIMELINE | PART_BANNER;
+
     private void render() {
+        render(PART_ALL);
+    }
+
+    private void render(int parts) {
+        BackgroundThreads.beginSection("Schedule.render");
+        try {
+            renderParts(parts);
+        } finally {
+            BackgroundThreads.endSection();
+        }
+    }
+
+    private void renderParts(int parts) {
         findViewById(R.id.schedule_loading).setVisibility(status == Status.LOADING ? View.VISIBLE : View.GONE);
         findViewById(R.id.schedule_error).setVisibility(status == Status.ERROR ? View.VISIBLE : View.GONE);
         findViewById(R.id.schedule_content).setVisibility(status == Status.ERROR ? View.GONE : View.VISIBLE);
         findViewById(R.id.schedule_summary).setVisibility(status == Status.ERROR ? View.GONE : View.VISIBLE);
         findViewById(R.id.schedule_fab).setVisibility(status == Status.READY ? View.VISIBLE : View.GONE);
         ((TextView) findViewById(R.id.schedule_error_text)).setText(error == null ? "Unable to load schedule." : error);
-        renderChips();
-        renderImport();
-        renderDurations();
-        renderWeek();
-        renderTimeline();
-        renderBanner();
+        if ((parts & PART_CHIPS) != 0) traced("Schedule.renderChips", this::renderChips);
+        if ((parts & PART_IMPORT) != 0) traced("Schedule.renderImport", this::renderImport);
+        if ((parts & PART_DURATIONS) != 0) traced("Schedule.renderDurations", this::renderDurations);
+        if ((parts & PART_WEEK) != 0) traced("Schedule.renderWeek", this::renderWeek);
+        if ((parts & PART_TIMELINE) != 0) traced("Schedule.renderTimeline", this::renderTimeline);
+        if ((parts & PART_BANNER) != 0) traced("Schedule.renderBanner", this::renderBanner);
         if (refreshSlotsSheet != null) {
             refreshSlotsSheet.run();
+        }
+    }
+
+    // profiling: every part of the screen is its own section in Perfetto and in the Android Studio CPU profiler
+    private static void traced(String section, Runnable part) {
+        BackgroundThreads.beginSection(section);
+        try {
+            part.run();
+        } finally {
+            BackgroundThreads.endSection();
         }
     }
 
@@ -409,7 +458,7 @@ public class ScheduleActivity extends AppCompatActivity {
         boolean active = comparing && !selectedIds.isEmpty();
         compareButton.setText((comparing ? "Comparing (" : "Compare (") + count + ")");
         compareButton.setBackgroundResource(active ? R.drawable.bg_sch_comparing_on : R.drawable.bg_sch_comparing_off);
-        int textColor = active ? Color.WHITE : Color.parseColor("#64748B");
+        int textColor = active ? Color.WHITE : C_64748B;
         compareButton.setTextColor(textColor);
         compareButton.setCompoundDrawablesRelativeWithIntrinsicBounds(icon(R.drawable.ic_compare_arrows, 17, textColor), null, null, null);
 
@@ -434,14 +483,14 @@ public class ScheduleActivity extends AppCompatActivity {
         avatar.setGravity(Gravity.CENTER);
         avatar.setBackgroundResource(R.drawable.bg_sch_avatar_light);
         chip.addView(avatar, new LinearLayout.LayoutParams(dp(20), dp(20)));
-        TextView name = chipText(friend.getShortName(), 10.5f, Color.parseColor("#111827"));
+        TextView name = chipText(friend.getShortName(), 10.5f, C_111827);
         LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         nameParams.setMarginStart(dp(5));
         chip.addView(name, nameParams);
         ImageView remove = new ImageView(this);
         remove.setImageResource(R.drawable.ic_close);
-        remove.setImageTintList(ColorStateList.valueOf(Color.parseColor("#64748B")));
+        remove.setImageTintList(ColorStateList.valueOf(C_64748B));
         remove.setPadding(dp(2), dp(2), dp(2), dp(2));
         remove.setContentDescription("Remove " + friend.getShortName());
         remove.setOnClickListener(v -> toggleFriend(friend.getId()));
@@ -459,8 +508,8 @@ public class ScheduleActivity extends AppCompatActivity {
         switch (importStatus) {
             case IMPORTING:
                 subtitle.setText(R.string.schedule_import_busy);
-                subtitle.setTextColor(Color.parseColor("#64748B"));
-                styleImportButton(button, R.string.schedule_importing, R.drawable.bg_sch_import_busy, R.drawable.ic_download, Color.parseColor("#64748B"));
+                subtitle.setTextColor(C_64748B);
+                styleImportButton(button, R.string.schedule_importing, R.drawable.bg_sch_import_busy, R.drawable.ic_download, C_64748B);
                 break;
             case IMPORTED:
                 subtitle.setText(importMessage != null ? importMessage : getString(R.string.schedule_import_done));
@@ -469,12 +518,12 @@ public class ScheduleActivity extends AppCompatActivity {
                 break;
             case ERROR:
                 subtitle.setText(importMessage != null ? importMessage : getString(R.string.schedule_import_error));
-                subtitle.setTextColor(Color.parseColor("#EF4444"));
+                subtitle.setTextColor(C_EF4444);
                 styleImportButton(button, R.string.schedule_try_again, R.drawable.bg_sch_import_btn, R.drawable.ic_download, Color.WHITE);
                 break;
             default:
                 subtitle.setText(R.string.schedule_import_idle);
-                subtitle.setTextColor(Color.parseColor("#64748B"));
+                subtitle.setTextColor(C_64748B);
                 styleImportButton(button, R.string.schedule_import, R.drawable.bg_sch_import_btn, R.drawable.ic_download, Color.WHITE);
         }
         button.setEnabled(importStatus != Import.IMPORTING);
@@ -495,7 +544,7 @@ public class ScheduleActivity extends AppCompatActivity {
         durations.removeAllViews();
         for (int minutes : QUICK_DURATIONS) {
             boolean on = minutes == durationMinutes;
-            TextView chip = chipText(durationLabel(minutes), 11, on ? Color.WHITE : Color.parseColor("#64748B"));
+            TextView chip = chipText(durationLabel(minutes), 11, on ? Color.WHITE : C_64748B);
             chip.setBackgroundResource(on ? R.drawable.bg_sch_duration_on : R.drawable.bg_sch_duration_off);
             chip.setPadding(dp(12), dp(7), dp(12), dp(7));
             chip.setOnClickListener(v -> setDuration(minutes));
@@ -604,9 +653,9 @@ public class ScheduleActivity extends AppCompatActivity {
             tab.setGravity(Gravity.CENTER);
             tab.setPadding(0, dp(6), 0, dp(6));
             tab.setBackgroundResource(on ? R.drawable.bg_sch_day_on : 0);
-            TextView name = chipText(format("EEE", day).toUpperCase(Locale.US), 9, on ? Color.parseColor("#C8D6FF") : Color.parseColor("#64748B"));
+            TextView name = chipText(format("EEE", day).toUpperCase(Locale.US), 9, on ? C_C8D6FF : C_64748B);
             name.setLetterSpacing(0.05f);
-            TextView number = chipText(format("d", day), 12, on ? Color.WHITE : Color.parseColor("#111827"));
+            TextView number = chipText(format("d", day), 12, on ? Color.WHITE : C_111827);
             if (!on) {
                 number.setTypeface(Typeface.DEFAULT);
             }
@@ -632,12 +681,12 @@ public class ScheduleActivity extends AppCompatActivity {
         findViewById(R.id.schedule_lanes).getLayoutParams().height = height;
         for (int minute = START; minute <= END; minute += 60) {
             View line = new View(this);
-            line.setBackgroundColor(Color.parseColor("#E2E8F0"));
+            line.setBackgroundColor(C_E2E8F0);
             FrameLayout.LayoutParams lineParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1));
             lineParams.topMargin = dp(minute - START);
             timeColumn.addView(line, lineParams);
             if (minute < END) {
-                TextView label = chipText(hourLabel(minute / 60), 9, Color.parseColor("#64748B"));
+                TextView label = chipText(hourLabel(minute / 60), 9, C_64748B);
                 FrameLayout.LayoutParams labelParams = new FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END);
                 labelParams.topMargin = dp(minute - START + 4);
@@ -648,11 +697,11 @@ public class ScheduleActivity extends AppCompatActivity {
     }
 
     private void renderTimeline() {
-        laneMe.removeAllViews();
-        laneFriends.removeAllViews();
+        // micro-optimization 2: the hour lines never change, they are created once and only the blocks and slots
+        // after them are removed, instead of removing and creating again the lines of both lanes on every render
+        keepOnlyHourLines(laneMe);
+        keepOnlyHourLines(laneFriends);
         slotLayer.removeAllViews();
-        addHourLines(laneMe);
-        addHourLines(laneFriends);
         List<String> warnings = new ArrayList<>();
 
         if (!schedules.isEmpty()) {
@@ -704,10 +753,21 @@ public class ScheduleActivity extends AppCompatActivity {
         }
     }
 
+    private static final int HOUR_LINES = (END - START) / 60 + 1;
+
+    private void keepOnlyHourLines(FrameLayout lane) {
+        if (lane.getChildCount() < HOUR_LINES) {
+            lane.removeAllViews();
+            addHourLines(lane);
+        } else if (lane.getChildCount() > HOUR_LINES) {
+            lane.removeViews(HOUR_LINES, lane.getChildCount() - HOUR_LINES);
+        }
+    }
+
     private void addHourLines(FrameLayout lane) {
         for (int minute = START; minute <= END; minute += 60) {
             View line = new View(this);
-            line.setBackgroundColor(Color.parseColor("#E8EDF5"));
+            line.setBackgroundColor(C_E8EDF5);
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1));
             params.topMargin = dp(minute - START);
             lane.addView(line, params);
@@ -726,7 +786,7 @@ public class ScheduleActivity extends AppCompatActivity {
         box.addView(singleLine(chipText("Busy", 10, getColor(R.color.brand_primary))));
         if (params.height >= dp(48)) {
             TextView range = chipText(TimeSlot.formatMinute(block.getStartMinute()) + " – "
-                    + TimeSlot.formatMinute(block.getEndMinute()), 8.5f, Color.parseColor("#64748B"));
+                    + TimeSlot.formatMinute(block.getEndMinute()), 8.5f, C_64748B);
             range.setPadding(0, dp(2), 0, 0);
             box.addView(singleLine(range));
         }
@@ -745,7 +805,7 @@ public class ScheduleActivity extends AppCompatActivity {
         View dot = new View(this);
         dot.setBackgroundResource(R.drawable.bg_sch_dot_busy);
         box.addView(dot, new LinearLayout.LayoutParams(dp(7), dp(7)));
-        TextView label = singleLine(chipText(name, 9, Color.parseColor("#64748B")));
+        TextView label = singleLine(chipText(name, 9, C_64748B));
         LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
         labelParams.setMarginStart(dp(5));
         box.addView(label, labelParams);
@@ -798,7 +858,7 @@ public class ScheduleActivity extends AppCompatActivity {
         LinearLayout indicator = new LinearLayout(this);
         indicator.setGravity(Gravity.CENTER_VERTICAL);
         View line = new View(this);
-        line.setBackgroundColor(Color.parseColor("#F43F5E"));
+        line.setBackgroundColor(C_F43F5E);
         indicator.addView(line, new LinearLayout.LayoutParams(0, dp(2), 1));
         TextView label = chipText(TimeSlot.formatMinute(now), 9, Color.WHITE);
         label.setBackgroundResource(R.drawable.bg_schedule_now_label);
@@ -823,8 +883,8 @@ public class ScheduleActivity extends AppCompatActivity {
             return;
         }
         selectedSlot = index;
-        renderTimeline();
-        renderBanner();
+        traced("Schedule.renderTimeline", this::renderTimeline);
+        traced("Schedule.renderBanner", this::renderBanner);
         if (refreshSlotsSheet != null) {
             refreshSlotsSheet.run();
         }
@@ -839,7 +899,7 @@ public class ScheduleActivity extends AppCompatActivity {
         banner.setBackgroundResource(empty ? R.drawable.bg_sch_banner_empty : R.drawable.bg_sch_banner_slots);
         icon.setBackgroundResource(empty ? R.drawable.bg_sch_banner_icon_empty : R.drawable.bg_sch_banner_icon_slots);
         icon.setImageResource(empty ? R.drawable.ic_event_busy : R.drawable.ic_bolt);
-        icon.setImageTintList(ColorStateList.valueOf(empty ? Color.parseColor("#64748B") : getColor(R.color.brand_success)));
+        icon.setImageTintList(ColorStateList.valueOf(empty ? C_64748B : getColor(R.color.brand_success)));
         title.setText(empty ? getString(R.string.schedule_no_common_slots)
                 : slots.size() + (slots.size() == 1 ? " common slot found" : " common slots found"));
         desc.setText(selectedSlot < 0 ? getString(R.string.schedule_try_other)
@@ -876,9 +936,9 @@ public class ScheduleActivity extends AppCompatActivity {
     private void openFriendPicker() {
         BottomSheetDialog sheet = new BottomSheetDialog(this);
         LinearLayout root = sheetRoot();
-        TextView title = chipText(getString(R.string.select_friends_title), 18, Color.parseColor("#111827"));
+        TextView title = chipText(getString(R.string.select_friends_title), 18, C_111827);
         root.addView(title);
-        TextView subtitle = chipText(getString(R.string.schedule_friends_subtitle), 12, Color.parseColor("#64748B"));
+        TextView subtitle = chipText(getString(R.string.schedule_friends_subtitle), 12, C_64748B);
         subtitle.setTypeface(Typeface.DEFAULT);
         subtitle.setPadding(0, dp(4), 0, dp(14));
         root.addView(subtitle);
@@ -891,7 +951,7 @@ public class ScheduleActivity extends AppCompatActivity {
             public void run() {
                 list.removeAllViews();
                 if (friends.isEmpty()) {
-                    TextView empty = chipText("Join a group to compare schedules with its members.", 12, Color.parseColor("#64748B"));
+                    TextView empty = chipText("Join a group to compare schedules with its members.", 12, C_64748B);
                     empty.setTypeface(Typeface.DEFAULT);
                     list.addView(empty);
                 }
@@ -928,8 +988,8 @@ public class ScheduleActivity extends AppCompatActivity {
         row.addView(avatar, new LinearLayout.LayoutParams(dp(40), dp(40)));
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
-        texts.addView(chipText(friend.getName(), 13, Color.parseColor("#111827")));
-        TextView shared = chipText(getString(R.string.schedule_shared_privately), 10, Color.parseColor("#64748B"));
+        texts.addView(chipText(friend.getName(), 13, C_111827));
+        TextView shared = chipText(getString(R.string.schedule_shared_privately), 10, C_64748B);
         shared.setTypeface(Typeface.DEFAULT);
         texts.addView(shared);
         LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
@@ -943,7 +1003,7 @@ public class ScheduleActivity extends AppCompatActivity {
         row.setOnClickListener(v -> {
             if (!comparing && selectedIds.contains(friend.getId())) {
                 comparing = true;
-                refreshDay();
+                refreshDay(PART_CHIPS);
             } else {
                 toggleFriend(friend.getId());
             }
@@ -962,13 +1022,13 @@ public class ScheduleActivity extends AppCompatActivity {
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
         header.addView(iconView(R.drawable.ic_verified, 24, getColor(R.color.brand_success)));
-        TextView title = chipText(getString(R.string.available_common_slots), 17, Color.parseColor("#111827"));
+        TextView title = chipText(getString(R.string.available_common_slots), 17, C_111827);
         LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         titleParams.setMarginStart(dp(8));
         header.addView(title, titleParams);
         root.addView(header);
-        TextView day = chipText(format("EEEE, MMM d", selectedDay) + " • " + durationText(), 12, Color.parseColor("#64748B"));
+        TextView day = chipText(format("EEEE, MMM d", selectedDay) + " • " + durationText(), 12, C_64748B);
         day.setTypeface(Typeface.DEFAULT);
         day.setPadding(0, dp(4), 0, dp(14));
         root.addView(day);
@@ -1015,11 +1075,11 @@ public class ScheduleActivity extends AppCompatActivity {
         row.addView(radio);
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
-        texts.addView(chipText(slot.formatRange() + (index == 0 ? "   •  Best option" : ""), 13, Color.parseColor("#111827")));
+        texts.addView(chipText(slot.formatRange() + (index == 0 ? "   •  Best option" : ""), 13, C_111827));
         String detail = slot.isEveryoneFree()
                 ? slot.getDurationMinutes() + " minutes available for everyone"
                 : slot.getFreeCount() + " of " + slot.getGroupSize() + " schedules free (not synced is not counted)";
-        TextView sub = chipText(detail, 10, Color.parseColor("#64748B"));
+        TextView sub = chipText(detail, 10, C_64748B);
         sub.setTypeface(Typeface.DEFAULT);
         sub.setPadding(0, dp(2), 0, 0);
         texts.addView(sub);
@@ -1318,9 +1378,18 @@ public class ScheduleActivity extends AppCompatActivity {
         return format.format(time.getTime());
     }
 
+    // micro-optimization 4: a SimpleDateFormat is expensive to create (it parses its pattern and loads the locale
+    // data) and the week strip asked for a new one for every text on every render; now there is one per pattern,
+    // only used on the main thread, so it is never shared between threads
+    private static final Map<String, SimpleDateFormat> FORMATS = new HashMap<>();
+
     private static String format(String pattern, Calendar day) {
-        SimpleDateFormat format = new SimpleDateFormat(pattern, Locale.US);
-        format.setTimeZone(BOGOTA);
+        SimpleDateFormat format = FORMATS.get(pattern);
+        if (format == null) {
+            format = new SimpleDateFormat(pattern, Locale.US);
+            format.setTimeZone(BOGOTA);
+            FORMATS.put(pattern, format);
+        }
         return format.format(day.getTime());
     }
 

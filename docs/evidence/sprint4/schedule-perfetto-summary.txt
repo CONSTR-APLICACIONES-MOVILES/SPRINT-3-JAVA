@@ -1,0 +1,60 @@
+
+== before.pftrace  (frames 787, janky 241)
+section                       calls   total ms  median ms   p90 ms
+Schedule.render                  59    3812.44     63.045   83.306
+Schedule.renderChips             59     695.93     10.614   14.929
+Schedule.renderImport            59      59.21      0.889    1.456
+Schedule.renderDurations         59     591.14      9.076   11.125
+Schedule.renderWeek              59     923.06     15.198   17.698
+Schedule.renderTimeline          59    1338.82     25.222   35.650
+Schedule.renderBanner            59     112.56      1.712    2.516
+Choreographer#doFrame           854    8244.69      4.742    9.649
+traversal                       787    5394.37      4.147    5.499
+measure                          43     984.35     29.150   31.697
+layout                           43      83.79      1.864    2.229
+
+== after.pftrace  (frames 826, janky 333)
+section                       calls   total ms  median ms   p90 ms
+Schedule.render                  63    1733.11     24.133   41.738
+Schedule.renderWeek              21     291.85     13.534   16.168
+Schedule.renderTimeline          63    1227.71     21.416   38.821
+Schedule.renderBanner            63     121.01      1.769    2.359
+Choreographer#doFrame           893    6873.58      4.661   12.545
+traversal                       827    4855.05      4.146    5.719
+measure                          46     809.39     23.155   26.131
+layout                           46      55.68      1.091    1.251
+before.pftrace
+  None                                         546
+  Buffer Stuffing                              196
+  App Deadline Missed                          40
+  App Deadline Missed, Buffer Stuffing         4
+  SurfaceFlinger Scheduling                    1
+    HWUI:android.widget.LinearLayout                                3466    7927.5
+    traversal                                                        787    5394.4
+    HWUI:android.widget.FrameLayout                                 3128    4585.0
+    draw-VRI[ScheduleActivity]                                       787    3900.0
+    Record View#draw()                                               787    2317.4
+    HWUI:com.android.internal.policy.DecorView                       787    2259.5
+    HWUI:androidx.appcompat.widget.FitWindowsLinearLayout            787    2100.7
+    HWUI:androidx.appcompat.widget.ContentFrameLayout                787    2051.9
+    syncAndDrawFrame                                                 787    1313.0
+    postAndWait                                                      787    1258.3
+    HWUI:android.widget.ScrollView                                   702    1074.4
+    measure                                                           43     984.3
+after.pftrace
+  None                                         493
+  Buffer Stuffing                              285
+  App Deadline Missed                          44
+  App Deadline Missed, Buffer Stuffing         4
+    HWUI:android.widget.LinearLayout                                2796    4633.6
+    traversal                                                        807    3986.4
+    draw-VRI[ScheduleActivity]                                       807    3248.0
+    HWUI:android.widget.FrameLayout                                 2623    3040.9
+    Record View#draw()                                               807    1634.0
+    HWUI:com.android.internal.policy.DecorView                       807    1576.2
+    HWUI:androidx.appcompat.widget.FitWindowsLinearLayout            807    1419.7
+    HWUI:androidx.appcompat.widget.ContentFrameLayout                807    1371.6
+    syncAndDrawFrame                                                 807    1334.7
+    postAndWait                                                      807    1281.6
+    HWUI:android.widget.ScrollView                                   715     822.4
+    measure                                                           26     324.3
