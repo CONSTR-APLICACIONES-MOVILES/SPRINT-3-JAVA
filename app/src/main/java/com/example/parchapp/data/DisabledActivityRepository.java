@@ -1,7 +1,10 @@
 package com.example.parchapp.data;
 
+import androidx.annotation.Nullable;
+
 import com.example.parchapp.domain.model.PlannedActivity;
 import com.example.parchapp.domain.model.ActivityDetails;
+import com.example.parchapp.domain.model.ActivityParticipants;
 import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.MainThread;
 
@@ -25,6 +28,24 @@ class DisabledActivityRepository implements ActivityRepository {
     @Override public void setActivityReminder(String activityId, int minutesBefore, Callback<Void> callback) {
         MainThread.post(() -> callback.onError(new UnsupportedOperationException(
                 "Activity reminders are not enabled in this base branch")));
+    }
+
+    @Override public void getActivityParticipants(String activityId, Callback<ActivityParticipants> callback) {
+        MainThread.post(() -> callback.onError(new UnsupportedOperationException(
+                "Activity participants are not enabled in this base branch")));
+    }
+
+    @Override public void changeActivityParticipants(String activityId, String action, @Nullable String userId,
+                                                     String expectedVersion, String clientUserId,
+                                                     Callback<Void> callback) {
+        MainThread.post(() -> callback.onError(new UnsupportedOperationException(
+                "Activity participants are not enabled in this base branch")));
+    }
+
+    @Override public void inviteGroupFriend(String groupId, String userId, String clientUserId,
+                                            Callback<Void> callback) {
+        MainThread.post(() -> callback.onError(new UnsupportedOperationException(
+                "Group invitations are not enabled in this base branch")));
     }
 
     @Override

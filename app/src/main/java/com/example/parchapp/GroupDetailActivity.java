@@ -110,6 +110,11 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
 // the plan card buttons use the plan that is on the card
         findViewById(R.id.plan_details_button).setOnClickListener(v -> openPlanDetails());
         findViewById(R.id.add_calendar_button).setOnClickListener(v -> addPlanToCalendar());
+        findViewById(R.id.group_participants_button).setOnClickListener(v -> {
+            if (groupPlan != null && groupPlan.getId() != null && !groupPlan.getId().trim().isEmpty()) {
+                startActivity(ActivityParticipantsActivity.intent(this, groupPlan.getId()));
+            }
+        });
 // refresh asks again how many members have their calendar synced and the next plan
         findViewById(R.id.refresh_roommates_button).setOnClickListener(v -> refresh());
 // propose plan and create plan open the form to make a plan for this group
@@ -408,6 +413,8 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         TextView suggestedTimes = findViewById(R.id.group_suggested_times_button);
         suggestedTimes.setVisibility(plan.getId() == null || plan.getId().trim().isEmpty()
                 ? View.GONE : View.VISIBLE);
+        findViewById(R.id.group_participants_button).setVisibility(
+                plan.getId() == null || plan.getId().trim().isEmpty() ? View.GONE : View.VISIBLE);
 // the backend only suggests times for today, for another day we compare that date in schedule
         boolean today = PlanContext.isToday(plan.getDate());
         suggestedTimes.setText(today ? R.string.suggested_times : R.string.compare_day_in_schedule);
