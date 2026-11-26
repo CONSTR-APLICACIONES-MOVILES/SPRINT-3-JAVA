@@ -11,8 +11,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 
 // strategy 7, local storage: relational database of the app (room over sqlite)
 // one instance for the whole app, opening a database is slow and two instances could fight for the file
-@Database(entities = {GroupDraftEntity.class, DraftInviteEntity.class, ScheduleDayEntity.class},
-        version = 2, exportSchema = false)
+@Database(entities = {GroupDraftEntity.class, DraftInviteEntity.class, ScheduleDayEntity.class,
+        AndesEventEntity.class}, version = 3, exportSchema = false)
 public abstract class ParchDatabase extends RoomDatabase {
     private static volatile ParchDatabase instance;
 
@@ -27,7 +27,24 @@ public abstract class ParchDatabase extends RoomDatabase {
         }
     };
 
+    // version 3 adds Andes Events (cached catalog, saved events and the add outbox); drafts and days stay
+    static final Migration MIGRATION_2_3 = new Migration(2, 3) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `andes_events` (`owner` TEXT NOT NULL, `list` TEXT NOT NULL, "
+                    + "`eventId` TEXT NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, "
+                    + "`category` TEXT NOT NULL, `location` TEXT NOT NULL, `startAt` INTEGER NOT NULL, "
+                    + "`endAt` INTEGER NOT NULL, `sourceUrl` TEXT, `storedAt` INTEGER NOT NULL, `status` TEXT, "
+                    + "`error` TEXT, `retryCount` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, "
+                    + "PRIMARY KEY(`owner`, `list`, `eventId`))");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_andes_events_owner_list_startAt` "
+                    + "ON `andes_events` (`owner`, `list`, `startAt`)");
+        }
+    };
+
     public abstract GroupDraftDao groupDrafts();
+
+    public abstract AndesEventsDao andesEvents();
 
     public abstract ScheduleDayDao scheduleDays();
 
@@ -37,7 +54,7 @@ public abstract class ParchDatabase extends RoomDatabase {
                 if (instance == null) {
                     instance = Room.databaseBuilder(context.getApplicationContext(),
                                     ParchDatabase.class, "parchapp.db")
-                            .addMigrations(MIGRATION_1_2)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                             .build();
                 }
             }

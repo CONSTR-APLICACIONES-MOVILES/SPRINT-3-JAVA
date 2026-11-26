@@ -2,6 +2,8 @@ package com.example.parchapp;
 
 import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.analytics.AnalyticsEvents;
+import android.os.Handler;
+import android.os.Looper;
 import android.app.DatePickerDialog;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -52,10 +54,16 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
-/* Schedule, the same screen as the Flutter ScheduleView: compare my busy blocks with the selected friends', pick a duration and a day of 2026, import Google Calendar, and plan on a common slot after the backend checks it is still free. Java extras kept: the Comparing on/off switch, the now line, tapping slots on the timeline, warnings for calendars that are not synced and the 10 friends limit. Only busy intervals are shown, never event details. */
+/* Schedule, the same screen as the Flutter ScheduleView of the sch-back branch: the last updated banner while offline,
+ * no friends selected until the user picks them, the compact Google Calendar card and no loading bar.
+ * Offline only my own saved schedule is shown: friends are never compared with a saved copy, their chips, lane
+ * and picker come back when the connection does.
+ * Before sch-back: compare my busy blocks with the selected friends', pick a duration and a day of 2026, import Google Calendar, and plan on a common slot after the backend checks it is still free. Java extras kept: the Comparing on/off switch, the now line, tapping slots on the timeline, warnings for calendars that are not synced and the 10 friends limit. Only busy intervals are shown, never event details. */
 public class ScheduleActivity extends AppCompatActivity {
     // micro-optimization 3: the colors are parsed once, not from their text for every view on every render
     private static final int C_111827 = Color.parseColor("#111827");
+    private static final int C_176447 = Color.parseColor("#176447");
+    private static final int C_946200 = Color.parseColor("#946200");
     private static final int C_64748B = Color.parseColor("#64748B");
     private static final int C_C8D6FF = Color.parseColor("#C8D6FF");
     private static final int C_E2E8F0 = Color.parseColor("#E2E8F0");
@@ -66,7 +74,8 @@ public class ScheduleActivity extends AppCompatActivity {
     private static final String TAG = "ScheduleActivity";
     private static final TimeZone BOGOTA = TimeZone.getTimeZone("America/Bogota");
     private static final int[] QUICK_DURATIONS = {30, 45, 60, 120};
-    private static final int DEFAULT_SELECTED_FRIENDS = 2;
+    // the green "Schedule updated" banner stays this long after reconnecting, like Flutter
+    private static final long UPDATED_CONFIRMATION_MS = 5000;
     // the timeline runs 8 AM to 11 PM (the Java team keeps the evening), 1dp per minute like Flutter
     private static final int START = CommonSlotFinder.DAY_START_MINUTE;
     private static final int END = CommonSlotFinder.DAY_END_MINUTE;
@@ -101,6 +110,19 @@ public class ScheduleActivity extends AppCompatActivity {
     private String error;
     private Import importStatus = Import.IDLE;
     private String importMessage;
+    // offline: no network, or the backend did not answer and the day on screen is the copy saved on the phone
+    private boolean offline = !AnalyticsTracker.getInstance().isOnline();
+    private long updatedAt;
+    private boolean chipsOffline;
+    private boolean confirmUpdate;
+    private boolean showUpdated;
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private final Runnable hideUpdated = () -> {
+        showUpdated = false;
+        renderUpdatedBanner();
+    };
+    private final AnalyticsTracker.ConnectivityListener connectivityListener =
+            online -> handler.post(() -> onConnectivityChanged(online));
 
     private GoogleCalendarImport calendarImport;
     private LinearLayout chips;
@@ -115,6 +137,18 @@ public class ScheduleActivity extends AppCompatActivity {
     private EditText hoursInput;
     private EditText minutesInput;
     private BottomSheetDialog slotsSheet;
+    // Andes Events opens from the integrations row; when it added or removed an event my day is drawn again
+    private final androidx.activity.result.ActivityResultLauncher<android.content.Intent> andesEvents =
+            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        if (result.getData() != null
+                                && result.getData().getBooleanExtra(AndesEventsActivity.EXTRA_CHANGED, false)) {
+                            if (repository instanceof OfflineScheduleRepository) {
+                                ((OfflineScheduleRepository) repository).forgetDaysInMemory();
+                            }
+                            refreshDay();
+                        }
+                    });
     private Runnable refreshSlotsSheet;
 
 // in landscape the controls on top took all the height and the hours had no space
@@ -194,6 +228,7 @@ public class ScheduleActivity extends AppCompatActivity {
 
         compareButton.setOnClickListener(v -> toggleCompare());
         findViewById(R.id.schedule_import_btn).setOnClickListener(v -> importGoogleCalendar());
+        findViewById(R.id.schedule_andes_btn).setOnClickListener(v -> andesEvents.launch(AndesEventsActivity.intent(this)));
         findViewById(R.id.schedule_prev_week).setOnClickListener(v -> changeWeek(-1));
         findViewById(R.id.schedule_next_week).setOnClickListener(v -> changeWeek(1));
         findViewById(R.id.schedule_week_picker).setOnClickListener(v -> openCalendarPicker());
@@ -201,6 +236,7 @@ public class ScheduleActivity extends AppCompatActivity {
         findViewById(R.id.schedule_summary).setOnClickListener(v -> openSlotsSheet());
         findViewById(R.id.schedule_fab).setOnClickListener(v -> planActivity());
         findViewById(R.id.schedule_retry).setOnClickListener(v -> load());
+        findViewById(R.id.schedule_updated_refresh).setOnClickListener(v -> load());
         setUpStepper();
 
         Calendar requestedDay = PlanContext.parseDay(getIntent().getStringExtra(EXTRA_DATE));
@@ -208,6 +244,49 @@ public class ScheduleActivity extends AppCompatActivity {
         buildTimeColumnAndGrid();
         render();
         load();
+    }
+
+    // ---------- Connectivity (like the Flutter connectivity monitoring of sch-back) ----------
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        AnalyticsTracker.getInstance().addConnectivityListener(connectivityListener);
+    }
+
+    @Override
+    protected void onStop() {
+        AnalyticsTracker.getInstance().removeConnectivityListener(connectivityListener);
+        super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        handler.removeCallbacksAndMessages(null);
+        super.onDestroy();
+    }
+
+    private void onConnectivityChanged(boolean online) {
+        if (isFinishing()) {
+            return;
+        }
+        boolean wasOffline = offline;
+        if (!online && !wasOffline) {
+            // the connection was lost: friends leave the comparison, my schedule stays from memory or the phone
+            offline = true;
+            showUpdated = false;
+            handler.removeCallbacks(hideUpdated);
+            refreshDay();
+        } else if (online && wasOffline) {
+            // the connection is back: load friends and the day again and say it once they arrive
+            confirmUpdate = true;
+            load();
+        }
+    }
+
+    /* the friends being compared: none while offline, so a saved copy never shows them */
+    private List<String> comparedIds() {
+        return comparing && !offline ? new ArrayList<>(selectedIds) : new ArrayList<>();
     }
 
     // ---------- Data (like the Flutter ScheduleViewModel) ----------
@@ -228,10 +307,16 @@ public class ScheduleActivity extends AppCompatActivity {
                 }
                 friends.clear();
                 friends.addAll(result);
-                selectedIds.clear();
-                for (int i = 0; i < friends.size() && selectedIds.size() < DEFAULT_SELECTED_FRIENDS; i++) {
-                    selectedIds.add(friends.get(i).getId());
+                // like Flutter sch-back: nobody is selected for the user; a selection made before stays while
+                // those people are still friends
+                List<String> valid = new ArrayList<>();
+                for (String id : selectedIds) {
+                    if (friend(id) != null) {
+                        valid.add(id);
+                    }
                 }
+                selectedIds.clear();
+                selectedIds.addAll(valid);
                 refreshDay(PART_CHIPS);
             }
 
@@ -253,7 +338,8 @@ public class ScheduleActivity extends AppCompatActivity {
     // changedParts: what the caller changed besides the day (the friends, the selected day...)
     private void refreshDay(int changedParts) {
         int version = ++requestVersion;
-        List<String> ids = comparing ? new ArrayList<>(selectedIds) : new ArrayList<>();
+        offline = !AnalyticsTracker.getInstance().isOnline();
+        List<String> ids = comparedIds();
         String date = dateKey(selectedDay);
         status = Status.LOADING;
         error = null;
@@ -268,9 +354,21 @@ public class ScheduleActivity extends AppCompatActivity {
                 if (version != requestVersion || isFinishing()) {
                     return;
                 }
-                schedules = mineFirst(result, ids);
+                boolean fromPhone = repository instanceof OfflineScheduleRepository
+                        && ((OfflineScheduleRepository) repository).isShowingSaved();
+                offline = fromPhone || !AnalyticsTracker.getInstance().isOnline();
+                updatedAt = repository instanceof OfflineScheduleRepository
+                        ? ((OfflineScheduleRepository) repository).getShownSavedAt() : System.currentTimeMillis();
+                // a saved copy keeps only my schedule, whoever was in it when it was saved
+                schedules = mineFirst(result, offline ? new ArrayList<>() : ids);
                 computeSlots();
                 status = Status.READY;
+                if (!offline && confirmUpdate) {
+                    confirmUpdate = false;
+                    showUpdated = true;
+                    handler.removeCallbacks(hideUpdated);
+                    handler.postDelayed(hideUpdated, UPDATED_CONFIRMATION_MS);
+                }
                 render(PART_DAY);
                 scrollToFocus();
             }
@@ -282,7 +380,9 @@ public class ScheduleActivity extends AppCompatActivity {
                     return;
                 }
                 status = Status.ERROR;
-                error = "Unable to compare availability.";
+                offline = !AnalyticsTracker.getInstance().isOnline() || OfflineGuard.isNetworkError(failure);
+                updatedAt = 0;
+                error = offline ? getString(R.string.schedule_offline_no_copy) : "Unable to compare availability.";
                 render(PART_DAY);
             }
         });
@@ -325,7 +425,19 @@ public class ScheduleActivity extends AppCompatActivity {
         }
     }
 
+    /* offline the friends can not be compared, the user is told instead of opening the picker */
+    private boolean friendsBlockedOffline() {
+        if (!offline) {
+            return false;
+        }
+        Toast.makeText(this, OfflineGuard.offlineMessage("compare schedules with your friends"), Toast.LENGTH_LONG).show();
+        return true;
+    }
+
     private void toggleFriend(String id) {
+        if (friendsBlockedOffline()) {
+            return;
+        }
         if (selectedIds.contains(id)) {
             selectedIds.remove(id);
         } else if (selectedIds.size() >= ScheduleRepository.MAX_FRIENDS) {
@@ -340,6 +452,9 @@ public class ScheduleActivity extends AppCompatActivity {
 
     // Java team: hides or shows the friends without losing the selection
     private void toggleCompare() {
+        if (friendsBlockedOffline()) {
+            return;
+        }
         if (selectedIds.isEmpty()) {
             openFriendPicker();
             toast("Select at least one friend to compare");
@@ -396,6 +511,10 @@ public class ScheduleActivity extends AppCompatActivity {
     }
 
     private void render(int parts) {
+        // going offline or back online changes the friend bar too (friends hidden or shown again)
+        if (offline != chipsOffline) {
+            parts |= PART_CHIPS;
+        }
         BackgroundThreads.beginSection("Schedule.render");
         try {
             renderParts(parts);
@@ -405,7 +524,6 @@ public class ScheduleActivity extends AppCompatActivity {
     }
 
     private void renderParts(int parts) {
-        findViewById(R.id.schedule_loading).setVisibility(status == Status.LOADING ? View.VISIBLE : View.GONE);
         findViewById(R.id.schedule_error).setVisibility(status == Status.ERROR ? View.VISIBLE : View.GONE);
         findViewById(R.id.schedule_content).setVisibility(status == Status.ERROR ? View.GONE : View.VISIBLE);
         findViewById(R.id.schedule_summary).setVisibility(status == Status.ERROR ? View.GONE : View.VISIBLE);
@@ -417,6 +535,7 @@ public class ScheduleActivity extends AppCompatActivity {
         if ((parts & PART_WEEK) != 0) traced("Schedule.renderWeek", this::renderWeek);
         if ((parts & PART_TIMELINE) != 0) traced("Schedule.renderTimeline", this::renderTimeline);
         if ((parts & PART_BANNER) != 0) traced("Schedule.renderBanner", this::renderBanner);
+        traced("Schedule.renderUpdated", this::renderUpdatedBanner);
         if (refreshSlotsSheet != null) {
             refreshSlotsSheet.run();
         }
@@ -433,6 +552,7 @@ public class ScheduleActivity extends AppCompatActivity {
     }
 
     private void renderChips() {
+        chipsOffline = offline;
         chips.removeAllViews();
         TextView me = chipText(getString(R.string.me_chip), 11, Color.WHITE);
         me.setBackgroundResource(R.drawable.bg_sch_me_chip);
@@ -440,7 +560,8 @@ public class ScheduleActivity extends AppCompatActivity {
         me.setPadding(dp(10), dp(7), dp(10), dp(7));
         chips.addView(me, chipParams());
 
-        for (String id : selectedIds) {
+        // offline the compared friends are not shown: nothing about them can be up to date
+        for (String id : offline ? new ArrayList<String>() : selectedIds) {
             ScheduleFriend friend = friend(id);
             if (friend != null) {
                 chips.addView(friendChip(friend), chipParams());
@@ -451,12 +572,18 @@ public class ScheduleActivity extends AppCompatActivity {
         add.setBackgroundResource(R.drawable.bg_sch_add_chip);
         add.setCompoundDrawablesRelativeWithIntrinsicBounds(icon(R.drawable.ic_person_add, 17, getColor(R.color.brand_primary)), null, null, null);
         add.setPadding(dp(10), dp(6), dp(12), dp(6));
-        add.setOnClickListener(v -> openFriendPicker());
+        add.setOnClickListener(v -> {
+            if (!friendsBlockedOffline()) {
+                openFriendPicker();
+            }
+        });
+        add.setAlpha(offline ? 0.5f : 1f);
         chips.addView(add, chipParams());
 
-        int count = (comparing ? selectedIds.size() : 0) + 1;
-        boolean active = comparing && !selectedIds.isEmpty();
-        compareButton.setText((comparing ? "Comparing (" : "Compare (") + count + ")");
+        int count = comparedIds().size() + 1;
+        boolean active = !comparedIds().isEmpty();
+        compareButton.setText((comparing && !offline ? "Comparing (" : "Compare (") + count + ")");
+        compareButton.setAlpha(offline ? 0.5f : 1f);
         compareButton.setBackgroundResource(active ? R.drawable.bg_sch_comparing_on : R.drawable.bg_sch_comparing_off);
         int textColor = active ? Color.WHITE : C_64748B;
         compareButton.setTextColor(textColor);
@@ -469,7 +596,8 @@ public class ScheduleActivity extends AppCompatActivity {
                 names.add(friend.getShortName());
             }
         }
-        friendsHeader.setText(!comparing && !selectedIds.isEmpty() ? "Friends hidden"
+        friendsHeader.setText(offline ? getString(R.string.schedule_friends_offline)
+                : !comparing && !selectedIds.isEmpty() ? "Friends hidden"
                 : names.isEmpty() ? getString(R.string.schedule_friends) : String.join(" & ", names));
     }
 
@@ -503,41 +631,70 @@ public class ScheduleActivity extends AppCompatActivity {
     private void renderImport() {
         TextView subtitle = findViewById(R.id.schedule_import_subtitle);
         TextView button = findViewById(R.id.schedule_import_btn);
-        int primary = getColor(R.color.brand_primary);
         int success = getColor(R.color.brand_success);
         switch (importStatus) {
             case IMPORTING:
                 subtitle.setText(R.string.schedule_import_busy);
                 subtitle.setTextColor(C_64748B);
-                styleImportButton(button, R.string.schedule_importing, R.drawable.bg_sch_import_busy, R.drawable.ic_download, C_64748B);
+                styleImportButton(button, R.string.schedule_importing, R.drawable.bg_sch_import_pill_busy, C_64748B);
                 break;
             case IMPORTED:
                 subtitle.setText(importMessage != null ? importMessage : getString(R.string.schedule_import_done));
                 subtitle.setTextColor(success);
-                styleImportButton(button, R.string.schedule_sync_again, R.drawable.bg_sch_import_btn, R.drawable.ic_check, Color.WHITE);
+                styleImportButton(button, R.string.schedule_imported, R.drawable.bg_sch_import_pill_done, success);
                 break;
             case ERROR:
                 subtitle.setText(importMessage != null ? importMessage : getString(R.string.schedule_import_error));
                 subtitle.setTextColor(C_EF4444);
-                styleImportButton(button, R.string.schedule_try_again, R.drawable.bg_sch_import_btn, R.drawable.ic_download, Color.WHITE);
+                styleImportButton(button, R.string.schedule_try_again, R.drawable.bg_sch_import_pill, Color.WHITE);
                 break;
             default:
                 subtitle.setText(R.string.schedule_import_idle);
                 subtitle.setTextColor(C_64748B);
-                styleImportButton(button, R.string.schedule_import, R.drawable.bg_sch_import_btn, R.drawable.ic_download, Color.WHITE);
+                styleImportButton(button, R.string.schedule_import, R.drawable.bg_sch_import_pill, Color.WHITE);
         }
-        button.setEnabled(importStatus != Import.IMPORTING);
-        if (importStatus == Import.IMPORTED) {
-            button.setTextColor(Color.WHITE);
-        }
-        button.setTag(primary);
+        // like Flutter: the pill does nothing while importing and once the calendar is imported
+        button.setEnabled(importStatus != Import.IMPORTING && importStatus != Import.IMPORTED);
     }
 
-    private void styleImportButton(TextView button, int label, int background, int iconRes, int color) {
+    private void styleImportButton(TextView button, int label, int background, int color) {
         button.setText(label);
         button.setBackgroundResource(background);
         button.setTextColor(color);
-        button.setCompoundDrawablesRelativeWithIntrinsicBounds(icon(iconRes, 17, color), null, null, null);
+    }
+
+    /* the Flutter ScheduleLastUpdatedBanner: amber while offline with the time of the schedule on screen and a
+     * refresh button; green "Schedule updated" for a few seconds after it loads again once reconnected */
+    private void renderUpdatedBanner() {
+        View banner = findViewById(R.id.schedule_updated_banner);
+        if (!offline && !showUpdated) {
+            banner.setVisibility(View.GONE);
+            return;
+        }
+        int accent = offline ? C_946200 : C_176447;
+        banner.setVisibility(View.VISIBLE);
+        banner.setBackgroundResource(offline ? R.drawable.bg_sch_updated_offline : R.drawable.bg_sch_updated_online);
+        ImageView icon = findViewById(R.id.schedule_updated_icon);
+        icon.setImageResource(offline ? R.drawable.ic_cloud_off : R.drawable.ic_check_circle);
+        icon.setImageTintList(ColorStateList.valueOf(accent));
+        TextView title = findViewById(R.id.schedule_updated_title);
+        title.setText(offline ? R.string.schedule_updated_offline_title : R.string.schedule_updated_online_title);
+        title.setTextColor(accent);
+        // while another day loads the last time stays; with nothing on screen there is no time to show
+        long shown = status == Status.ERROR ? 0 : updatedAt;
+        ((TextView) findViewById(R.id.schedule_updated_text)).setText(shown <= 0
+                ? getString(R.string.schedule_last_updated_none)
+                : getString(R.string.schedule_last_updated, lastUpdatedLabel(shown)));
+        View refresh = findViewById(R.id.schedule_updated_refresh);
+        refresh.setVisibility(offline ? View.VISIBLE : View.GONE);
+        enable(refresh, status != Status.LOADING);
+    }
+
+    // "Nov 25, 2026 at 3:04 PM" in Bogota, the format of the Flutter banner
+    static String lastUpdatedLabel(long millis) {
+        SimpleDateFormat format = new SimpleDateFormat("MMM d, yyyy 'at' h:mm a", Locale.US);
+        format.setTimeZone(BOGOTA);
+        return format.format(new java.util.Date(millis));
     }
 
     private void renderDurations() {
@@ -726,26 +883,25 @@ public class ScheduleActivity extends AppCompatActivity {
         }
 
         // Java team: every common slot can be tapped on the timeline; the selected one looks like the Flutter one
+        // offline the friends lane stays empty: the free time shown is only mine
         for (int i = 0; i < slots.size(); i++) {
             if (i != selectedSlot) {
                 addSlot(laneMe, slots.get(i), i, false, false);
-                addSlot(laneFriends, slots.get(i), i, false, true);
+                if (!offline) {
+                    addSlot(laneFriends, slots.get(i), i, false, true);
+                }
             }
         }
         if (selectedSlot >= 0) {
             addSlot(laneMe, slots.get(selectedSlot), selectedSlot, true, false);
-            addSlot(laneFriends, slots.get(selectedSlot), selectedSlot, true, true);
+            if (!offline) {
+                addSlot(laneFriends, slots.get(selectedSlot), selectedSlot, true, true);
+            }
         }
         addNowIndicator();
 
-        boolean saved = repository instanceof OfflineScheduleRepository && ((OfflineScheduleRepository) repository).isShowingSaved();
-        if (status == Status.READY && saved) {
-            // local storage: say how old the copy is, so the user knows it may not be up to date
-            long savedAt = ((OfflineScheduleRepository) repository).getShownSavedAt();
-            String when = savedAt > 0 ? " from " + android.text.format.DateFormat.getTimeFormat(this)
-                    .format(new java.util.Date(savedAt)) : "";
-            showState("Offline · showing your schedule saved" + when + ". Planning needs a connection.");
-        } else if (status == Status.READY && !warnings.isEmpty()) {
+        // offline the banner on top says how old the schedule is (Flutter ScheduleLastUpdatedBanner)
+        if (status == Status.READY && !warnings.isEmpty()) {
             showState("No synced calendar for " + String.join(", ", warnings)
                     + " on this day. Unknown is not counted as free.");
         } else {
@@ -900,8 +1056,10 @@ public class ScheduleActivity extends AppCompatActivity {
         icon.setBackgroundResource(empty ? R.drawable.bg_sch_banner_icon_empty : R.drawable.bg_sch_banner_icon_slots);
         icon.setImageResource(empty ? R.drawable.ic_event_busy : R.drawable.ic_bolt);
         icon.setImageTintList(ColorStateList.valueOf(empty ? C_64748B : getColor(R.color.brand_success)));
+        // offline nobody is compared, so the slots are my free time, not common time
+        String kind = offline ? " free slot" : " common slot";
         title.setText(empty ? getString(R.string.schedule_no_common_slots)
-                : slots.size() + (slots.size() == 1 ? " common slot found" : " common slots found"));
+                : slots.size() + kind + (slots.size() == 1 ? " found" : "s found") + (offline ? " in your schedule" : ""));
         desc.setText(selectedSlot < 0 ? getString(R.string.schedule_try_other)
                 : "Selected: " + slots.get(selectedSlot).formatRange());
         findViewById(R.id.schedule_summary_expand).setVisibility(empty ? View.GONE : View.VISIBLE);
@@ -958,7 +1116,7 @@ public class ScheduleActivity extends AppCompatActivity {
                 for (ScheduleFriend friend : friends) {
                     list.addView(friendRow(friend, this), rowParams());
                 }
-                int compared = (comparing ? selectedIds.size() : 0) + 1;
+                int compared = comparedIds().size() + 1;
                 confirm.setText("View comparison (" + compared + ")");
             }
         };
@@ -1093,7 +1251,7 @@ public class ScheduleActivity extends AppCompatActivity {
      * evidence of the comparison for the day and the organizer chooses the time; if it fails we plan without it. */
     private void proposeWithoutSlot() {
         int version = requestVersion;
-        List<String> friends = new ArrayList<>(selectedIds);
+        List<String> friends = comparedIds();
         String date = dateKey(selectedDay);
         setPlanning(true);
         repository.prepareProposalComparison(date, friends, new Callback<String>() {
@@ -1129,7 +1287,7 @@ public class ScheduleActivity extends AppCompatActivity {
             return;
         }
         if (selectedSlot < 0) {
-            if (comparing && !selectedIds.isEmpty()) {
+            if (!comparedIds().isEmpty()) {
                 proposeWithoutSlot();
                 return;
             }
@@ -1142,7 +1300,7 @@ public class ScheduleActivity extends AppCompatActivity {
         TimeSlot slot = slots.get(selectedSlot);
         int version = requestVersion;
         setPlanning(true);
-        List<String> participants = comparing ? new ArrayList<>(selectedIds) : new ArrayList<>();
+        List<String> participants = comparedIds();
         repository.validatePlanningSlot(participants, utcIso(selectedDay, slot.getStartMinute()),
                 utcIso(selectedDay, slot.getEndMinute()), new Callback<String>() {
                     @Override

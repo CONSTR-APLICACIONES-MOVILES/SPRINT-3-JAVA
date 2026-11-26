@@ -62,4 +62,15 @@ public class ScheduleDayDaoTest {
         assertNotNull(dao.day("ana", "d1"));
         assertEquals(1, dao.count("luis"));
     }
+
+// offline Schedule asks only for my day: the newest copy of that date is found whoever was compared in it
+    @Test
+    public void findsTheNewestCopyOfADate() {
+        dao.save(ScheduleDayEntity.of("ana", "2026-11-25.luis,maria", "older", 1), 10);
+        dao.save(ScheduleDayEntity.of("ana", "2026-11-25.luis", "newer", 2), 10);
+        dao.save(ScheduleDayEntity.of("ana", "2026-11-26.", "other day", 3), 10);
+        dao.save(ScheduleDayEntity.of("luis", "2026-11-25.", "other account", 4), 10);
+        assertEquals("newer", dao.newestOfDate("ana", "2026-11-25").json);
+        assertNull(dao.newestOfDate("ana", "2026-11-27"));
+    }
 }

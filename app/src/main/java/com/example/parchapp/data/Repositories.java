@@ -33,6 +33,9 @@ public final class Repositories {
     private static AvailabilityStatusSyncCoordinator availabilityStatusSync;
     private static ScheduleRepository schedules;
     private static ChatRepository chats;
+    private static AndesEventsRepository andesEvents;
+    private static AndesEventsStore andesStore;
+    private static AndesOutbox andesOutbox;
     private static final GroupMemoryCache groupCache = new GroupMemoryCache();
 
     private Repositories() {
@@ -91,6 +94,16 @@ public final class Repositories {
             schedules = new OfflineScheduleRepository(context, new FunctionsScheduleRepository(functions));
             // House Chat and chats between two members, in real time from Firestore
             chats = new FirestoreChatRepository(db);
+            // Andes Events: the catalog and the Schedule changes through the backend callables, a copy of the
+            // next 15 days and the saved events on the phone, and an outbox for adding events offline
+            andesEvents = new FunctionsAndesEventsRepository(functions);
+            andesStore = new AndesEventsStore(context);
+            AndesEventsRepository remoteAndes = andesEvents;
+            andesOutbox = new AndesOutbox(andesStore, remoteAndes::addBlocking, Repositories::currentUserId,
+                    com.example.parchapp.util.BackgroundThreads.serial("parch-andes-outbox"), MainThread::post,
+                    System::currentTimeMillis);
+            // a confirmed event changes my busy time: the Schedule days kept in memory are old now
+            andesOutbox.setOnConfirmed(() -> ((OfflineScheduleRepository) schedules).forgetDaysInMemory());
         } else {
             auth = new DisabledAuthRepository();
             profileDetails = null;
@@ -184,6 +197,24 @@ public final class Repositories {
     /* null without Firebase: the messages only exist on the backend */
     public static ChatRepository chats() {
         return chats;
+    }
+
+    /* null without Firebase: Andes Events only exist on the backend */
+    public static AndesEventsRepository andesEvents() {
+        return andesEvents;
+    }
+
+    public static AndesEventsStore andesStore() {
+        return andesStore;
+    }
+
+    public static AndesOutbox andesOutbox() {
+        return andesOutbox;
+    }
+
+    private static String currentUserId() {
+        com.example.parchapp.UserProfile user = com.example.parchapp.UserSession.getCurrentUser();
+        return user == null ? null : user.getId();
     }
 
     public static StatusService status() {
