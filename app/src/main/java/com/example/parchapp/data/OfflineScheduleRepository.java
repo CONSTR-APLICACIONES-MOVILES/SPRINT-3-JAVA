@@ -55,6 +55,11 @@ public class OfflineScheduleRepository implements ScheduleRepository {
         DB_QUEUE.execute(this::forgetDaysSavedInPreferences);
     }
 
+    /* my busy time changed somewhere else (an Andes Event was added or removed): the days in memory are old */
+    public void forgetDaysInMemory() {
+        memory.clear();
+    }
+
     /* true when the last friends or day answer came from the phone because the backend was not reachable */
     public boolean isShowingSaved() {
         return lastFromSaved;

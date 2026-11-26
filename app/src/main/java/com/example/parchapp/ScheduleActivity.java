@@ -137,6 +137,18 @@ public class ScheduleActivity extends AppCompatActivity {
     private EditText hoursInput;
     private EditText minutesInput;
     private BottomSheetDialog slotsSheet;
+    // Andes Events opens from the integrations row; when it added or removed an event my day is drawn again
+    private final androidx.activity.result.ActivityResultLauncher<android.content.Intent> andesEvents =
+            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        if (result.getData() != null
+                                && result.getData().getBooleanExtra(AndesEventsActivity.EXTRA_CHANGED, false)) {
+                            if (repository instanceof OfflineScheduleRepository) {
+                                ((OfflineScheduleRepository) repository).forgetDaysInMemory();
+                            }
+                            refreshDay();
+                        }
+                    });
     private Runnable refreshSlotsSheet;
 
 // in landscape the controls on top took all the height and the hours had no space
@@ -216,6 +228,7 @@ public class ScheduleActivity extends AppCompatActivity {
 
         compareButton.setOnClickListener(v -> toggleCompare());
         findViewById(R.id.schedule_import_btn).setOnClickListener(v -> importGoogleCalendar());
+        findViewById(R.id.schedule_andes_btn).setOnClickListener(v -> andesEvents.launch(AndesEventsActivity.intent(this)));
         findViewById(R.id.schedule_prev_week).setOnClickListener(v -> changeWeek(-1));
         findViewById(R.id.schedule_next_week).setOnClickListener(v -> changeWeek(1));
         findViewById(R.id.schedule_week_picker).setOnClickListener(v -> openCalendarPicker());
@@ -870,15 +883,20 @@ public class ScheduleActivity extends AppCompatActivity {
         }
 
         // Java team: every common slot can be tapped on the timeline; the selected one looks like the Flutter one
+        // offline the friends lane stays empty: the free time shown is only mine
         for (int i = 0; i < slots.size(); i++) {
             if (i != selectedSlot) {
                 addSlot(laneMe, slots.get(i), i, false, false);
-                addSlot(laneFriends, slots.get(i), i, false, true);
+                if (!offline) {
+                    addSlot(laneFriends, slots.get(i), i, false, true);
+                }
             }
         }
         if (selectedSlot >= 0) {
             addSlot(laneMe, slots.get(selectedSlot), selectedSlot, true, false);
-            addSlot(laneFriends, slots.get(selectedSlot), selectedSlot, true, true);
+            if (!offline) {
+                addSlot(laneFriends, slots.get(selectedSlot), selectedSlot, true, true);
+            }
         }
         addNowIndicator();
 
@@ -1038,8 +1056,10 @@ public class ScheduleActivity extends AppCompatActivity {
         icon.setBackgroundResource(empty ? R.drawable.bg_sch_banner_icon_empty : R.drawable.bg_sch_banner_icon_slots);
         icon.setImageResource(empty ? R.drawable.ic_event_busy : R.drawable.ic_bolt);
         icon.setImageTintList(ColorStateList.valueOf(empty ? C_64748B : getColor(R.color.brand_success)));
+        // offline nobody is compared, so the slots are my free time, not common time
+        String kind = offline ? " free slot" : " common slot";
         title.setText(empty ? getString(R.string.schedule_no_common_slots)
-                : slots.size() + (slots.size() == 1 ? " common slot found" : " common slots found"));
+                : slots.size() + kind + (slots.size() == 1 ? " found" : "s found") + (offline ? " in your schedule" : ""));
         desc.setText(selectedSlot < 0 ? getString(R.string.schedule_try_other)
                 : "Selected: " + slots.get(selectedSlot).formatRange());
         findViewById(R.id.schedule_summary_expand).setVisibility(empty ? View.GONE : View.VISIBLE);

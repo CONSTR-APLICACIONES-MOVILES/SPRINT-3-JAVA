@@ -51,6 +51,7 @@
         <activity android:name=".PrivacySettingsActivity" />
         <activity android:name=".DashboardActivity" />
         <activity android:name=".ScheduleActivity" />
+        <activity android:name=".AndesEventsActivity" android:windowSoftInputMode="adjustPan" />
         <activity android:name=".GroupsActivity" />
         <activity android:name=".CompareAvailabilityActivity" />
         <activity android:name=".GroupDetailActivity" />
