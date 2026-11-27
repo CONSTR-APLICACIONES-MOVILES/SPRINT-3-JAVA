@@ -351,4 +351,13 @@ It works for 7 days.</string>
     <string name="profile_photo_updated">Profile photo updated.</string>
     <string name="profile_camera_error">Camera unavailable. Check camera access and try again.</string>
     <string name="profile_camera_take_photo">Take photo</string>
+    <!-- Help -->
+    <string name="cd_help">Help</string>
+    <string name="help_title">Help</string>
+    <string name="help_search_hint">Search help</string>
+    <string name="help_no_results">No questions match your search.</string>
+    <string name="help_updated_on">Updated on %1$s</string>
+    <string name="help_built_in">Built-in help</string>
+    <string name="help_load_error">Could not load the help. Try again.</string>
+    <string name="help_about_title">About ParchApp</string>
 </resources>

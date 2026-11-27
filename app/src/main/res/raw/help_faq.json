@@ -1,0 +1,100 @@
+[
+  {
+    "id": "groups-create",
+    "screen": "groups",
+    "position": 1,
+    "question": "How do I create a group?",
+    "answer": "Open the Groups tab and tap Create new group. Choose a name, add your friends by email and save. If you lose the connection while you fill the form, your draft is kept on the phone and you can continue later."
+  },
+  {
+    "id": "groups-invite-code",
+    "screen": "groups",
+    "position": 2,
+    "question": "How do I invite someone with a code?",
+    "answer": "Open the group, tap the invite option and share the code or the link. The other person taps Join with invite in the Groups tab and types the code."
+  },
+  {
+    "id": "groups-synced",
+    "screen": "groups",
+    "position": 3,
+    "question": "What does \"calendars synced\" mean on a group card?",
+    "answer": "It is the number of members whose calendar for today ParchApp already knows. If it says 2 of 4, two people still need to import or update their calendar."
+  },
+  {
+    "id": "schedule-import",
+    "screen": "schedule",
+    "position": 1,
+    "question": "How do I import my Google Calendar?",
+    "answer": "Open Schedule and tap the import option for Google Calendar. Sign in, allow ParchApp to see when you are free or busy, and your busy times appear in your week. ParchApp only reads free and busy times, not the titles of your events."
+  },
+  {
+    "id": "schedule-offline",
+    "screen": "schedule",
+    "position": 2,
+    "question": "Can I see my schedule without internet?",
+    "answer": "Yes. The last schedule saved on your phone is shown with the time it was saved. A new import needs an internet connection."
+  },
+  {
+    "id": "compare-availability",
+    "screen": "compare",
+    "position": 1,
+    "question": "How do I compare schedules with my group?",
+    "answer": "Open Compare Availability, choose the group and the day. ParchApp shows the times when everyone is free and suggests the best ones. Tap a suggested time to plan an activity."
+  },
+  {
+    "id": "chat-open",
+    "screen": "chat",
+    "position": 1,
+    "question": "How does the group chat work?",
+    "answer": "Open a group and tap Open chat. Messages you send without internet wait on your phone and are sent when the connection comes back."
+  },
+  {
+    "id": "andes-events",
+    "screen": "andes",
+    "position": 1,
+    "question": "What are Andes Events?",
+    "answer": "They are events on campus that you can save for your plans. What you save stays on your phone and is sent when you are online again."
+  },
+  {
+    "id": "status-change",
+    "screen": "status",
+    "position": 1,
+    "question": "How do I change my status?",
+    "answer": "Tap Quick status and choose how available you are. Your friends see it in the group, so they know if it is a good moment to plan."
+  },
+  {
+    "id": "alerts-what",
+    "screen": "alerts",
+    "position": 1,
+    "question": "Where do I see invitations and reminders?",
+    "answer": "Tap the bell at the top of the screen. There you accept or decline invitations to activities and see your reminders."
+  },
+  {
+    "id": "profile-photo",
+    "screen": "profile",
+    "position": 1,
+    "question": "How do I change my profile photo?",
+    "answer": "Tap your initials at the top, then your photo. You can take a selfie or use the rear camera. The photo needs an internet connection to be saved."
+  },
+  {
+    "id": "general-offline-banner",
+    "screen": "general",
+    "position": 1,
+    "question": "What does the offline message mean?",
+    "answer": "It means your phone has no internet. ParchApp shows the groups and plans that were saved on your phone. When the connection comes back, the message goes away and the screen updates by itself."
+  },
+  {
+    "id": "general-offline-works",
+    "screen": "general",
+    "position": 2,
+    "question": "What works without internet?",
+    "answer": "You can see your saved groups, plans and schedule, read this help, and write a group draft. Things that need other people, like sending an invitation or importing a calendar, wait for the connection."
+  },
+  {
+    "id": "general-help-updates",
+    "screen": "general",
+    "position": 3,
+    "question": "How is this help updated?",
+    "answer": "The help is saved on your phone. It is refreshed only on Wi-Fi, at most once a day and not when the battery is low, so it never uses your mobile data. The date of the last update is shown at the top."
+  }
+]

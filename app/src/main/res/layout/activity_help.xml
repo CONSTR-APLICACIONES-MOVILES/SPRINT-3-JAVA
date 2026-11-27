@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/brand_background"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="58dp"
+        android:background="@android:color/white"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
+
+        <ImageButton
+            android:id="@+id/help_back_button"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="@drawable/bg_icon_badge_square"
+            android:contentDescription="@string/go_back_short"
+            android:padding="9dp"
+            android:src="@drawable/ic_arrow_back"
+            android:tint="@color/brand_primary" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="@string/help_title"
+            android:textColor="@color/brand_dark"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- eventual connectivity: the shared offline banner, shown while there is no network -->
+    <include layout="@layout/view_offline_banner" />
+
+    <EditText
+        android:id="@+id/help_search_input"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginStart="14dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="14dp"
+        android:autofillHints="none"
+        android:background="@drawable/bg_light_blue"
+        android:drawableStart="@drawable/ic_search"
+        android:drawablePadding="10dp"
+        android:drawableTint="@color/brand_slate"
+        android:hint="@string/help_search_hint"
+        android:imeOptions="actionSearch"
+        android:importantForAutofill="no"
+        android:inputType="text"
+        android:maxLines="1"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:textColor="@color/brand_dark"
+        android:textColorHint="@color/brand_slate"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/help_updated"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:textColor="@color/brand_slate"
+        android:textSize="11sp" />
+
+    <TextView
+        android:id="@+id/help_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:gravity="center"
+        android:text="@string/help_no_results"
+        android:textColor="@color/brand_slate"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/help_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingStart="14dp"
+        android:paddingTop="4dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="16dp" />
+</LinearLayout>
