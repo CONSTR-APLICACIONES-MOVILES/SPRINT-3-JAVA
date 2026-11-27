@@ -20,6 +20,8 @@ public final class TopHeader {
                 activity.startActivity(new Intent(activity, AlertsActivity.class)));
         activity.findViewById(R.id.header_user_initials).setOnClickListener(v ->
                 activity.startActivity(new Intent(activity, ProfileActivity.class)));
+        // the help refreshes itself on Wi-Fi; setup runs on every main screen, so it is registered once from here
+        HelpWifiRefresher.registerOnce(activity.getApplicationContext());
         // the ? button opens the help with the questions of this screen first
         activity.findViewById(R.id.header_help_btn).setOnClickListener(v ->
                 HelpActivity.open(activity, screenName(activity)));
