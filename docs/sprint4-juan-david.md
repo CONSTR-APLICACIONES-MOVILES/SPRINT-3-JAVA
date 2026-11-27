@@ -168,9 +168,12 @@ From **Group Details** a member opens the **House Chat** of the group, or a **di
 | F3. Context-aware plan card | Plan card in Today's Plans | Travel time, "You won't make it on time", offline banner | – |
 | F6. Groups, activities and RSVPs | Dashboard reads groups and today's plans | In parallel, cache then network | – |
 | F7. Travel time from Google Maps | Travel time cached per activity | Reused only nearby | – |
-| Schedule | – | Flutter design: Google Calendar import, timeline, common slots, duration stepper | Renders only what changed (point 3) |
+| Schedule | – | Flutter design: Google Calendar import, timeline, common slots, duration stepper | Renders only what changed (point 3); same view as the Flutter `sch-back` branch (last updated banner, integrations row, no default friends); **friends hidden while offline** (teacher's correction) |
 | **Group Chat** (new view) | – | – | House Chat, direct chats, common slot card, offline sending |
 | **Chat notifications** | – | – | New messages in the notifications screen, open the chat |
+| **Andes Events** (ported from Flutter) | – | – | University events catalog, search and categories, saved events, Add / Remove from Schedule (the event becomes busy time in Schedule), offline add queue |
+
+Details and evidence of the Schedule changes and Andes Events: [sprint4-schedule-andes-events.md](sprint4-schedule-andes-events.md).
 
 ### b. Business questions
 
@@ -189,6 +192,8 @@ From **Group Details** a member opens the **House Chat** of the group, or a **di
 | Schedule | Memory → network → saved copy, with the time it was saved | The user sees their week offline and knows it may be old | 3 |
 | **Group Chat** | Firestore offline persistence: the chat opens with the saved messages; a message sent offline is written locally at once, shown with a clock and "Sending…", and sent by Firestore when the network returns; offline banner (`ConnectivityWatcher`) | A chat must let you write without network; the server time keeps the order right | **4** |
 | Shared pieces | `ConnectivityWatcher` (banner + reload on reconnect), `OfflineGuard` (check on every tap, network error vs other errors) | Nothing stays disabled after reconnecting, messages are honest | 3 |
+| **Schedule offline** | Offline only my saved schedule is shown: friend chips hidden, Add friends and Compare blocked with a message, a day saved with friends reduced to my blocks, no friends sent when planning; amber banner with the last update; on reconnect friends and the day reload and a green "Schedule updated" shows for 5 s | The teacher's correction: friends' data can be old offline, so they must not appear in the comparison | **4** |
+| **Andes Events** | Outbox `AndesOutbox`: "Add to Schedule" is saved on the phone first, then sent (pending → syncing → confirmed / failed); a lost connection keeps it pending, a refusal from the backend becomes failed and waits for Retry; sent when the screen opens, when the app opens online and every time the connection returns; offline banner with the last sync; removing needs the network | The user can add an event without network and it reaches the backend later without duplicates | **4** |
 
 ### d. Local storage
 
@@ -198,6 +203,9 @@ From **Group Details** a member opens the **House Chat** of the group, or a **di
 | Schedule friends list, Alerts copy | SharedPreferences (JSON per user) | Small values always read whole by one key | 3 |
 | Alerts copy | Now also keeps the chat of each chat alert, so it opens the chat offline | Same reason | **4** |
 | Group Chat | Firestore local cache (persistence) | The last 100 messages of each chat stay on the phone for offline reading and pending writes | **4** |
+| **Andes Events** | **Room** table `andes_events` (migration 2 → 3), key (owner, list, eventId), three lists: `catalog` (public events of the next 15 days), `saved` (bookmarks per account) and `outbox` (adds waiting for the backend) | Many rows per user that are filtered by date and status, and the outbox must survive closing the app | **4** |
+| Andes Events | SharedPreferences `catalog.lastSync` | One value: the time of the last confirmed catalog, shown in the offline banner | **4** |
+| Schedule offline | Room query `newestOfDate(owner, date)` over `schedule_days` | Offline, find the newest saved copy of a day even if it was saved with friends, and keep only my blocks | **4** |
 
 ### e. Multithreading
 
@@ -208,6 +216,8 @@ From **Group Details** a member opens the **House Chat** of the group, or a **di
 | Room (Schedule) | Serial queue `parch-schedule-db` | Disk I/O off the main thread, one write at a time | 3 |
 | **Group Chat** | **HandlerThread + Looper** (`parch-chat`) as the executor of the Firestore listener; rows built there, list posted to the main thread | A long-lived listener needs one thread with its own queue; thread confinement for the formatters | **4** |
 | **Chat list** | `DiffUtil` on a background thread (`ListAdapter`) | Only the changed rows are drawn | **4** |
+| **Andes Events** | Two serial queues: `parch-andes-db` for Room and `parch-andes-outbox` for sending the adds; results posted to the main thread | One write at a time, and two syncs can never send the same add twice | **4** |
+| Andes Events | Cached copy and network request started at the same time; a generation number drops an old or late answer | The screen shows the saved events at once, and a slow answer never replaces a newer one | **4** |
 
 ### f. Caching
 
@@ -217,3 +227,5 @@ From **Group Details** a member opens the **House Chat** of the group, or a **di
 | Profile photo | **Glide** with `AppGlideModule`: memory cache of 2 screens, 20 MB disk cache | Small round photos shown on every screen | 3 |
 | Group Chat | `limitToLast(100)` over the Firestore cache | An old chat does not load or keep everything | **4** |
 | Schedule | Colors and date formatters computed once and reused (point 3) | Less work on the main thread per render | **4** |
+| **Andes Events** | Rolling window of 15 days in Bogotá time (`AndesCacheWindow`); events evicted by date, not LRU; the saved copy is shown first and the confirmed answer replaces screen and copy in one transaction | Events expire by time, so the date decides what is worth keeping | **4** |
+| Schedule | `forgetDaysInMemory()` clears the in-memory days when an Andes event is added or removed | The next Schedule load asks the backend, so the new busy time shows at once | **4** |
