@@ -1,0 +1,16 @@
+Groups list, 20 times: open a group and come back with Back. Same account (16 groups), same phone, debug build.
+Perfetto trace, categories: app sections + view. Times in milliseconds, main thread.
+Before = branch perf/tp-groups-trace (original code, only trace sections). After = main (four micro-optimizations).
+
+section              before: count  total     avg      min      max   |  after: count  total     avg      min      max
+Groups.bindGroups              20  3875.16  193.758  175.714  222.411  |         20   573.82   28.691   24.751   34.873
+Groups.inflateCard            320  3221.51   10.067    8.394   24.047  |          0       0        0        0        0
+Groups.bindCard               320   521.73    1.630    0.971    3.402  |        320   547.89    1.712    0.858    5.472
+Groups.bindPlans               40   546.51   13.663    9.662   18.857  |         40   461.08   11.527    9.239   13.811
+measure (all screens)         490   838.59    1.711    0.099   15.013  |        481  2035.03    4.231    0.234   35.265
+layout (all screens)          470   243.96    0.519    0.054    3.471  |        461   155.87    0.338    0.081    2.412
+
+Changes: bindGroups average -85 percent. inflateCard goes from 320 calls to none (the cards are reused).
+bindPlans average -16 percent. bindCard is the same (+5 percent, within noise). layout -35 percent on average.
+measure is slower: the average goes from 1.7 to 4.2 ms. ConstraintLayout moves work from layout to measure.
+"measure" and "layout" include every screen of the loop (Groups and Group Details), so they are not only the cards.

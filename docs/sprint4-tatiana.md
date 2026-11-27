@@ -1,6 +1,6 @@
 # ParchApp (Java), Sprint 4: Tatiana Pérez Suancha
 
-All measurements were made on TODO: phone model and Android version, debug build, real Firebase project.
+All measurements and screenshots were made on a TECNO KM6 phone (Android 15), debug build, real Firebase project.
 
 ## 3. Micro-optimization: the Groups list
 
@@ -19,22 +19,26 @@ The Groups screen (`GroupsActivity`) is mine from Sprint 3. Before this sprint, 
 
 Two details that make reuse safe: a reused card keeps what it shows until the new plans arrive, so it does not blink, and each card remembers the id of the plan its RSVP belongs to, so a late answer for an older plan is ignored.
 
-### How it was measured (Android Studio CPU Profiler, System Trace, and Debug GPU Overdraw)
+### How it was measured (Perfetto trace recorded on the phone with adb)
 
-The first PR (`perf/tp-groups-trace`) only adds trace sections (`Groups.bindGroups`, `Groups.inflateCard`, `Groups.bindCard`, `Groups.bindPlans`), so the "before" and "after" builds are measured the same way. TODO: describe the test account (number of groups and plans), the phone, and the steps: open a group and come back with Back 20 times.
+The first PR (`perf/tp-groups-trace`) only adds trace sections (`Groups.bindGroups`, `Groups.inflateCard`, `Groups.bindCard`, `Groups.bindPlans`), so the "before" and "after" builds are measured the same way. The trace is recorded with Perfetto on the phone, the same engine that the System Trace of the Android Studio profiler uses, with the app sections and the view category on. The "before" build is the branch `perf/tp-groups-trace` (original code) and the "after" build is `main` (with the four micro-optimizations). Both runs use the same test account with 16 groups, the same phone and the same steps: two warm up rounds, then open the first group and come back with Back 20 times. The trace of each build is in `docs/evidence/sprint4/tatiana/` and the numbers are in `groups-perfetto-summary.txt`.
 
 ### Results: before and after
 
 | Trace section | Before: count | Before: average | After: count | After: average |
 |---|---|---|---|---|
-| `Groups.bindGroups` | TODO | TODO | TODO | TODO |
-| `Groups.inflateCard` | TODO | TODO | TODO | TODO |
-| `Groups.bindCard` | TODO | TODO | TODO | TODO |
-| `Groups.bindPlans` | TODO | TODO | TODO | TODO |
+| `Groups.bindGroups` | 20 | 193.8 ms | 20 | 28.7 ms |
+| `Groups.inflateCard` | 320 | 10.1 ms | 0 | none |
+| `Groups.bindCard` | 320 | 1.63 ms | 320 | 1.71 ms |
+| `Groups.bindPlans` | 40 | 13.7 ms | 40 | 11.5 ms |
 
 ### What the numbers say
 
-TODO: write what improved and what did not. If something did not improve, say so.
+- The main improvement is the one expected: when the user comes back to Groups, the 16 cards are not created again. `Groups.inflateCard` goes from 320 calls to none, and `Groups.bindGroups` goes from 193.8 ms to 28.7 ms on average, 85 percent less.
+- `Groups.bindPlans` improves 16 percent (13.7 ms to 11.5 ms), because the plans are split by group in one pass.
+- `Groups.bindCard` does not change (1.63 ms and 1.71 ms, inside the noise): binding the text of a card costs the same, only creating it was expensive.
+- The layout work moves. The average `layout` goes down 35 percent (0.52 ms to 0.34 ms), but the average `measure` goes up from 1.7 ms to 4.2 ms, because a ConstraintLayout does more work when it measures. Both numbers include every screen of the loop (Groups and Group Details), so they are not only the cards. This part did not improve, and we did not use the Debug GPU Overdraw screenshots in this sprint.
+- The first time the screen opens it still creates all the cards, because the saving is when the user comes back to the screen.
 
 ## 4. New view: Help (contextual help that works offline)
 
@@ -42,7 +46,6 @@ TODO: write what improved and what did not. If something did not improve, say so
 |---|---|---|
 | ![](evidence/sprint4/tatiana/help-entry.png) | ![](evidence/sprint4/tatiana/help.png) | ![](evidence/sprint4/tatiana/help-offline.png) |
 
-TODO: add the three screenshots from the phone.
 
 Help opens from a ? button in the shared top bar. It knows which screen it was opened from and shows the questions of that screen first, then the rest grouped by screen. It has a search box, the date of the last update (or "Built-in help" if it was never downloaded) and the offline banner when there is no network.
 
@@ -104,4 +107,4 @@ Scenarios, with the format of the class (Diagram EventualConnectivity):
 
 ## Evidence
 
-TODO: the two `.trace` files, the Profiler screenshots, the Debug GPU Overdraw screenshots before and after, and a bar chart by section, in `docs/evidence/sprint4/tatiana/`.
+In `docs/evidence/sprint4/tatiana/`: the two Perfetto traces (`groups-before.pftrace` and `groups-after.pftrace`), the table of numbers (`groups-perfetto-summary.txt`) and the three screenshots of Help (`help-entry.png`, `help.png` and `help-offline.png`).
