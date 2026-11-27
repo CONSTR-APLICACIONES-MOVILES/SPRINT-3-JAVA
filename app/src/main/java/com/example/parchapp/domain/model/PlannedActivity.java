@@ -22,6 +22,10 @@ public class PlannedActivity {
     private final String locationAreaId;
     private final String createdBy;
     private final Integer reminderMinutesBefore;
+    private final boolean cancelled;
+    private final int participantCount;
+    private final Double latitude;
+    private final Double longitude;
 
     public PlannedActivity(String id, String groupId, String title, String category, String date,
                            String time, String location, String status, long createdAt) {
@@ -64,6 +68,17 @@ public class PlannedActivity {
                            int groupSizeAtCreation, boolean comparisonUsed,
                            String startTime, String endTime, String locationAreaId,
                            String createdBy, Integer reminderMinutesBefore) {
+        this(id, groupId, title, category, date, time, location, status, createdAt,
+                groupSizeAtCreation, comparisonUsed, startTime, endTime, locationAreaId,
+                createdBy, reminderMinutesBefore, false, 0, null, null);
+    }
+
+    public PlannedActivity(String id, String groupId, String title, String category, String date,
+                           String time, String location, String status, long createdAt,
+                           int groupSizeAtCreation, boolean comparisonUsed,
+                           String startTime, String endTime, String locationAreaId,
+                           String createdBy, Integer reminderMinutesBefore, boolean cancelled,
+                           int participantCount, Double latitude, Double longitude) {
         this.id = id;
         this.groupId = groupId;
         this.title = title;
@@ -80,24 +95,28 @@ public class PlannedActivity {
         this.locationAreaId = locationAreaId == null || locationAreaId.isEmpty() ? UNKNOWN_AREA : locationAreaId;
         this.createdBy = createdBy == null ? "" : createdBy;
         this.reminderMinutesBefore = reminderMinutesBefore;
+        this.cancelled = cancelled;
+        this.participantCount = Math.max(0, participantCount);
+        this.latitude = latitude;
+        this.longitude = longitude;
     }
 
     public PlannedActivity withId(String newId) {
         return new PlannedActivity(newId, groupId, title, category, date, time, location, status,
                 createdAt, groupSizeAtCreation, comparisonUsed, startTime, endTime, locationAreaId,
-                createdBy, reminderMinutesBefore);
+                createdBy, reminderMinutesBefore, cancelled, participantCount, latitude, longitude);
     }
 
     public PlannedActivity withPlanningContext(int groupSize, boolean usedComparison) {
         return new PlannedActivity(id, groupId, title, category, date, time, location, status,
                 createdAt, groupSize, usedComparison, startTime, endTime, locationAreaId,
-                createdBy, reminderMinutesBefore);
+                createdBy, reminderMinutesBefore, cancelled, participantCount, latitude, longitude);
     }
 
     public PlannedActivity withSchedule(String start, String end) {
         return new PlannedActivity(id, groupId, title, category, date, time, location, status,
                 createdAt, groupSizeAtCreation, comparisonUsed, start, end, locationAreaId,
-                createdBy, reminderMinutesBefore);
+                createdBy, reminderMinutesBefore, cancelled, participantCount, latitude, longitude);
     }
 
     public String getId() {
@@ -155,5 +174,21 @@ public class PlannedActivity {
     }
     public Integer getReminderMinutesBefore() {
         return reminderMinutesBefore;
+    }
+
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    public int getParticipantCount() {
+        return participantCount;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
     }
 }
