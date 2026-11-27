@@ -184,11 +184,47 @@ public class ActivityParticipantsActivity extends AppCompatActivity {
 
         membersContainer.removeAllViews();
         LayoutInflater inflater = LayoutInflater.from(this);
+        java.util.List<ActivityParticipant> organizer = new java.util.ArrayList<>();
+        java.util.List<ActivityParticipant> accepted = new java.util.ArrayList<>();
+        java.util.List<ActivityParticipant> maybe = new java.util.ArrayList<>();
+        java.util.List<ActivityParticipant> declined = new java.util.ArrayList<>();
+        java.util.List<ActivityParticipant> pending = new java.util.ArrayList<>();
+        java.util.List<ActivityParticipant> notInvited = new java.util.ArrayList<>();
         for (ActivityParticipant member : participants.getMembers()) {
-            View row = inflater.inflate(R.layout.item_activity_participant, membersContainer, false);
-            bindMember(row, member);
-            membersContainer.addView(row);
+            if (member.isOrganizer()) {
+                organizer.add(member);
+            } else if (!member.isInvited()) {
+                notInvited.add(member);
+            } else if ("accepted".equals(member.getResponse())) {
+                accepted.add(member);
+            } else if ("maybe".equals(member.getResponse())) {
+                maybe.add(member);
+            } else if ("declined".equals(member.getResponse())) {
+                declined.add(member);
+            } else {
+                pending.add(member);
+            }
         }
+
+        TextView summary = new TextView(this);
+        summary.setText(accepted.size() + " accepted · " + maybe.size() + " maybe · "
+                + declined.size() + " declined · " + pending.size() + " pending");
+        summary.setTextColor(getColor(R.color.brand_dark));
+        summary.setTextSize(12);
+        summary.setPadding(dp(10), dp(8), dp(10), dp(8));
+        summary.setBackgroundResource(R.drawable.bg_light_blue);
+        LinearLayout.LayoutParams summaryParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        summaryParams.bottomMargin = dp(4);
+        membersContainer.addView(summary, summaryParams);
+
+        addSection(inflater, "Organizer", organizer);
+        addSection(inflater, "Accepted", accepted);
+        addSection(inflater, "Maybe", maybe);
+        addSection(inflater, "Declined", declined);
+        addSection(inflater, "Pending", pending);
+        addSection(inflater, "Not invited", notInvited);
+
         if (participants.getMembers().isEmpty()) {
             feedback.setText("No participants yet.");
             feedback.setVisibility(View.VISIBLE);
@@ -197,6 +233,27 @@ public class ActivityParticipantsActivity extends AppCompatActivity {
         manageSection.setVisibility(participants.canManage() ? View.VISIBLE : View.GONE);
         inviteFriendsButton.setVisibility(participants.canInviteFriends() ? View.VISIBLE : View.GONE);
         if (participants.canInviteFriends()) loadFriends();
+    }
+
+    private void addSection(LayoutInflater inflater, String title,
+                            java.util.List<ActivityParticipant> members) {
+        if (members.isEmpty()) return;
+        TextView header = new TextView(this);
+        header.setText(title + " (" + members.size() + ")");
+        header.setTextColor(getColor(R.color.brand_slate));
+        header.setTextSize(10);
+        header.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        header.setPadding(0, dp(12), 0, dp(4));
+        membersContainer.addView(header);
+        for (ActivityParticipant member : members) {
+            View row = inflater.inflate(R.layout.item_activity_participant, membersContainer, false);
+            bindMember(row, member);
+            membersContainer.addView(row);
+        }
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
     private void bindMember(View row, ActivityParticipant member) {

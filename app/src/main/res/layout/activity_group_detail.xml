@@ -142,7 +142,7 @@
                     android:layout_height="38dp"
                     android:layout_marginTop="8dp"
                     android:background="@drawable/bg_light_blue"
-                    android:text="Participants"
+                    android:text="Responses"
                     android:textAllCaps="false"
                     android:textColor="@color/brand_primary"
                     android:textSize="10sp"
