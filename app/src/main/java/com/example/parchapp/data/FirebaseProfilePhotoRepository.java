@@ -49,6 +49,16 @@ final class FirebaseProfilePhotoRepository implements ProfilePhotoRepository {
     }
 
     @Override
+    public void loadCurrentPhotoUrl(Callback<String> callback) {
+        functions.getHttpsCallable("getProfile").call(Collections.emptyMap())
+                .addOnSuccessListener(result -> {
+                    Object raw = asMap(result.getData()).get("photoUrl");
+                    MainThread.post(() -> callback.onSuccess(raw == null ? null : raw.toString()));
+                })
+                .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+    }
+
+    @Override
     public void savePhoto(String userId, byte[] jpeg, Callback<Void> callback) {
         if (auth.getCurrentUser() == null || userId == null || userId.trim().isEmpty()
                 || !userId.equals(auth.getCurrentUser().getUid())) {
@@ -69,8 +79,8 @@ final class FirebaseProfilePhotoRepository implements ProfilePhotoRepository {
         reference.putBytes(jpeg, metadata)
                 .addOnSuccessListener(task -> reference.getDownloadUrl()
                         .addOnSuccessListener(uri -> saveFields(userId, jpeg, uri.toString(), callback))
-                        .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error))))
-                .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+                        .addOnFailureListener(error -> saveFields(userId, jpeg, null, callback)))
+                .addOnFailureListener(error -> saveFields(userId, jpeg, null, callback));
     }
 
     private void saveFields(String userId, byte[] jpeg, @Nullable String photoUrl,

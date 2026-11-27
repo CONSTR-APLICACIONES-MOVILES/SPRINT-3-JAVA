@@ -544,6 +544,41 @@ public class ProfileActivity extends AppCompatActivity {
             return;
         }
         int requestVersion = ++photoLoadVersion;
+        repository.loadCurrentPhotoUrl(new Callback<String>() {
+            @Override
+            public void onSuccess(String url) {
+                if (isFinishing() || isDestroyed() || requestVersion != photoLoadVersion || photoBusy) {
+                    return;
+                }
+                if (url == null || url.trim().isEmpty()) {
+                    loadProfilePhotoBytes(repository, requestVersion);
+                    return;
+                }
+                com.squareup.picasso.Picasso.get().load(url).into(photoView,
+                        new com.squareup.picasso.Callback() {
+                            @Override public void onSuccess() {
+                                if (isFinishing() || isDestroyed()
+                                        || requestVersion != photoLoadVersion || photoBusy) return;
+                                photoView.setVisibility(View.VISIBLE);
+                                initialsView.setVisibility(View.GONE);
+                            }
+
+                            @Override public void onError(Exception error) {
+                                if (isFinishing() || isDestroyed()) return;
+                                loadProfilePhotoBytes(repository, requestVersion);
+                            }
+                        });
+            }
+
+            @Override
+            public void onError(Exception error) {
+                if (isFinishing() || isDestroyed()) return;
+                loadProfilePhotoBytes(repository, requestVersion);
+            }
+        });
+    }
+
+    private void loadProfilePhotoBytes(ProfilePhotoRepository repository, int requestVersion) {
         repository.loadCurrentPhoto(new Callback<byte[]>() {
             @Override
             public void onSuccess(byte[] photo) {

@@ -82,6 +82,7 @@ public class ParticipantActionWorker extends androidx.work.Worker {
         Exception error = failure.get();
         if (error == null) {
             outbox.delete(id);
+            ParticipantSyncEvents.notifyChanged();
             return Result.success();
         }
         String message = error.getLocalizedMessage();
@@ -95,11 +96,13 @@ public class ParticipantActionWorker extends androidx.work.Worker {
             if (code == FirebaseFunctionsException.Code.ABORTED) {
                 outbox.update(id, ParticipantOutboxEntity.CONFLICT,
                         message == null ? "Participants changed. Reload." : message);
+                ParticipantSyncEvents.notifyChanged();
                 return Result.failure();
             }
         }
         outbox.update(id, ParticipantOutboxEntity.FAILED,
                 message == null ? "Could not update participants." : message);
+        ParticipantSyncEvents.notifyChanged();
         return Result.failure();
     }
 

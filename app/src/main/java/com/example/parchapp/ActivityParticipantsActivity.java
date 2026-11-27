@@ -40,6 +40,10 @@ public class ActivityParticipantsActivity extends AppCompatActivity {
     private boolean busy;
     private boolean remoteLoaded;
     private ParticipantLocalStore localStore;
+    private final Runnable syncListener = () -> {
+        loadPending();
+        load();
+    };
 
     private TextView feedback;
     private TextView intro;
@@ -102,6 +106,24 @@ public class ActivityParticipantsActivity extends AppCompatActivity {
         loadLocal();
         loadPending();
         load();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        ParticipantSyncEvents.addListener(syncListener);
+    }
+
+    @Override
+    protected void onStop() {
+        ParticipantSyncEvents.removeListener(syncListener);
+        super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (localStore != null) localStore.shutdown();
+        super.onDestroy();
     }
 
     private void loadLocal() {
@@ -318,15 +340,28 @@ public class ActivityParticipantsActivity extends AppCompatActivity {
                 pendingTitle.setVisibility(pending.isEmpty() ? View.GONE : View.VISIBLE);
                 pendingContainer.setVisibility(pending.isEmpty() ? View.GONE : View.VISIBLE);
                 for (ParticipantOutboxEntity entry : pending) {
-                    TextView row = new TextView(ActivityParticipantsActivity.this);
-                    row.setTextSize(11);
-                    row.setPadding(0, 6, 0, 6);
-                    StringBuilder text = new StringBuilder(actionLabel(entry.action))
+                    View row = LayoutInflater.from(ActivityParticipantsActivity.this)
+                            .inflate(R.layout.item_activity_pending, pendingContainer, false);
+                    TextView text = row.findViewById(R.id.pending_text);
+                    StringBuilder message = new StringBuilder(actionLabel(entry.action))
                             .append(" - ").append(statusLabel(entry.status));
                     if (entry.error != null && !entry.error.isEmpty()) {
-                        text.append(" - ").append(entry.error);
+                        message.append(" - ").append(entry.error);
                     }
-                    row.setText(text.toString());
+                    text.setText(message.toString());
+                    AppCompatButton action = row.findViewById(R.id.pending_action);
+                    if (ParticipantOutboxEntity.FAILED.equals(entry.status)) {
+                        action.setText("Retry");
+                        action.setVisibility(View.VISIBLE);
+                        action.setOnClickListener(v -> {
+                            localStore.delete(entry.id);
+                            change(entry.action, entry.userId);
+                        });
+                    } else if (ParticipantOutboxEntity.CONFLICT.equals(entry.status)) {
+                        action.setText("Reload");
+                        action.setVisibility(View.VISIBLE);
+                        action.setOnClickListener(v -> load());
+                    }
                     pendingContainer.addView(row);
                 }
             }

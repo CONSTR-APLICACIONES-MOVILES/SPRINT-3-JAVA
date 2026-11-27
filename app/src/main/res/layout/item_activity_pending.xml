@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp">
+
+    <TextView
+        android:id="@+id/pending_text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textColor="@color/brand_slate"
+        android:textSize="11sp" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/pending_action"
+        android:layout_width="wrap_content"
+        android:layout_height="30dp"
+        android:background="@drawable/bg_light_blue"
+        android:minWidth="0dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:text="Retry"
+        android:textAllCaps="false"
+        android:textColor="@color/brand_primary"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+</LinearLayout>
