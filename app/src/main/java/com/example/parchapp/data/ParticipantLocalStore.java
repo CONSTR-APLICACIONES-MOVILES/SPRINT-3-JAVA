@@ -86,4 +86,8 @@ public final class ParticipantLocalStore {
     public void delete(long id) {
         pool.execute(() -> outbox.delete(id));
     }
+
+    public void shutdown() {
+        pool.shutdownNow();
+    }
 }
