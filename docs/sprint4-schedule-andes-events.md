@@ -68,9 +68,23 @@ Added events are stored in `andesSchedule/{uid}/events` as busy minutes. `getSch
 - **Multithreading.** Room runs on its own serial queue (`parch-andes-db`). The outbox runs on another serial queue (`parch-andes-outbox`), so two syncs never send the same request twice. The screen receives the results on the main thread.
 - **Concurrency.** The cached copy and the backend request start at the same time. A generation number drops an old or late answer, so it never replaces a newer one.
 
-| Offline | Backend not deployed yet |
-|---|---|
-| ![](evidence/sprint4/andes-events-offline.png) | ![](evidence/sprint4/andes-events-backend-not-deployed.png) |
+**End-to-end test on a real phone against production (Nov 27, 2026):**
+
+1. The catalog loads from the backend.
+2. "Add to Schedule" turns the button into "Remove from Schedule".
+3. On Wednesday Dec 2, Schedule shows one busy block from 2:00 to 5:30 PM. Before, there was a free gap from 3:30 to 4:00 PM between the Google Calendar classes, and the event filled it.
+4. Removing the event works.
+5. In airplane mode, "Add to Schedule" stays as "Pending sync".
+6. When the network returns, the add is sent by itself, with no tap.
+7. The bookmark appears in Saved.
+
+| Catalog | Busy time in Schedule | Offline: pending | Synced after reconnecting | Saved |
+|---|---|---|---|---|
+| ![](evidence/sprint4/andes-events-catalog.png) | ![](evidence/sprint4/andes-events-busy-in-schedule.png) | ![](evidence/sprint4/andes-events-offline-pending.png) | ![](evidence/sprint4/andes-events-synced.png) | ![](evidence/sprint4/andes-events-saved.png) |
+
+The offline catalog banner: ![](evidence/sprint4/andes-events-offline.png)
+
+The backend rules are shared by the Java and Flutter clients (Backend PR #21), so the Flutter app keeps reading `andesEvents` and `availability` directly.
 
 ## Tests
 
