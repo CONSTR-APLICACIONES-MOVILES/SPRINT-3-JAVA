@@ -4,8 +4,10 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.format.DateFormat;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -14,13 +16,19 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
 
+import com.example.parchapp.analytics.AnalyticsTracker;
+import com.example.parchapp.data.ParticipantLocalStore;
+import com.example.parchapp.data.ParticipantOutboxEntity;
 import com.example.parchapp.data.Repositories;
 import com.example.parchapp.domain.model.ActivityParticipant;
 import com.example.parchapp.domain.model.ActivityParticipants;
 import com.example.parchapp.domain.model.Group;
 import com.example.parchapp.domain.model.ScheduleFriend;
 import com.example.parchapp.util.Callback;
+import com.squareup.picasso.NetworkPolicy;
+import com.squareup.picasso.Picasso;
 
+import java.util.Date;
 import java.util.List;
 
 /** Participants of one activity, with the same behavior as the Flutter Activity participants view. */
@@ -30,16 +38,21 @@ public class ActivityParticipantsActivity extends AppCompatActivity {
     private String activityId;
     private ActivityParticipants participants;
     private boolean busy;
+    private boolean remoteLoaded;
+    private ParticipantLocalStore localStore;
 
     private TextView feedback;
     private TextView intro;
     private TextView cancelled;
+    private TextView savedNotice;
+    private TextView pendingTitle;
     private AppCompatButton joinButton;
     private AppCompatButton viewInvitationButton;
     private AppCompatButton inviteFriendsButton;
     private AppCompatButton reloadButton;
     private LinearLayout membersContainer;
     private LinearLayout friendsContainer;
+    private LinearLayout pendingContainer;
     private View manageSection;
     private ProgressBar loading;
     private View errorBox;
@@ -59,16 +72,20 @@ public class ActivityParticipantsActivity extends AppCompatActivity {
         feedback = findViewById(R.id.participants_feedback);
         intro = findViewById(R.id.participants_intro);
         cancelled = findViewById(R.id.participants_cancelled);
+        savedNotice = findViewById(R.id.participants_saved_at);
+        pendingTitle = findViewById(R.id.participants_pending_title);
         joinButton = findViewById(R.id.participants_join);
         viewInvitationButton = findViewById(R.id.participants_view_invitation);
         inviteFriendsButton = findViewById(R.id.participants_invite_friends);
         reloadButton = findViewById(R.id.participants_reload);
         membersContainer = findViewById(R.id.participants_members);
         friendsContainer = findViewById(R.id.participants_friends);
+        pendingContainer = findViewById(R.id.participants_pending);
         manageSection = findViewById(R.id.participants_manage_section);
         loading = findViewById(R.id.participants_loading);
         errorBox = findViewById(R.id.participants_error);
         errorMessage = findViewById(R.id.participants_error_message);
+        localStore = new ParticipantLocalStore(this);
 
         findViewById(R.id.participants_back).setOnClickListener(v -> finish());
         reloadButton.setOnClickListener(v -> load());
@@ -82,7 +99,25 @@ public class ActivityParticipantsActivity extends AppCompatActivity {
             showError("Activity not found.");
             return;
         }
+        loadLocal();
+        loadPending();
         load();
+    }
+
+    private void loadLocal() {
+        localStore.loadSnapshot(activityId, new Callback<ParticipantLocalStore.Snapshot>() {
+            @Override public void onSuccess(ParticipantLocalStore.Snapshot snapshot) {
+                if (isFinishing() || isDestroyed() || remoteLoaded || snapshot == null) return;
+                participants = snapshot.participants;
+                render();
+                String when = DateFormat.getTimeFormat(ActivityParticipantsActivity.this)
+                        .format(new Date(snapshot.savedAt));
+                savedNotice.setText("Saved copy from " + when + " - offline");
+                savedNotice.setVisibility(View.VISIBLE);
+            }
+
+            @Override public void onError(Exception error) { }
+        });
     }
 
     private void load() {
@@ -92,15 +127,23 @@ public class ActivityParticipantsActivity extends AppCompatActivity {
             @Override public void onSuccess(ActivityParticipants result) {
                 if (isFinishing() || isDestroyed()) return;
                 setLoading(false);
+                remoteLoaded = true;
                 participants = result;
+                savedNotice.setVisibility(View.GONE);
+                localStore.saveSnapshot(result);
                 render();
+                loadPending();
             }
 
             @Override public void onError(Exception error) {
                 if (isFinishing() || isDestroyed()) return;
                 setLoading(false);
-                showError(OfflineGuard.failureMessage(error, "load participants",
-                        "Could not load participants."));
+                if (participants != null) {
+                    showFeedback("Could not refresh. Showing the saved copy.");
+                } else {
+                    showError(OfflineGuard.failureMessage(error, "load participants",
+                            "Could not load participants."));
+                }
             }
         });
     }
@@ -135,6 +178,10 @@ public class ActivityParticipantsActivity extends AppCompatActivity {
     }
 
     private void bindMember(View row, ActivityParticipant member) {
+        TextView initials = row.findViewById(R.id.participant_initials);
+        ImageView avatar = row.findViewById(R.id.participant_avatar);
+        initials.setText(initials(member.getName()));
+        bindAvatar(avatar, initials, member.getPhotoUrl());
         ((TextView) row.findViewById(R.id.participant_name)).setText(member.getName());
         TextView status = row.findViewById(R.id.participant_status);
         AppCompatButton action = row.findViewById(R.id.participant_action);
@@ -162,6 +209,39 @@ public class ActivityParticipantsActivity extends AppCompatActivity {
         }
     }
 
+    private void bindAvatar(ImageView avatar, TextView initials, String photoUrl) {
+        if (photoUrl == null || photoUrl.trim().isEmpty()) {
+            avatar.setVisibility(View.GONE);
+            initials.setVisibility(View.VISIBLE);
+            return;
+        }
+        avatar.setVisibility(View.VISIBLE);
+        initials.setVisibility(View.GONE);
+        com.squareup.picasso.RequestCreator request = Picasso.get()
+                .load(photoUrl).fit().centerCrop();
+        if (!AnalyticsTracker.getInstance().isOnline()) {
+            request.networkPolicy(NetworkPolicy.OFFLINE);
+        }
+        request.into(avatar, new com.squareup.picasso.Callback() {
+            @Override public void onSuccess() {
+                avatar.setVisibility(View.VISIBLE);
+                initials.setVisibility(View.GONE);
+            }
+
+            @Override public void onError(Exception error) {
+                avatar.setVisibility(View.GONE);
+                initials.setVisibility(View.VISIBLE);
+            }
+        });
+    }
+
+    private static String initials(String name) {
+        if (name == null || name.trim().isEmpty()) return "";
+        String[] words = name.trim().split("\\s+");
+        return (words[0].substring(0, 1) + (words.length > 1
+                ? words[words.length - 1].substring(0, 1) : "")).toUpperCase();
+    }
+
     private void confirmRemove(ActivityParticipant member) {
         new AlertDialog.Builder(this)
                 .setTitle("Remove participant?")
@@ -175,10 +255,13 @@ public class ActivityParticipantsActivity extends AppCompatActivity {
         if (busy || participants == null) return;
         String label = "join".equals(action) ? "join the activity"
                 : "invite".equals(action) ? "invite a participant" : "remove a participant";
-        if (OfflineGuard.blockIfOffline(this, label)) return;
         String clientUserId = currentUserId();
         if (clientUserId == null) {
             Toast.makeText(this, "Sign in to continue.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (!AnalyticsTracker.getInstance().isOnline()) {
+            enqueue(action, userId, clientUserId);
             return;
         }
         setBusy(true);
@@ -194,10 +277,75 @@ public class ActivityParticipantsActivity extends AppCompatActivity {
                     @Override public void onError(Exception error) {
                         if (isFinishing() || isDestroyed()) return;
                         setBusy(false);
-                        showFeedback(OfflineGuard.failureMessage(error, label,
-                                "Could not update participants."));
+                        if (OfflineGuard.isNetworkError(error)
+                                || !AnalyticsTracker.getInstance().isOnline()) {
+                            enqueue(action, userId, clientUserId);
+                        } else {
+                            showFeedback(OfflineGuard.failureMessage(error, label,
+                                    "Could not update participants."));
+                        }
                     }
                 });
+    }
+
+    private void enqueue(String action, String userId, String clientUserId) {
+        if (participants == null) return;
+        String version = participants.getVersion();
+        setBusy(true);
+        localStore.enqueue(activityId, action, userId, version, new Callback<Long>() {
+            @Override public void onSuccess(Long id) {
+                if (isFinishing() || isDestroyed()) return;
+                setBusy(false);
+                ParticipantActionWorker.enqueue(ActivityParticipantsActivity.this, id, activityId,
+                        action, userId, version, clientUserId);
+                showFeedback("Saved here. It will sync when the connection returns.");
+                loadPending();
+            }
+
+            @Override public void onError(Exception error) {
+                if (isFinishing() || isDestroyed()) return;
+                setBusy(false);
+                showFeedback("Could not save the action on this device.");
+            }
+        });
+    }
+
+    private void loadPending() {
+        localStore.loadPending(activityId, new Callback<List<ParticipantOutboxEntity>>() {
+            @Override public void onSuccess(List<ParticipantOutboxEntity> pending) {
+                if (isFinishing() || isDestroyed()) return;
+                pendingContainer.removeAllViews();
+                pendingTitle.setVisibility(pending.isEmpty() ? View.GONE : View.VISIBLE);
+                pendingContainer.setVisibility(pending.isEmpty() ? View.GONE : View.VISIBLE);
+                for (ParticipantOutboxEntity entry : pending) {
+                    TextView row = new TextView(ActivityParticipantsActivity.this);
+                    row.setTextSize(11);
+                    row.setPadding(0, 6, 0, 6);
+                    StringBuilder text = new StringBuilder(actionLabel(entry.action))
+                            .append(" - ").append(statusLabel(entry.status));
+                    if (entry.error != null && !entry.error.isEmpty()) {
+                        text.append(" - ").append(entry.error);
+                    }
+                    row.setText(text.toString());
+                    pendingContainer.addView(row);
+                }
+            }
+
+            @Override public void onError(Exception error) { }
+        });
+    }
+
+    private static String actionLabel(String action) {
+        if ("join".equals(action)) return "Join activity";
+        if ("invite".equals(action)) return "Invite participant";
+        return "Remove participant";
+    }
+
+    private static String statusLabel(String status) {
+        if (ParticipantOutboxEntity.SYNCING.equals(status)) return "syncing";
+        if (ParticipantOutboxEntity.FAILED.equals(status)) return "failed";
+        if (ParticipantOutboxEntity.CONFLICT.equals(status)) return "reload needed";
+        return "waiting for connection";
     }
 
     private void loadFriends() {
