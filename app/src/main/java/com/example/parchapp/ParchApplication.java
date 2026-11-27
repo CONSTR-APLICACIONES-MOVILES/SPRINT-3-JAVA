@@ -26,6 +26,7 @@ public class ParchApplication extends Application {
             AnalyticsTracker.getInstance().setUserId(restored.getId());
         }
         Repositories.availabilityStatusSync().start();
+        Repositories.activityDraftsSync().start();
         // eventual connectivity: the Andes Events added offline are sent when the app opens online and each time
         // the connection comes back (the listener also runs once right away with the current state)
         if (Repositories.andesOutbox() != null) {

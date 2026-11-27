@@ -18,6 +18,11 @@ public interface ActivityActionsRepository {
         createActivity(activity, callback);
     }
 
+    default void createActivity(PlannedActivity activity, @Nullable ComparisonEvidence evidence,
+                                String requestId, Callback<PlannedActivity> callback) {
+        createActivity(activity, evidence, callback);
+    }
+
     void getActivityDetails(String activityId, Callback<ActivityDetails> callback);
 
     void setActivityReminder(String activityId, int minutesBefore, Callback<Void> callback);

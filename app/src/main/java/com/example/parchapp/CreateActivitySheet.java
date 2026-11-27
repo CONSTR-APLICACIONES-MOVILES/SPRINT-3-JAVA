@@ -19,9 +19,12 @@ import com.example.parchapp.analytics.ActivityCreationTelemetry;
 import com.example.parchapp.analytics.AnalyticsEvents;
 import com.example.parchapp.analytics.AnalyticsTracker;
 import com.example.parchapp.analytics.CreationFlowTracker;
+import com.example.parchapp.data.ActivityDraftsRepository;
 import com.example.parchapp.data.Repositories;
+import com.example.parchapp.domain.model.ActivityDraft;
 import com.example.parchapp.domain.model.ComparisonEvidence;
 import com.example.parchapp.domain.model.PlannedActivity;
+import com.example.parchapp.domain.model.SavedActivityDraft;
 import com.example.parchapp.util.Callback;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -62,11 +65,27 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
     private static final String STATE_FLOW_STARTED = "flow_started";
     private static final String STATE_FLOW_STEPS = "flow_steps";
     private static final String STATE_FLOW_FINISHED = "flow_finished";
+    private static final String ARG_DRAFT_ID = "arg_draft_id";
+    private static final String ARG_DRAFT_REVISION = "arg_draft_revision";
+    private static final String ARG_DRAFT_VERSION = "arg_draft_version";
+    private static final String ARG_DRAFT_JSON = "arg_draft_json";
 
     private String groupId;
     private int groupSize;
 // bq7: logs the steps the user reaches in this opening of the form
     private CreationFlowTracker flow;
+
+    private EditText titleField;
+    private EditText dateField;
+    private EditText timeField;
+    private EditText durationField;
+    private EditText locationField;
+    private View saveDraftButton;
+    private SavedActivityDraft localDraft;
+    private String requestId;
+    private boolean publishing;
+    private boolean published;
+    private String savedFingerprint = "";
 
     public static CreateActivitySheet newInstance(String groupId, int groupSize, String slotTime,
                                                   int slotPosition) {
@@ -144,6 +163,25 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         return this;
     }
 
+    public CreateActivitySheet withDraft(SavedActivityDraft draft) {
+        Bundle args = getArguments() == null ? new Bundle() : getArguments();
+        args.putString(ARG_DRAFT_ID, draft.getId());
+        args.putLong(ARG_DRAFT_REVISION, draft.getRevision());
+        args.putLong(ARG_DRAFT_VERSION, draft.getRemoteVersion());
+        try {
+            args.putString(ARG_DRAFT_JSON, draft.getActivity().toJson());
+        } catch (org.json.JSONException ignored) {
+        }
+        args.putString(ARG_GROUP_ID, draft.getActivity().getGroupId());
+        args.putString(ARG_COMPARISON_ID, draft.getActivity().getComparisonId());
+        args.putStringArrayList(ARG_COMPARED_IDS,
+                new java.util.ArrayList<>(draft.getActivity().getComparedIds()));
+        args.putString(ARG_COMPARED_DATE, draft.getActivity().getComparedDate());
+        args.putInt(ARG_SLOT_POSITION, draft.getActivity().getSlotPosition());
+        setArguments(args);
+        return this;
+    }
+
     /* BQ9: true when the plan was made after comparing, from a Compare Availability slot or a Schedule comparison. */
     static boolean madeAfterComparing(int slotPosition, @Nullable String comparisonId) {
         return slotPosition >= 0 || (comparisonId != null && !comparisonId.isEmpty());
@@ -180,6 +218,11 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         EditText time = view.findViewById(R.id.input_activity_time);
         EditText duration = view.findViewById(R.id.input_activity_duration);
         EditText location = view.findViewById(R.id.input_activity_location);
+        titleField = title;
+        dateField = date;
+        timeField = time;
+        durationField = duration;
+        locationField = location;
         TextView groupChip = view.findViewById(R.id.chip_group_eng);
         view.findViewById(R.id.chip_group_roomies).setVisibility(View.GONE);
         groupChip.setText(groupId == null ? "Loading your groups…" : "Group selected");
@@ -202,6 +245,29 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
                 date.setText(day.format(new java.util.Date()));
             }
         }
+
+        String draftJson = args.getString(ARG_DRAFT_JSON);
+        if (draftJson != null) {
+            ActivityDraft saved = ActivityDraft.fromJson(draftJson);
+            if (saved != null) {
+                localDraft = new SavedActivityDraft(args.getString(ARG_DRAFT_ID, ""),
+                        args.getLong(ARG_DRAFT_REVISION, 0), 0, saved,
+                        SavedActivityDraft.SYNC_LOCAL, "active",
+                        args.getLong(ARG_DRAFT_VERSION, 0));
+                groupId = saved.getGroupId();
+                requestId = saved.getRequestId();
+                title.setText(saved.getTitle());
+                date.setText(saved.getDate());
+                time.setText(saved.getTime());
+                location.setText(saved.getLocation());
+                int minutes = minutesBetween(saved.getStartsAt(), saved.getEndsAt());
+                if (minutes > 0) duration.setText(String.valueOf(minutes));
+                groupChip.setText(groupId == null || groupId.trim().isEmpty()
+                        ? "Select a group first" : "Group selected");
+            }
+        }
+        if (requestId == null) requestId = UUID.randomUUID().toString().replace("-", "");
+        savedFingerprint = fingerprint();
         date.setFocusable(false);
         date.setOnClickListener(v -> pickDate(date));
         time.setFocusable(false);
@@ -226,6 +292,12 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         View createButton = view.findViewById(R.id.btn_create_activity);
         createButton.setEnabled(groupId != null && !groupId.trim().isEmpty());
         createButton.setOnClickListener(v -> publish(title, date, time, duration, location, createButton));
+        saveDraftButton = view.findViewById(R.id.btn_save_draft);
+        saveDraftButton.setOnClickListener(v -> saveDraft(true));
+        view.findViewById(R.id.btn_my_drafts).setOnClickListener(v -> {
+            dismiss();
+            startActivity(new Intent(requireContext(), ActivityDraftsActivity.class));
+        });
         if (groupId == null) {
 // when the phone turns we bring back the group the user picked before
             String picked = savedInstanceState == null ? null : savedInstanceState.getString(STATE_PICKED_GROUP);
@@ -369,6 +441,81 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         });
     }
 
+    private String fingerprint() {
+        return safe(titleField) + "|" + safe(dateField) + "|" + safe(timeField) + "|"
+                + safe(durationField) + "|" + safe(locationField) + "|" + (groupId == null ? "" : groupId);
+    }
+
+    private static String safe(EditText field) {
+        return field == null ? "" : field.getText().toString().trim();
+    }
+
+    private ActivityDraft currentDraft() {
+        if (titleField == null) return null;
+        String title = titleField.getText().toString().trim();
+        String date = dateField.getText().toString().trim();
+        String time = timeField.getText().toString().trim();
+        String location = locationField.getText().toString().trim();
+        Calendar start = parseStart(date, time);
+        String startIso = null;
+        String endIso = null;
+        int duration = 0;
+        try {
+            duration = Integer.parseInt(durationField.getText().toString().trim());
+        } catch (NumberFormatException ignored) {
+        }
+        if (start != null && duration >= 15 && duration <= 720) {
+            Calendar end = (Calendar) start.clone();
+            end.add(Calendar.MINUTE, duration);
+            startIso = toUtcIso(start);
+            endIso = toUtcIso(end);
+        }
+        Bundle args = getArguments() == null ? new Bundle() : getArguments();
+        return new ActivityDraft(groupId, title, "", "other", location,
+                PlannedActivity.STATUS_PROPOSED, date, time, startIso, endIso, requestId,
+                args.getString(ARG_COMPARISON_ID), args.getStringArrayList(ARG_COMPARED_IDS),
+                args.getString(ARG_COMPARED_DATE), args.getInt(ARG_SLOT_POSITION, -1));
+    }
+
+    private void saveDraft(boolean showNotice) {
+        if (publishing || published || titleField == null) return;
+        ActivityDraft draft = currentDraft();
+        if (draft == null || (!draft.hasContent() && localDraft == null)) return;
+        if (localDraft != null && fingerprint().equals(savedFingerprint)) return;
+        ActivityDraftsRepository repository = Repositories.activityDrafts();
+        if (repository == null) return;
+        repository.save(draft, localDraft, new Callback<SavedActivityDraft>() {
+            @Override public void onSuccess(SavedActivityDraft saved) {
+                localDraft = saved;
+                if (saved.getActivity() != null && saved.getActivity().getRequestId() != null) {
+                    requestId = saved.getActivity().getRequestId();
+                }
+                savedFingerprint = fingerprint();
+                if (showNotice && isAdded()) {
+                    Toast.makeText(requireContext(),
+                            "Draft saved on this device. Continue it from My drafts.",
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override public void onError(Exception error) {
+                if (showNotice && isAdded()) {
+                    Toast.makeText(requireContext(), "Could not save this draft.",
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onStop() {
+        if (!publishing && !published && titleField != null
+                && !fingerprint().equals(savedFingerprint)) {
+            saveDraft(false);
+        }
+        super.onStop();
+    }
+
     private void publish(EditText titleInput, EditText dateInput, EditText timeInput,
                          EditText durationInput, EditText locationInput, View button) {
 // bq7: tapping create activity is the review step, even if a field is wrong and the form stays open
@@ -414,6 +561,10 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
             return;
         }
         button.setEnabled(false);
+        publishing = true;
+        String publishRequestId = requestId == null
+                ? UUID.randomUUID().toString().replace("-", "") : requestId;
+        requestId = publishRequestId;
         String sessionId = UUID.randomUUID().toString();
         long startedAt = System.currentTimeMillis();
         ActivityCreationTelemetry.attempt(sessionId, "group_activity", groupSize);
@@ -422,10 +573,20 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         ComparisonEvidence evidence = evidenceFor(publishArgs.getInt(ARG_SLOT_POSITION, -1),
                 publishArgs.getString(ARG_COMPARISON_ID), publishArgs.getStringArrayList(ARG_COMPARED_IDS),
                 publishArgs.getString(ARG_COMPARED_DATE), organizer == null ? null : organizer.getId());
-        Repositories.activities().createActivity(activity, evidence, new Callback<PlannedActivity>() {
+        Repositories.activities().createActivity(activity, evidence, publishRequestId,
+                new Callback<PlannedActivity>() {
             @Override public void onSuccess(PlannedActivity saved) {
+                publishing = false;
+                published = true;
 // bq7: the activity was created, this flow is not an abandon
                 flow.finished();
+                if (localDraft != null && Repositories.activityDrafts() != null) {
+                    Repositories.activityDrafts().published(localDraft, publishRequestId,
+                            new Callback<Void>() {
+                                @Override public void onSuccess(Void ignored) { }
+                                @Override public void onError(Exception error) { }
+                            });
+                }
                 ActivityCreationTelemetry.result(sessionId, "group_activity",
                         System.currentTimeMillis() - startedAt, true, saved.getId(), null);
                 Map<String, Object> event = new HashMap<>();
@@ -457,10 +618,12 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
             }
 
             @Override public void onError(Exception error) {
+                publishing = false;
                 ActivityCreationTelemetry.result(sessionId, "group_activity",
                         System.currentTimeMillis() - startedAt, false, null,
                         error.getClass().getSimpleName());
                 button.setEnabled(true);
+                saveDraft(false);
                 // the connection dropped while publishing: say so, instead of a generic failure
                 Toast.makeText(requireContext(), OfflineGuard.failureMessage(error, "create the activity",
                         "Could not create the activity. Please try again."), Toast.LENGTH_LONG).show();
@@ -546,5 +709,19 @@ public class CreateActivitySheet extends BottomSheetDialogFragment {
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
         format.setTimeZone(TimeZone.getTimeZone("UTC"));
         return format.format(time.getTime());
+    }
+
+    private static int minutesBetween(String start, String end) {
+        if (start == null || end == null) return 0;
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+        format.setTimeZone(TimeZone.getTimeZone("UTC"));
+        try {
+            java.util.Date from = format.parse(start);
+            java.util.Date to = format.parse(end);
+            if (from == null || to == null) return 0;
+            return (int) Math.max(0, (to.getTime() - from.getTime()) / 60000L);
+        } catch (java.text.ParseException error) {
+            return 0;
+        }
     }
 }

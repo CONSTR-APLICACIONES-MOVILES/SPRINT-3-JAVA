@@ -32,6 +32,12 @@ final class CompositeActivityRepository implements ActivityRepository {
     }
 
     @Override
+    public void createActivity(PlannedActivity activity, @Nullable ComparisonEvidence evidence,
+                               String requestId, Callback<PlannedActivity> callback) {
+        backend.createActivity(activity, evidence, requestId, callback);
+    }
+
+    @Override
     public void getActivities(String userId, Callback<List<PlannedActivity>> callback) {
         firestore.getActivities(userId, callback);
     }

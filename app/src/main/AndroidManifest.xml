@@ -61,6 +61,7 @@
         <activity android:name=".CreateGroupActivity" />
         <activity android:name=".ActivityCreatedActivity" />
         <activity android:name=".ActivityParticipantsActivity" />
+        <activity android:name=".ActivityDraftsActivity" />
         <activity android:name=".SuggestedTimesActivity" />
         <activity android:name=".AvailabilityActivity" />
     </application>

@@ -35,10 +35,17 @@ public final class FirebaseActivityRepository implements ActivityActionsReposito
     @Override
     public void createActivity(PlannedActivity activity, @Nullable ComparisonEvidence evidence,
                                Callback<PlannedActivity> callback) {
-        publish(activity, evidence, true, callback);
+        createActivity(activity, evidence, UUID.randomUUID().toString(), callback);
     }
 
-    private void publish(PlannedActivity activity, @Nullable ComparisonEvidence evidence, boolean retryWithoutEvidence,
+    @Override
+    public void createActivity(PlannedActivity activity, @Nullable ComparisonEvidence evidence,
+                               String requestId, Callback<PlannedActivity> callback) {
+        publish(activity, evidence, requestId, true, callback);
+    }
+
+    private void publish(PlannedActivity activity, @Nullable ComparisonEvidence evidence,
+                         String requestId, boolean retryWithoutEvidence,
                          Callback<PlannedActivity> callback) {
         Map<String, Object> fields = new HashMap<>();
         fields.put("title", activity.getTitle());
@@ -49,7 +56,7 @@ public final class FirebaseActivityRepository implements ActivityActionsReposito
         fields.put("status", activity.getStatus());
 
         Map<String, Object> input = new HashMap<>();
-        input.put("requestId", UUID.randomUUID().toString());
+        input.put("requestId", requestId);
         input.put("groupId", activity.getGroupId());
         input.put("fields", fields);
         if (activity.getStartTime() != null && activity.getEndTime() != null) {
@@ -72,7 +79,7 @@ public final class FirebaseActivityRepository implements ActivityActionsReposito
                     // bq9: the comparison expires after a few minutes; a late plan is still created, only without it
                     if (withEvidence && retryWithoutEvidence && error instanceof FirebaseFunctionsException
                             && ((FirebaseFunctionsException) error).getCode() == FirebaseFunctionsException.Code.FAILED_PRECONDITION) {
-                        publish(activity, null, false, callback);
+                        publish(activity, null, requestId, false, callback);
                         return;
                     }
                     MainThread.post(() -> callback.onError(error));
