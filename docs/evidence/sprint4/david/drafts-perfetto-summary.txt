@@ -1,0 +1,37 @@
+Activity drafts render micro-optimization
+Phone: Xiaomi 2311DRK48G, Android 15, debug build, real Firebase project.
+Tool: Perfetto v59.1 (system trace) + trace_processor v59.1 + ParchPerf logcat.
+
+Optimization: ActivityDraftsActivity.render skips rebuilding the list when the
+signature of the drafts did not change. loadAndSync renders the local list and
+then the synced list; before, both calls removed and inflated every row.
+
+Trace sections: ActivityDrafts.render (BackgroundThreads.beginSection).
+
+Perfetto query:
+SELECT name, count(*) AS calls, ROUND(SUM(dur)/1e6, 2) AS total_ms,
+       ROUND(AVG(dur)/1e6, 2) AS avg_ms, ROUND(MIN(dur)/1e6, 2) AS min_ms,
+       ROUND(MAX(dur)/1e6, 2) AS max_ms
+FROM slice WHERE name = 'ActivityDrafts.render' GROUP BY name;
+
+BEFORE (drafts-before.pftrace, 5 cold openings captured):
+"ActivityDrafts.render",10,158.470000,15.850000,13.600000,21.670000
+
+AFTER (drafts-after.pftrace, 5 cold openings captured):
+"ActivityDrafts.render",5,79.070000,15.810000,14.620000,19.370000
+
+Change: 10 -> 5 render calls, 158.47 -> 79.07 ms total, 50.1% less.
+Average per render: 15.85 -> 15.81 ms, so row binding itself did not change;
+the gain is that the second identical render no longer happens.
+
+Logcat ParchPerf over 20 cold openings:
+BEFORE: 40 "Drafts.render 1 rows" lines (2 per opening), 13.56-24.91 ms each.
+AFTER:  20 "Drafts.render 1 rows" lines (1 per opening), 13.39-19.39 ms each.
+
+Commands:
+adb shell perfetto --background -o /data/misc/perfetto-traces/drafts-before.pftrace \
+  -t 75s -b 64mb --app com.example.parchapp sched freq gfx view am
+# 20 x: adb shell am force-stop com.example.parchapp; am start -S -n .../.ActivityDraftsActivity
+adb pull /data/misc/perfetto-traces/drafts-before.pftrace
+
+The two traces are in drafts-perfetto-traces.zip (before and after).

@@ -30,6 +30,7 @@ public class ActivityDraftsActivity extends AppCompatActivity {
     private LinearLayout container;
     private ProgressBar loading;
     private TextView message;
+    private String renderedSignature;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,6 +81,35 @@ public class ActivityDraftsActivity extends AppCompatActivity {
     }
 
     private void render(List<SavedActivityDraft> drafts) {
+        String signature = signature(drafts);
+        if (signature.equals(renderedSignature)) return;
+        renderedSignature = signature;
+        long started = System.nanoTime();
+        com.example.parchapp.util.BackgroundThreads.beginSection("ActivityDrafts.render");
+        try {
+            renderRows(drafts);
+        } finally {
+            com.example.parchapp.util.BackgroundThreads.endSection();
+            android.util.Log.d("ParchPerf", String.format(Locale.US,
+                    "Drafts.render %d rows in %.2f ms",
+                    drafts.size(), (System.nanoTime() - started) / 1_000_000.0));
+        }
+    }
+
+    private static String signature(List<SavedActivityDraft> drafts) {
+        StringBuilder value = new StringBuilder();
+        for (SavedActivityDraft draft : drafts) {
+            value.append(draft.getId()).append(':')
+                    .append(draft.getRevision()).append(':')
+                    .append(draft.getUpdatedAt()).append(':')
+                    .append(draft.getSyncStatus()).append(':')
+                    .append(draft.getLocalState()).append(':')
+                    .append(draft.getActivity().getTitle()).append('|');
+        }
+        return value.toString();
+    }
+
+    private void renderRows(List<SavedActivityDraft> drafts) {
         container.removeAllViews();
         if (drafts.isEmpty()) {
             showMessage("No drafts yet. Return to New Activity and choose Save draft.");

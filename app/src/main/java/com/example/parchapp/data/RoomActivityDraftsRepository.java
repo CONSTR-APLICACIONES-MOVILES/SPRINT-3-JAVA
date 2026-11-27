@@ -246,14 +246,18 @@ public final class RoomActivityDraftsRepository implements ActivityDraftsReposit
                         if (error instanceof FirebaseFunctionsException
                                 && ((FirebaseFunctionsException) error).getCode()
                                 == FirebaseFunctionsException.Code.ABORTED) {
-                            markConflict(owner, entity.id,
-                                    "Changed on another device. Choose which version to keep.");
-                            pushNext(owner, callback);
+                            worker.execute(() -> {
+                                markConflict(owner, entity.id,
+                                        "Changed on another device. Choose which version to keep.");
+                                pushNext(owner, callback);
+                            });
                         } else if (!AnalyticsTracker.getInstance().isOnline()) {
                             finishSync(callback);
                         } else {
-                            markConflict(owner, entity.id, error.getLocalizedMessage());
-                            pushNext(owner, callback);
+                            worker.execute(() -> {
+                                markConflict(owner, entity.id, error.getLocalizedMessage());
+                                pushNext(owner, callback);
+                            });
                         }
                     });
         });
