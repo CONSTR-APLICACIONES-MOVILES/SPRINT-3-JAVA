@@ -102,6 +102,8 @@ public class ProfileActivity extends AppCompatActivity {
                 startActivity(new Intent(this, PrivacySettingsActivity.class)));
         findViewById(R.id.profile_groups_card).setOnClickListener(v ->
                 startActivity(new Intent(this, GroupsActivity.class)));
+        findViewById(R.id.profile_activity_history_card).setOnClickListener(v ->
+                startActivity(new Intent(this, ActivityHistoryActivity.class)));
         retryProfile.setOnClickListener(v -> loadProfileDetails());
         findViewById(R.id.profile_logout_button).setOnClickListener(v -> logout());
         BottomNav.setup(this, BottomNav.Tab.HOME);

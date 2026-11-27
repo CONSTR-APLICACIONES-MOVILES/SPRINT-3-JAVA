@@ -13,8 +13,12 @@ import com.google.firebase.firestore.Source;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
+import java.text.SimpleDateFormat;
 
 /* F6: reads the activities of my groups for the Today's Plans section. */
 class FirestoreActivityRepository implements ActivityPlanRepository {
@@ -90,14 +94,22 @@ class FirestoreActivityRepository implements ActivityPlanRepository {
                 ? context.get("locationAreaId").toString() : PlannedActivity.UNKNOWN_AREA;
         Object rawReminder = snapshot.get("reminderMinutesBefore");
         Integer reminder = rawReminder instanceof Number ? ((Number) rawReminder).intValue() : null;
+        Object rawLocation = snapshot.get("locationDetails");
+        Map<?, ?> location = rawLocation instanceof Map ? (Map<?, ?>) rawLocation : null;
+        Object rawParticipants = snapshot.get("participants");
+        int participantCount = rawParticipants instanceof List
+                ? ((List<?>) rawParticipants).size() : 0;
         return new PlannedActivity(snapshot.getId(),
                 stringValue(snapshot.get("groupId")), stringValue(snapshot.get("title")),
                 stringValue(snapshot.get("category")), stringValue(snapshot.get("date")),
                 stringValue(snapshot.get("time")), stringValue(snapshot.get("location")),
                 stringValue(snapshot.get("status")), timestampMillis(snapshot.get("createdAt")),
-                groupSize, comparisonUsed, stringValue(snapshot.get("startTime")),
-                stringValue(snapshot.get("endTime")), areaId,
-                stringValue(snapshot.get("createdBy")), reminder);
+                groupSize, comparisonUsed, instantString(snapshot.get("startTime")),
+                instantString(snapshot.get("endTime")), areaId,
+                stringValue(snapshot.get("createdBy")), reminder,
+                Boolean.TRUE.equals(snapshot.get("cancelled")), participantCount,
+                numberValue(location == null ? null : location.get("latitude")),
+                numberValue(location == null ? null : location.get("longitude")));
     }
 
     private static String stringValue(Object value) {
@@ -112,6 +124,22 @@ class FirestoreActivityRepository implements ActivityPlanRepository {
             return ((Number) value).longValue();
         }
         return 0L;
+    }
+
+    private static String instantString(Object value) {
+        Date date = value instanceof Timestamp
+                ? ((Timestamp) value).toDate()
+                : value instanceof Date ? (Date) value
+                : value instanceof Number ? new Date(((Number) value).longValue()) : null;
+        if (date == null) return stringValue(value);
+        SimpleDateFormat format =
+                new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+        format.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return format.format(date);
+    }
+
+    private static Double numberValue(Object value) {
+        return value instanceof Number ? ((Number) value).doubleValue() : null;
     }
 
     @Override
