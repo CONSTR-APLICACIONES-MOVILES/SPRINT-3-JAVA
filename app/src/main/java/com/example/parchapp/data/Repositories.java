@@ -37,6 +37,8 @@ public final class Repositories {
     private static AndesEventsRepository andesEvents;
     private static AndesEventsStore andesStore;
     private static AndesOutbox andesOutbox;
+    private static ActivityDraftsRepository activityDrafts;
+    private static ActivityDraftsSyncCoordinator activityDraftsSync;
     private static final GroupMemoryCache groupCache = new GroupMemoryCache();
 
     private Repositories() {
@@ -128,6 +130,10 @@ public final class Repositories {
         status = new StatusService(context, firebaseAvailable);
         availabilityStatusSync = new AvailabilityStatusSyncCoordinator(status, presence,
                 AnalyticsTracker.getInstance());
+        FirebaseFunctions draftsFunctions = firebaseAvailable
+                ? FirebaseFunctions.getInstance("us-central1") : null;
+        activityDrafts = new RoomActivityDraftsRepository(context, draftsFunctions);
+        activityDraftsSync = new ActivityDraftsSyncCoordinator(context, activityDrafts);
     }
 
     /* A fake key that only has the format of a Google API key ("AIza" plus 35 characters). Built at runtime so secret scanners do not flag a non-secret. */
@@ -228,5 +234,13 @@ public final class Repositories {
 
     public static AvailabilityStatusSyncCoordinator availabilityStatusSync() {
         return availabilityStatusSync;
+    }
+
+    public static ActivityDraftsRepository activityDrafts() {
+        return activityDrafts;
+    }
+
+    public static ActivityDraftsSyncCoordinator activityDraftsSync() {
+        return activityDraftsSync;
     }
 }

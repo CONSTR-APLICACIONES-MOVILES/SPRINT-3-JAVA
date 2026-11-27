@@ -12,8 +12,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 // strategy 7, local storage: relational database of the app (room over sqlite)
 // one instance for the whole app, opening a database is slow and two instances could fight for the file
 @Database(entities = {GroupDraftEntity.class, DraftInviteEntity.class, ScheduleDayEntity.class,
-        AndesEventEntity.class, ParticipantCacheEntity.class, ParticipantOutboxEntity.class},
-        version = 4, exportSchema = false)
+        AndesEventEntity.class, ParticipantCacheEntity.class, ParticipantOutboxEntity.class,
+        ActivityDraftEntity.class}, version = 5, exportSchema = false)
 public abstract class ParchDatabase extends RoomDatabase {
     private static volatile ParchDatabase instance;
 
@@ -56,6 +56,21 @@ public abstract class ParchDatabase extends RoomDatabase {
         }
     };
 
+    // version 5 adds the saved activity drafts and their synchronization metadata
+    static final Migration MIGRATION_4_5 = new Migration(4, 5) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `activity_drafts` (`owner` TEXT NOT NULL, "
+                    + "`id` TEXT NOT NULL, `revision` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, "
+                    + "`category` TEXT NOT NULL, `state` TEXT NOT NULL, `payload` TEXT, "
+                    + "`remoteVersion` INTEGER NOT NULL, `pending` INTEGER NOT NULL, "
+                    + "`operationId` TEXT NOT NULL, `syncError` TEXT, `requestKey` TEXT, "
+                    + "PRIMARY KEY(`owner`, `id`))");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_drafts_owner_state_updatedAt` "
+                    + "ON `activity_drafts` (`owner`, `state`, `updatedAt`)");
+        }
+    };
+
     public abstract GroupDraftDao groupDrafts();
 
     public abstract AndesEventsDao andesEvents();
@@ -66,13 +81,15 @@ public abstract class ParchDatabase extends RoomDatabase {
 
     public abstract ParticipantOutboxDao participantOutbox();
 
+    public abstract ActivityDraftsDao activityDrafts();
+
     public static ParchDatabase get(Context context) {
         if (instance == null) {
             synchronized (ParchDatabase.class) {
                 if (instance == null) {
                     instance = Room.databaseBuilder(context.getApplicationContext(),
                                     ParchDatabase.class, "parchapp.db")
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                             .build();
                 }
             }

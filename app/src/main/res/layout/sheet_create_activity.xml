@@ -84,6 +84,39 @@
             android:textColorHint="@color/brand_slate"
             android:textSize="13sp" />
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal">
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btn_save_draft"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_light_blue"
+                android:text="Save draft"
+                android:textAllCaps="false"
+                android:textColor="@color/brand_primary"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btn_my_drafts"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_marginStart="4dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_light_blue"
+                android:text="My drafts"
+                android:textAllCaps="false"
+                android:textColor="@color/brand_primary"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btn_create_activity"
             android:layout_width="match_parent"
