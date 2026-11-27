@@ -6,5 +6,9 @@ import com.example.parchapp.util.Callback;
 public interface ProfilePhotoRepository {
     void loadCurrentPhoto(Callback<byte[]> callback);
 
+    default void loadCurrentPhotoUrl(Callback<String> callback) {
+        callback.onSuccess(null);
+    }
+
     void savePhoto(String userId, byte[] jpeg, Callback<Void> callback);
 }

@@ -110,6 +110,11 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
 // the plan card buttons use the plan that is on the card
         findViewById(R.id.plan_details_button).setOnClickListener(v -> openPlanDetails());
         findViewById(R.id.add_calendar_button).setOnClickListener(v -> addPlanToCalendar());
+        findViewById(R.id.group_participants_button).setOnClickListener(v -> {
+            if (groupPlan != null && groupPlan.getId() != null && !groupPlan.getId().trim().isEmpty()) {
+                startActivity(ActivityParticipantsActivity.intent(this, groupPlan.getId()));
+            }
+        });
 // refresh asks again how many members have their calendar synced and the next plan
         findViewById(R.id.refresh_roommates_button).setOnClickListener(v -> refresh());
 // propose plan and create plan open the form to make a plan for this group
@@ -117,6 +122,13 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         findViewById(R.id.create_plan_button).setOnClickListener(v -> openCreatePlan());
 // they wait until the group is loaded, the form needs its id and size
         setPlanButtonsEnabled(false);
+// sprint 4: house chat opens the chat of the whole group
+        findViewById(R.id.house_chat_button).setOnClickListener(v -> {
+            String id = getIntent().getStringExtra(EXTRA_GROUP_ID);
+            if (id != null) {
+                startActivity(ChatActivity.forGroup(this, id, currentGroup == null ? null : currentGroup.getName()));
+            }
+        });
 // sync schedules opens compare availability with this group
         findViewById(R.id.sync_schedules_button).setOnClickListener(v -> {
             String id = getIntent().getStringExtra(EXTRA_GROUP_ID);
@@ -333,6 +345,8 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         int[] names = {R.id.member_name_0, R.id.member_name_1, R.id.member_name_2, R.id.member_name_3};
         int[] summaries = {R.id.member_summary_0, R.id.member_summary_1, R.id.member_summary_2, R.id.member_summary_3};
         int[] statuses = {R.id.member_status_0, R.id.member_status_1, R.id.member_status_2, R.id.member_status_3};
+        int[] chatButtons = {R.id.member_chat_0, R.id.member_chat_1, R.id.member_chat_2, R.id.member_chat_3};
+        UserProfile me = UserSession.getCurrentUser();
         findViewById(R.id.group_members_header).setVisibility(members.isEmpty() ? View.GONE : View.VISIBLE);
 // when there are more members than cards we say how many are not shown
         int hidden = Math.max(0, members.size() - cards.length);
@@ -351,6 +365,12 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
 // f6: the summary and the status of each member are other features, so we leave them empty
             ((TextView) findViewById(summaries[i])).setText("");
             ((TextView) findViewById(statuses[i])).setText("");
+// sprint 4: the chat button opens a chat between me and this member, there is no chat with myself
+            View chat = findViewById(chatButtons[i]);
+            boolean isMe = me != null && me.getId().equals(member.getId());
+            chat.setVisibility(isMe ? View.GONE : View.VISIBLE);
+            chat.setOnClickListener(isMe ? null : v ->
+                    startActivity(ChatActivity.forMember(this, group.getId(), group.getName(), member)));
         }
     }
 
@@ -393,6 +413,8 @@ public class GroupDetailActivity extends AppCompatActivity implements GroupListe
         TextView suggestedTimes = findViewById(R.id.group_suggested_times_button);
         suggestedTimes.setVisibility(plan.getId() == null || plan.getId().trim().isEmpty()
                 ? View.GONE : View.VISIBLE);
+        findViewById(R.id.group_participants_button).setVisibility(
+                plan.getId() == null || plan.getId().trim().isEmpty() ? View.GONE : View.VISIBLE);
 // the backend only suggests times for today, for another day we compare that date in schedule
         boolean today = PlanContext.isToday(plan.getDate());
         suggestedTimes.setText(today ? R.string.suggested_times : R.string.compare_day_in_schedule);

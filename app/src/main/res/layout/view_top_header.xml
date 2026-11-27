@@ -51,15 +51,28 @@
             android:tint="@color/brand_dark" />
     </FrameLayout>
 
-    <TextView
-        android:id="@+id/header_user_initials"
+    <!-- the initials are always there; AccountPhoto puts the profile photo on top when there is one -->
+    <FrameLayout
         android:layout_width="44dp"
         android:layout_height="44dp"
-        android:layout_marginStart="8dp"
-        android:background="@drawable/bg_primary_pill"
-        android:contentDescription="@string/cd_profile"
-        android:gravity="center"
-        android:textColor="@android:color/white"
-        android:textSize="12sp"
-        android:textStyle="bold" />
+        android:layout_marginStart="8dp">
+
+        <TextView
+            android:id="@+id/header_user_initials"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_primary_pill"
+            android:contentDescription="@string/cd_profile"
+            android:gravity="center"
+            android:textColor="@android:color/white"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/header_user_photo"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:contentDescription="@string/cd_profile"
+            android:visibility="gone" />
+    </FrameLayout>
 </LinearLayout>

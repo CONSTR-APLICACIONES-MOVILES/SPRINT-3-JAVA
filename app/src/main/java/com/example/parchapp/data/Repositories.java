@@ -13,6 +13,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreSettings;
 import com.google.firebase.functions.FirebaseFunctions;
 import com.google.firebase.firestore.PersistentCacheSettings;
+import com.google.firebase.storage.FirebaseStorage;
 
 /** App-wide data adapters: Firestore serves group-plan reads; callables handle activity actions/details. */
 public final class Repositories {
@@ -32,6 +33,10 @@ public final class Repositories {
     private static PresenceRepository presence;
     private static AvailabilityStatusSyncCoordinator availabilityStatusSync;
     private static ScheduleRepository schedules;
+    private static ChatRepository chats;
+    private static AndesEventsRepository andesEvents;
+    private static AndesEventsStore andesStore;
+    private static AndesOutbox andesOutbox;
     private static final GroupMemoryCache groupCache = new GroupMemoryCache();
 
     private Repositories() {
@@ -74,6 +79,10 @@ public final class Repositories {
             db.setFirestoreSettings(new FirebaseFirestoreSettings.Builder()
                     .setLocalCacheSettings(PersistentCacheSettings.newBuilder().build())
                     .build());
+            FirebaseStorage storage = FirebaseStorage.getInstance();
+            if (BuildConfig.USE_FIREBASE_EMULATORS) {
+                storage.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 9199);
+            }
             groups = new FirestoreGroupRepository(db, functions);
             recommendationDecisions = new FirebaseRecommendationDecisionRepository(functions);
             activities = new CompositeActivityRepository(
@@ -88,6 +97,18 @@ public final class Repositories {
             // schedules come from the backend callables getScheduleFriends and getScheduleDay
             // like the Flutter app, the last friends and days are kept on the phone and shown when offline
             schedules = new OfflineScheduleRepository(context, new FunctionsScheduleRepository(functions));
+            // House Chat and chats between two members, in real time from Firestore
+            chats = new FirestoreChatRepository(db);
+            // Andes Events: the catalog and the Schedule changes through the backend callables, a copy of the
+            // next 15 days and the saved events on the phone, and an outbox for adding events offline
+            andesEvents = new FunctionsAndesEventsRepository(functions);
+            andesStore = new AndesEventsStore(context);
+            AndesEventsRepository remoteAndes = andesEvents;
+            andesOutbox = new AndesOutbox(andesStore, remoteAndes::addBlocking, Repositories::currentUserId,
+                    com.example.parchapp.util.BackgroundThreads.serial("parch-andes-outbox"), MainThread::post,
+                    System::currentTimeMillis);
+            // a confirmed event changes my busy time: the Schedule days kept in memory are old now
+            andesOutbox.setOnConfirmed(() -> ((OfflineScheduleRepository) schedules).forgetDaysInMemory());
         } else {
             auth = new DisabledAuthRepository();
             profileDetails = null;
@@ -176,6 +197,29 @@ public final class Repositories {
 
     public static ScheduleRepository schedules() {
         return schedules;
+    }
+
+    /* null without Firebase: the messages only exist on the backend */
+    public static ChatRepository chats() {
+        return chats;
+    }
+
+    /* null without Firebase: Andes Events only exist on the backend */
+    public static AndesEventsRepository andesEvents() {
+        return andesEvents;
+    }
+
+    public static AndesEventsStore andesStore() {
+        return andesStore;
+    }
+
+    public static AndesOutbox andesOutbox() {
+        return andesOutbox;
+    }
+
+    private static String currentUserId() {
+        com.example.parchapp.UserProfile user = com.example.parchapp.UserSession.getCurrentUser();
+        return user == null ? null : user.getId();
     }
 
     public static StatusService status() {

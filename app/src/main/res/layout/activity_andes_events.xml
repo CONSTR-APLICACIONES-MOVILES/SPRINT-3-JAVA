@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Andes Events, the same screen as the Flutter AndesEventsView (sch-back): connection banner, failed adds,
+     All Events / Saved, search, categories, the list heading and the event cards -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F7F9FF"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="58dp"
+        android:background="@android:color/white"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
+
+        <ImageButton
+            android:id="@+id/andes_back"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="@drawable/bg_icon_badge_square"
+            android:contentDescription="@string/go_back_short"
+            android:padding="9dp"
+            android:src="@drawable/ic_arrow_back"
+            android:tint="@color/brand_primary" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="@string/andes_title"
+            android:textColor="@color/brand_dark"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- offline, reconnecting or backend error, with the last confirmed catalog and Retry -->
+    <LinearLayout
+        android:id="@+id/andes_banner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/bg_andes_banner"
+        android:padding="10dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/andes_banner_icon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_wifi_off"
+            android:tint="#0047BA" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView android:id="@+id/andes_banner_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#111827" android:textSize="13sp" android:textStyle="bold" />
+            <TextView android:id="@+id/andes_banner_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textColor="#111827" android:textSize="12sp" />
+            <TextView android:id="@+id/andes_banner_sync" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textColor="#64748B" android:textSize="12sp" />
+            <TextView android:id="@+id/andes_banner_retry" android:layout_width="wrap_content" android:layout_height="36dp" android:background="?attr/selectableItemBackground" android:gravity="center_vertical" android:text="@string/schedule_retry" android:textColor="#0047BA" android:textSize="13sp" android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/andes_failed"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:layout_marginStart="16dp"
+        android:background="?attr/selectableItemBackground"
+        android:drawableStart="@drawable/ic_error_outline"
+        android:drawablePadding="6dp"
+        android:drawableTint="#EF4444"
+        android:gravity="center_vertical"
+        android:textColor="#EF4444"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="10dp"
+        android:text="@string/andes_intro"
+        android:textColor="#64748B"
+        android:textSize="13sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp">
+
+        <TextView android:id="@+id/andes_tab_all" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:gravity="center" android:text="@string/andes_all_events" android:textSize="13sp" android:textStyle="bold" />
+        <View android:layout_width="8dp" android:layout_height="1dp" />
+        <TextView android:id="@+id/andes_tab_saved" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:gravity="center" android:textSize="13sp" android:textStyle="bold" />
+    </LinearLayout>
+
+    <EditText
+        android:id="@+id/andes_search"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/bg_andes_search"
+        android:drawableStart="@drawable/ic_search"
+        android:drawablePadding="8dp"
+        android:drawableTint="#64748B"
+        android:hint="@string/andes_search_hint"
+        android:imeOptions="actionSearch"
+        android:importantForAutofill="no"
+        android:inputType="text"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:textColor="#111827"
+        android:textSize="14sp" />
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/andes_categories"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="8dp" />
+    </HorizontalScrollView>
+
+    <TextView
+        android:id="@+id/andes_heading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="4dp"
+        android:textColor="#111827"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/andes_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="24dp" />
+
+        <LinearLayout
+            android:id="@+id/andes_message_box"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:visibility="gone">
+
+            <ProgressBar
+                android:id="@+id/andes_progress"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:indeterminateTint="#0047BA" />
+
+            <TextView android:id="@+id/andes_message" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="center" android:textColor="#111827" android:textSize="14sp" />
+            <TextView android:id="@+id/andes_message_retry" android:layout_width="wrap_content" android:layout_height="40dp" android:background="?attr/selectableItemBackground" android:gravity="center" android:paddingStart="12dp" android:paddingEnd="12dp" android:text="@string/schedule_retry" android:textColor="#0047BA" android:textStyle="bold" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <include layout="@layout/view_bottom_nav" />
+</LinearLayout>

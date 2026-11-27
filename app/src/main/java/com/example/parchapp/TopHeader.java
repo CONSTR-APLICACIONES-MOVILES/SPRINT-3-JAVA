@@ -2,6 +2,7 @@ package com.example.parchapp;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 
@@ -20,6 +21,9 @@ public final class TopHeader {
                 activity.startActivity(new Intent(activity, AlertsActivity.class)));
         activity.findViewById(R.id.header_user_initials).setOnClickListener(v ->
                 activity.startActivity(new Intent(activity, ProfileActivity.class)));
+        ImageView photo = activity.findViewById(R.id.header_user_photo);
+        photo.setOnClickListener(v -> activity.startActivity(new Intent(activity, ProfileActivity.class)));
+        AccountPhoto.load(activity, photo, user);
         // the ? button opens the help with the questions of this screen first
         activity.findViewById(R.id.header_help_btn).setOnClickListener(v ->
                 HelpActivity.open(activity, screenName(activity)));

@@ -71,6 +71,12 @@ public class ActivityCreatedActivity extends AppCompatActivity {
         });
 
         activityId = getIntent().getStringExtra(EXTRA_ACTIVITY_ID);
+        findViewById(R.id.participants_button).setVisibility(isBlank(activityId) ? View.GONE : View.VISIBLE);
+        findViewById(R.id.participants_button).setOnClickListener(v -> {
+            if (!isBlank(activityId)) {
+                startActivity(ActivityParticipantsActivity.intent(this, activityId));
+            }
+        });
         if (savedInstanceState == null) {
             persistRecommendationOutcome();
         } else {

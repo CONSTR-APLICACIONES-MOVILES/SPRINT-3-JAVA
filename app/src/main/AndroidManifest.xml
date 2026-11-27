@@ -52,11 +52,15 @@
         <activity android:name=".PrivacySettingsActivity" />
         <activity android:name=".DashboardActivity" />
         <activity android:name=".ScheduleActivity" />
+        <activity android:name=".AndesEventsActivity" android:windowSoftInputMode="adjustPan" />
         <activity android:name=".GroupsActivity" />
         <activity android:name=".CompareAvailabilityActivity" />
         <activity android:name=".GroupDetailActivity" />
+        <!-- sprint 4: the keyboard pushes the message bar up instead of covering it -->
+        <activity android:name=".ChatActivity" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".CreateGroupActivity" />
         <activity android:name=".ActivityCreatedActivity" />
+        <activity android:name=".ActivityParticipantsActivity" />
         <activity android:name=".SuggestedTimesActivity" />
         <activity android:name=".AvailabilityActivity" />
     </application>
