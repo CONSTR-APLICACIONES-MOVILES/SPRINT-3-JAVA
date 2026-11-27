@@ -25,6 +25,7 @@ import com.example.parchapp.domain.model.Group;
 import com.example.parchapp.domain.model.Member;
 import com.example.parchapp.domain.model.PlannedActivity;
 import com.example.parchapp.domain.model.ResponseTimeEstimate;
+import com.example.parchapp.util.BackgroundThreads;
 import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.IconButtons;
 
@@ -116,21 +117,35 @@ public class GroupsActivity extends AppCompatActivity {
     }
 
     private void bindGroups(List<Group> groups) {
-        groupsList.removeAllViews();
-        findViewById(R.id.groups_empty).setVisibility(groups.isEmpty() ? View.VISIBLE : View.GONE);
-        ((TextView) findViewById(R.id.groups_title)).setText(
-                getString(R.string.your_active_groups) + " (" + groups.size() + ")");
-        LayoutInflater inflater = LayoutInflater.from(this);
+        // profiling: this section shows in the CPU profiler (System Trace) as "Groups.bindGroups"
+        BackgroundThreads.beginSection("Groups.bindGroups");
         Map<String, View> cards = new HashMap<>();
         Map<String, Group> groupsById = new HashMap<>();
-        for (Group group : groups) {
-            View card = inflater.inflate(R.layout.item_group_card, groupsList, false);
-            bindCard(card, group);
-            groupsList.addView(card);
-            cards.put(group.getId(), card);
-            groupsById.put(group.getId(), group);
+        try {
+            groupsList.removeAllViews();
+            findViewById(R.id.groups_empty).setVisibility(groups.isEmpty() ? View.VISIBLE : View.GONE);
+            ((TextView) findViewById(R.id.groups_title)).setText(
+                    getString(R.string.your_active_groups) + " (" + groups.size() + ")");
+            for (Group group : groups) {
+                View card = inflateCard();
+                bindCard(card, group);
+                groupsList.addView(card);
+                cards.put(group.getId(), card);
+                groupsById.put(group.getId(), group);
+            }
+        } finally {
+            BackgroundThreads.endSection();
         }
         loadPlans(cards, groupsById);
+    }
+
+    private View inflateCard() {
+        BackgroundThreads.beginSection("Groups.inflateCard");
+        try {
+            return LayoutInflater.from(this).inflate(R.layout.item_group_card, groupsList, false);
+        } finally {
+            BackgroundThreads.endSection();
+        }
     }
 
 // the next plan and the activity of each card come from the real plans, like group details
@@ -147,11 +162,16 @@ public class GroupsActivity extends AppCompatActivity {
                 }
                 Calendar now = Calendar.getInstance(PlanContext.bogota());
                 Map<String, PlannedActivity> latest = new HashMap<>();
-                for (Map.Entry<String, View> entry : cards.entrySet()) {
-                    bindNextPlan(entry.getValue(), GroupPlans.nextFor(entry.getKey(), plans, now));
-                    bindActivityLevel(entry.getValue(), GroupPlans.activityOf(entry.getKey(), plans));
-                    PlannedActivity newest = latestActivityFor(entry.getKey(), plans);
-                    if (newest != null) latest.put(entry.getKey(), newest);
+                BackgroundThreads.beginSection("Groups.bindPlans");
+                try {
+                    for (Map.Entry<String, View> entry : cards.entrySet()) {
+                        bindNextPlan(entry.getValue(), GroupPlans.nextFor(entry.getKey(), plans, now));
+                        bindActivityLevel(entry.getValue(), GroupPlans.activityOf(entry.getKey(), plans));
+                        PlannedActivity newest = latestActivityFor(entry.getKey(), plans);
+                        if (newest != null) latest.put(entry.getKey(), newest);
+                    }
+                } finally {
+                    BackgroundThreads.endSection();
                 }
                 Repositories.responseTimeInsights().getEstimates(new Callback<List<ResponseTimeEstimate>>() {
                     @Override
@@ -268,18 +288,23 @@ public class GroupsActivity extends AppCompatActivity {
     }
 
     private void bindCard(View card, Group group) {
-        ((TextView) card.findViewById(R.id.group_card_title)).setText(group.getName());
-        int size = group.getSize();
-        ((TextView) card.findViewById(R.id.group_card_members)).setText(
-                "• " + getResources().getQuantityString(R.plurals.group_member_count, size, size));
+        BackgroundThreads.beginSection("Groups.bindCard");
+        try {
+            ((TextView) card.findViewById(R.id.group_card_title)).setText(group.getName());
+            int size = group.getSize();
+            ((TextView) card.findViewById(R.id.group_card_members)).setText(
+                    "• " + getResources().getQuantityString(R.plurals.group_member_count, size, size));
 // the plan and the activity wait for the plans, so we do not show a wrong value first
-        ((TextView) card.findViewById(R.id.group_card_next)).setText("");
-        card.findViewById(R.id.group_card_activity).setVisibility(View.INVISIBLE);
-        card.findViewById(R.id.group_card_rsvp).setVisibility(View.GONE);
-        bindSynced(card.findViewById(R.id.group_card_synced), group);
-        bindAvatars(card.findViewById(R.id.group_card_avatars), group.getMembers());
-        card.setOnClickListener(v -> startActivity(new Intent(this, GroupDetailActivity.class)
-                .putExtra(GroupDetailActivity.EXTRA_GROUP_ID, group.getId())));
+            ((TextView) card.findViewById(R.id.group_card_next)).setText("");
+            card.findViewById(R.id.group_card_activity).setVisibility(View.INVISIBLE);
+            card.findViewById(R.id.group_card_rsvp).setVisibility(View.GONE);
+            bindSynced(card.findViewById(R.id.group_card_synced), group);
+            bindAvatars(card.findViewById(R.id.group_card_avatars), group.getMembers());
+            card.setOnClickListener(v -> startActivity(new Intent(this, GroupDetailActivity.class)
+                    .putExtra(GroupDetailActivity.EXTRA_GROUP_ID, group.getId())));
+        } finally {
+            BackgroundThreads.endSection();
+        }
     }
 
     /* Real number of members whose calendar for today the backend knows, the same count as Group Detail. */
