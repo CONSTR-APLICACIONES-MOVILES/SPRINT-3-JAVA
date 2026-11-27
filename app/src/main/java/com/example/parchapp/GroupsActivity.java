@@ -29,12 +29,15 @@ import com.example.parchapp.util.BackgroundThreads;
 import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.IconButtons;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /* Groups tab. Home's "View all" opens this same screen, so both show the groups the same way. */
 public class GroupsActivity extends AppCompatActivity {
@@ -50,6 +53,8 @@ public class GroupsActivity extends AppCompatActivity {
     private final ConnectivityWatcher connectivity = new ConnectivityWatcher(this::loadGroups);
     // the plans of the cards: saved ones at once (also offline), then fresh ones, like the Dashboard
     private final com.example.parchapp.data.DashboardLoader plansLoader = new com.example.parchapp.data.DashboardLoader();
+    // micro-optimization 2: the cards are kept by group id and reused, so coming back to the screen inflates nothing
+    private final Map<String, CardViews> cards = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -119,24 +124,76 @@ public class GroupsActivity extends AppCompatActivity {
     private void bindGroups(List<Group> groups) {
         // profiling: this section shows in the CPU profiler (System Trace) as "Groups.bindGroups"
         BackgroundThreads.beginSection("Groups.bindGroups");
-        Map<String, View> cards = new HashMap<>();
         Map<String, Group> groupsById = new HashMap<>();
         try {
-            groupsList.removeAllViews();
             findViewById(R.id.groups_empty).setVisibility(groups.isEmpty() ? View.VISIBLE : View.GONE);
             ((TextView) findViewById(R.id.groups_title)).setText(
                     getString(R.string.your_active_groups) + " (" + groups.size() + ")");
-            for (Group group : groups) {
-                View card = inflateCard();
-                bindCard(card, group);
-                groupsList.addView(card);
-                cards.put(group.getId(), card);
+            // micro-optimization 3: today's date is built once here, not once per card
+            String today = todayKey();
+            Set<String> gone = new HashSet<>(cards.keySet());
+            for (int i = 0; i < groups.size(); i++) {
+                Group group = groups.get(i);
+                gone.remove(group.getId());
+                CardViews card = cards.get(group.getId());
+                boolean isNew = card == null;
+                if (isNew) {
+                    card = new CardViews(inflateCard());
+                    cards.put(group.getId(), card);
+                }
+                if (groupsList.getChildAt(i) != card.root) { // a card moves only when the order changed
+                    groupsList.removeView(card.root);
+                    groupsList.addView(card.root, i);
+                }
+                bindCard(card, group, isNew, today);
                 groupsById.put(group.getId(), group);
+            }
+            for (String id : gone) {
+                groupsList.removeView(cards.remove(id).root);
             }
         } finally {
             BackgroundThreads.endSection();
         }
-        loadPlans(cards, groupsById);
+        loadPlans(groupsById);
+    }
+
+    // micro-optimization 1: the views of a card are found once, when it is inflated, not on every bind
+    private static final class CardViews {
+        final View root;
+        final View dot;
+        final View rsvp;
+        final TextView title;
+        final TextView members;
+        final TextView next;
+        final TextView synced;
+        final TextView activity;
+        final TextView rsvpLabel;
+        final TextView rsvpCount;
+        final TextView hint;
+        final ProgressBar progress;
+        final LinearLayout avatars;
+
+        CardViews(View root) {
+            this.root = root;
+            dot = root.findViewById(R.id.group_card_dot);
+            rsvp = root.findViewById(R.id.group_card_rsvp);
+            title = root.findViewById(R.id.group_card_title);
+            members = root.findViewById(R.id.group_card_members);
+            next = root.findViewById(R.id.group_card_next);
+            synced = root.findViewById(R.id.group_card_synced);
+            activity = root.findViewById(R.id.group_card_activity);
+            rsvpLabel = root.findViewById(R.id.group_card_rsvp_label);
+            rsvpCount = root.findViewById(R.id.group_card_rsvp_count);
+            hint = root.findViewById(R.id.group_card_response_time);
+            progress = root.findViewById(R.id.group_card_rsvp_progress);
+            avatars = root.findViewById(R.id.group_card_avatars);
+        }
+    }
+
+    private String todayKey() {
+        java.text.SimpleDateFormat key = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        key.setTimeZone(PlanContext.bogota());
+        return key.format(new java.util.Date());
     }
 
     private View inflateCard() {
@@ -149,7 +206,7 @@ public class GroupsActivity extends AppCompatActivity {
     }
 
 // the next plan and the activity of each card come from the real plans, like group details
-    private void loadPlans(Map<String, View> cards, Map<String, Group> groupsById) {
+    private void loadPlans(Map<String, Group> groupsById) {
         UserProfile user = UserSession.getCurrentUser();
         if (user == null || cards.isEmpty()) {
             return;
@@ -164,11 +221,24 @@ public class GroupsActivity extends AppCompatActivity {
                 Map<String, PlannedActivity> latest = new HashMap<>();
                 BackgroundThreads.beginSection("Groups.bindPlans");
                 try {
-                    for (Map.Entry<String, View> entry : cards.entrySet()) {
-                        bindNextPlan(entry.getValue(), GroupPlans.nextFor(entry.getKey(), plans, now));
-                        bindActivityLevel(entry.getValue(), GroupPlans.activityOf(entry.getKey(), plans));
-                        PlannedActivity newest = latestActivityFor(entry.getKey(), plans);
-                        if (newest != null) latest.put(entry.getKey(), newest);
+                    // micro-optimization 3: one pass splits the plans by group, instead of three passes
+                    // over all the plans for every card
+                    Map<String, List<PlannedActivity>> byGroup = new HashMap<>();
+                    for (PlannedActivity plan : plans) {
+                        byGroup.computeIfAbsent(plan.getGroupId(), id -> new ArrayList<>()).add(plan);
+                    }
+                    for (Map.Entry<String, CardViews> entry : cards.entrySet()) {
+                        List<PlannedActivity> own = byGroup.getOrDefault(entry.getKey(), Collections.emptyList());
+                        bindNextPlan(entry.getValue(), GroupPlans.nextFor(entry.getKey(), own, now));
+                        bindActivityLevel(entry.getValue(), GroupPlans.activityOf(entry.getKey(), own));
+                        PlannedActivity newest = latestActivityFor(own);
+                        if (newest != null) {
+                            latest.put(entry.getKey(), newest);
+                        } else {
+                            // a reused card may still show the RSVP of a plan that is gone
+                            entry.getValue().rsvp.setTag(null);
+                            entry.getValue().rsvp.setVisibility(View.GONE);
+                        }
                     }
                 } finally {
                     BackgroundThreads.endSection();
@@ -178,7 +248,7 @@ public class GroupsActivity extends AppCompatActivity {
                     public void onSuccess(List<ResponseTimeEstimate> estimates) {
                         if (isFinishing() || isDestroyed()) return;
                         for (Map.Entry<String, PlannedActivity> entry : latest.entrySet()) {
-                            View card = cards.get(entry.getKey());
+                            CardViews card = cards.get(entry.getKey());
                             Group group = groupsById.get(entry.getKey());
                             if (card != null && group != null) {
                                 loadActivityRsvp(card, group, entry.getValue(), estimates);
@@ -200,9 +270,9 @@ public class GroupsActivity extends AppCompatActivity {
                     return;
                 }
                 boolean offline = OfflineGuard.isNetworkError(error) || !tracker.isOnline();
-                for (View card : cards.values()) {
+                for (CardViews card : cards.values()) {
                     if (offline) {
-                        ((TextView) card.findViewById(R.id.group_card_next)).setText(R.string.group_plans_offline);
+                        card.next.setText(R.string.group_plans_offline);
                     } else {
                         bindNextPlan(card, null);
                     }
@@ -211,36 +281,45 @@ public class GroupsActivity extends AppCompatActivity {
         });
     }
 
-    private PlannedActivity latestActivityFor(String groupId, List<PlannedActivity> plans) {
+    // plans is already the list of one group
+    private PlannedActivity latestActivityFor(List<PlannedActivity> plans) {
         PlannedActivity latest = null;
         for (PlannedActivity plan : plans) {
-            if (!groupId.equals(plan.getGroupId())) continue;
             if (latest == null || plan.getCreatedAt() > latest.getCreatedAt()) latest = plan;
         }
         return latest;
     }
 
-    private void loadActivityRsvp(View card, Group group, PlannedActivity plan,
+    private void loadActivityRsvp(CardViews card, Group group, PlannedActivity plan,
                                   List<ResponseTimeEstimate> estimates) {
-        View section = card.findViewById(R.id.group_card_rsvp);
-        section.setVisibility(View.GONE);
-        if (plan.getId() == null || plan.getId().trim().isEmpty()) return;
-        Repositories.activities().getActivityDetails(plan.getId(), new Callback<com.example.parchapp.domain.model.ActivityDetails>() {
+        View section = card.rsvp;
+        if (plan.getId() == null || plan.getId().trim().isEmpty()) {
+            section.setTag(null);
+            section.setVisibility(View.GONE);
+            return;
+        }
+        // the card is reused, so the answer is drawn only if the card still waits for this plan.
+        // the RSVP that was already on screen stays until the new answer comes, so the card does not blink
+        final String planId = plan.getId();
+        section.setTag(planId);
+        Repositories.activities().getActivityDetails(planId, new Callback<com.example.parchapp.domain.model.ActivityDetails>() {
             @Override
             public void onSuccess(com.example.parchapp.domain.model.ActivityDetails details) {
-                if (isFinishing() || isDestroyed() || details == null || details.isCancelled()
-                        || details.getTotalParticipants() <= 0) return;
+                if (isFinishing() || isDestroyed() || !planId.equals(section.getTag())) return;
+                if (details == null || details.isCancelled() || details.getTotalParticipants() <= 0) {
+                    section.setVisibility(View.GONE);
+                    return;
+                }
                 int accepted = details.getAcceptedParticipants();
                 int total = details.getTotalParticipants();
-                ((TextView) card.findViewById(R.id.group_card_rsvp_label)).setText("Activity RSVP");
-                ((TextView) card.findViewById(R.id.group_card_rsvp_count)).setText(
-                        accepted + " of " + total + " accepted");
-                ProgressBar progress = card.findViewById(R.id.group_card_rsvp_progress);
+                card.rsvpLabel.setText("Activity RSVP");
+                card.rsvpCount.setText(accepted + " of " + total + " accepted");
+                ProgressBar progress = card.progress;
                 progress.setProgress(Math.min(100, Math.round(100f * accepted / total)));
                 ResponseTimeEstimate estimate = ResponseTimeEstimator.forGroupSize(
                         plan.getGroupSizeAtCreation() > 0 ? plan.getGroupSizeAtCreation()
                                 : (group.getSize() > 0 ? group.getSize() : total), estimates);
-                TextView hint = card.findViewById(R.id.group_card_response_time);
+                TextView hint = card.hint;
                 hint.setVisibility(estimate == null ? View.GONE : View.VISIBLE);
                 if (estimate != null) {
                     boolean complete = accepted >= total;
@@ -276,8 +355,8 @@ public class GroupsActivity extends AppCompatActivity {
         });
     }
 
-    private void bindNextPlan(View card, PlannedActivity plan) {
-        TextView next = card.findViewById(R.id.group_card_next);
+    private void bindNextPlan(CardViews card, PlannedActivity plan) {
+        TextView next = card.next;
         if (plan == null) {
             next.setText(R.string.group_no_plan);
         } else if (plan.getLocation().isEmpty()) {
@@ -287,20 +366,24 @@ public class GroupsActivity extends AppCompatActivity {
         }
     }
 
-    private void bindCard(View card, Group group) {
+    private void bindCard(CardViews card, Group group, boolean isNew, String today) {
         BackgroundThreads.beginSection("Groups.bindCard");
         try {
-            ((TextView) card.findViewById(R.id.group_card_title)).setText(group.getName());
+            card.title.setText(group.getName());
             int size = group.getSize();
-            ((TextView) card.findViewById(R.id.group_card_members)).setText(
+            card.members.setText(
                     "• " + getResources().getQuantityString(R.plurals.group_member_count, size, size));
-// the plan and the activity wait for the plans, so we do not show a wrong value first
-            ((TextView) card.findViewById(R.id.group_card_next)).setText("");
-            card.findViewById(R.id.group_card_activity).setVisibility(View.INVISIBLE);
-            card.findViewById(R.id.group_card_rsvp).setVisibility(View.GONE);
-            bindSynced(card.findViewById(R.id.group_card_synced), group);
-            bindAvatars(card.findViewById(R.id.group_card_avatars), group.getMembers());
-            card.setOnClickListener(v -> startActivity(new Intent(this, GroupDetailActivity.class)
+            if (isNew) {
+                // the plan and the activity wait for the plans, so we do not show a wrong value first.
+                // a reused card keeps what it shows until the new plans arrive, so it does not blink
+                card.next.setText("");
+                card.activity.setVisibility(View.INVISIBLE);
+                card.rsvp.setVisibility(View.GONE);
+            }
+            bindSynced(card.synced, group, isNew, today);
+            card.avatars.removeAllViews();
+            bindAvatars(card.avatars, group.getMembers());
+            card.root.setOnClickListener(v -> startActivity(new Intent(this, GroupDetailActivity.class)
                     .putExtra(GroupDetailActivity.EXTRA_GROUP_ID, group.getId())));
         } finally {
             BackgroundThreads.endSection();
@@ -308,16 +391,14 @@ public class GroupsActivity extends AppCompatActivity {
     }
 
     /* Real number of members whose calendar for today the backend knows, the same count as Group Detail. */
-    private void bindSynced(TextView synced, Group group) {
+    private void bindSynced(TextView synced, Group group, boolean isNew, String today) {
         UserProfile user = UserSession.getCurrentUser();
         if (user == null) {
             synced.setText("Sync unknown");
             return;
         }
-        synced.setText("Checking sync\u2026");
-        java.text.SimpleDateFormat key = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US);
-        key.setTimeZone(PlanContext.bogota());
-        SyncedCalendars.count(Repositories.schedules(), key.format(new java.util.Date()), group.getMembers(),
+        if (isNew) synced.setText("Checking sync\u2026"); // a reused card keeps its last count until the new one comes
+        SyncedCalendars.count(Repositories.schedules(), today, group.getMembers(),
                 user.getId(), new Callback<Integer>() {
                     @Override
                     public void onSuccess(Integer known) {
@@ -340,7 +421,7 @@ public class GroupsActivity extends AppCompatActivity {
     }
 
 // how many plans the group has decides how active it looks, the going answers are reset for every new plan
-    private void bindActivityLevel(View card, GroupPlans.Activity level) {
+    private void bindActivityLevel(CardViews card, GroupPlans.Activity level) {
         String label;
         int text;
         int background;
@@ -361,13 +442,13 @@ public class GroupsActivity extends AppCompatActivity {
             background = R.color.brand_card_stroke;
             dot = R.color.brand_border;
         }
-        TextView chip = card.findViewById(R.id.group_card_activity);
+        TextView chip = card.activity;
         chip.setVisibility(View.VISIBLE);
         chip.setText(label);
         chip.setTextColor(getColor(text));
         chip.setBackgroundResource(R.drawable.bg_light_blue);
         chip.setBackgroundTintList(ColorStateList.valueOf(getColor(background)));
-        card.findViewById(R.id.group_card_dot).setBackgroundTintList(ColorStateList.valueOf(getColor(dot)));
+        card.dot.setBackgroundTintList(ColorStateList.valueOf(getColor(dot)));
     }
 
     private void bindAvatars(LinearLayout container, List<Member> members) {

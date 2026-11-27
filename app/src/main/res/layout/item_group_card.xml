@@ -1,68 +1,155 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- micro-optimization 4: one ConstraintLayout instead of nested LinearLayouts, so measuring and drawing the card
+     takes fewer passes. The ids are the same as before, the Java code of the card does not change -->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="12dp"
     android:background="@drawable/bg_dashboard_card"
     android:clickable="true"
     android:focusable="true"
-    android:orientation="vertical"
     android:padding="16dp">
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
-        <TextView android:id="@+id/group_card_title" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:ellipsize="end" android:singleLine="true" android:textColor="@color/brand_dark" android:textSize="16sp" android:textStyle="bold" />
-        <TextView android:id="@+id/group_card_activity" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:paddingStart="10dp" android:paddingTop="4dp" android:paddingEnd="10dp" android:paddingBottom="4dp" android:textSize="10sp" android:textStyle="bold" />
-        <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_marginStart="6dp" android:contentDescription="@null" android:src="@drawable/ic_chevron_right" android:tint="@color/brand_dark" />
-    </LinearLayout>
+    <!-- first row: title, activity chip and chevron, centered on the chevron -->
+    <ImageView
+        android:id="@+id/group_card_chevron"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_marginStart="6dp"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_chevron_right"
+        android:tint="@color/brand_dark"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center_vertical" android:orientation="horizontal">
-        <View android:id="@+id/group_card_dot" android:layout_width="8dp" android:layout_height="8dp" android:background="@drawable/bg_oval_solid" />
-        <TextView android:id="@+id/group_card_members" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:textColor="@color/brand_slate" android:textSize="12sp" />
-    </LinearLayout>
+    <TextView
+        android:id="@+id/group_card_activity"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:paddingStart="10dp"
+        android:paddingTop="4dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="4dp"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@id/group_card_chevron"
+        app:layout_constraintEnd_toStartOf="@id/group_card_chevron"
+        app:layout_constraintTop_toTopOf="@id/group_card_chevron" />
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/bg_light_blue" android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="12dp" android:paddingTop="9dp" android:paddingEnd="12dp" android:paddingBottom="9dp">
-        <ImageView android:layout_width="16dp" android:layout_height="16dp" android:contentDescription="@null" android:src="@drawable/ic_calendar" android:tint="@color/brand_primary" />
-        <TextView android:id="@+id/group_card_next" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1" android:ellipsize="end" android:singleLine="true" android:textColor="@color/brand_dark" android:textSize="12sp" />
-    </LinearLayout>
+    <TextView
+        android:id="@+id/group_card_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:textColor="@color/brand_dark"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@id/group_card_chevron"
+        app:layout_constraintEnd_toStartOf="@id/group_card_activity"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/group_card_chevron" />
 
-    <LinearLayout
+    <!-- second row: dot and members -->
+    <TextView
+        android:id="@+id/group_card_members"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:layout_marginTop="4dp"
+        android:textColor="@color/brand_slate"
+        android:textSize="12sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/group_card_chevron" />
+
+    <View
+        android:id="@+id/group_card_dot"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:background="@drawable/bg_oval_solid"
+        app:layout_constraintBottom_toBottomOf="@id/group_card_members"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/group_card_members" />
+
+    <!-- next plan: the text carries the light blue background, the calendar icon sits on top of its left padding -->
+    <TextView
+        android:id="@+id/group_card_next"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/bg_light_blue"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:minHeight="34dp"
+        android:paddingStart="36dp"
+        android:paddingEnd="12dp"
+        android:singleLine="true"
+        android:textColor="@color/brand_dark"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/group_card_members" />
+
+    <ImageView
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginStart="12dp"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_calendar"
+        android:tint="@color/brand_primary"
+        app:layout_constraintBottom_toBottomOf="@id/group_card_next"
+        app:layout_constraintStart_toStartOf="@id/group_card_next"
+        app:layout_constraintTop_toTopOf="@id/group_card_next" />
+
+    <!-- RSVP of the latest activity: hidden until its answer arrives. When it is gone it takes no space -->
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/group_card_rsvp"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        android:orientation="vertical"
-        android:visibility="gone">
-        <LinearLayout
-            android:layout_width="match_parent"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/group_card_next">
+
+        <TextView
+            android:id="@+id/group_card_rsvp_count"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical">
-            <TextView
-                android:id="@+id/group_card_rsvp_label"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Activity RSVP"
-                android:textColor="@color/brand_slate"
-                android:textSize="11sp" />
-            <TextView
-                android:id="@+id/group_card_rsvp_count"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/brand_slate"
-                android:textSize="11sp" />
-        </LinearLayout>
+            android:textColor="@color/brand_slate"
+            android:textSize="11sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/group_card_rsvp_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Activity RSVP"
+            android:textColor="@color/brand_slate"
+            android:textSize="11sp"
+            app:layout_constraintEnd_toStartOf="@id/group_card_rsvp_count"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
         <ProgressBar
             android:id="@+id/group_card_rsvp_progress"
             style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="7dp"
             android:layout_marginTop="6dp"
             android:max="100"
+            android:progressBackgroundTint="@color/brand_card_stroke"
             android:progressTint="@color/brand_success"
-            android:progressBackgroundTint="@color/brand_card_stroke" />
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/group_card_rsvp_label" />
+
         <TextView
             android:id="@+id/group_card_response_time"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="7dp"
             android:drawableStart="@drawable/ic_calendar"
@@ -70,14 +157,50 @@
             android:drawableTint="@color/brand_slate"
             android:textColor="@color/brand_slate"
             android:textSize="11sp"
-            android:visibility="gone" />
-    </LinearLayout>
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/group_card_rsvp_progress" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="center_vertical" android:orientation="horizontal">
-        <LinearLayout android:id="@+id/group_card_avatars" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="horizontal" />
-        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_green_chip" android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="10dp" android:paddingTop="5dp" android:paddingEnd="10dp" android:paddingBottom="5dp">
-            <ImageView android:layout_width="14dp" android:layout_height="14dp" android:contentDescription="@null" android:src="@drawable/ic_check" android:tint="@color/brand_success_dark" />
-            <TextView android:id="@+id/group_card_synced" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:textColor="@color/brand_success_dark" android:textSize="11sp" android:textStyle="bold" />
-        </LinearLayout>
-    </LinearLayout>
-</LinearLayout>
+    <!-- last row: avatars on the left, synced chip on the right. The avatar container stays a LinearLayout
+         because GroupsActivity.bindAvatars adds its children from code -->
+    <LinearLayout
+        android:id="@+id/group_card_avatars"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:minHeight="30dp"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/group_card_synced"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/group_card_rsvp" />
+
+    <TextView
+        android:id="@+id/group_card_synced"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_green_chip"
+        android:paddingStart="30dp"
+        android:paddingTop="5dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="5dp"
+        android:textColor="@color/brand_success_dark"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@id/group_card_avatars"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/group_card_avatars" />
+
+    <ImageView
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        android:layout_marginStart="10dp"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_check"
+        android:tint="@color/brand_success_dark"
+        app:layout_constraintBottom_toBottomOf="@id/group_card_synced"
+        app:layout_constraintStart_toStartOf="@id/group_card_synced"
+        app:layout_constraintTop_toTopOf="@id/group_card_synced" />
+</androidx.constraintlayout.widget.ConstraintLayout>
