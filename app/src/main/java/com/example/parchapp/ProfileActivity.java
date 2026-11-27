@@ -104,6 +104,8 @@ public class ProfileActivity extends AppCompatActivity {
                 startActivity(new Intent(this, GroupsActivity.class)));
         findViewById(R.id.profile_activity_history_card).setOnClickListener(v ->
                 startActivity(new Intent(this, ActivityHistoryActivity.class)));
+        // the Help row, like the ? of the top bar: the questions of the profile come first
+        findViewById(R.id.profile_help_card).setOnClickListener(v -> HelpActivity.open(this, "profile"));
         retryProfile.setOnClickListener(v -> loadProfileDetails());
         findViewById(R.id.profile_logout_button).setOnClickListener(v -> logout());
         BottomNav.setup(this, BottomNav.Tab.HOME);

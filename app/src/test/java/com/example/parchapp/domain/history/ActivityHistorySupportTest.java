@@ -70,6 +70,42 @@ public class ActivityHistorySupportTest {
         assertNull(ActivityHistorySupport.mapTileUrl(invalidLocation));
     }
 
+    @Test
+    public void searchFindsByTitleOrPlaceIgnoringCaseAndExtraSpaces() {
+        PlannedActivity pool = activity("Pool", "2026-11-20T13:00:00Z",
+                PlannedActivity.STATUS_PROPOSED, false, "la Vega", null, null);
+        PlannedActivity study = activity("Study group", "2026-11-21T13:00:00Z",
+                PlannedActivity.STATUS_CONFIRMED, false, "Library", null, null);
+        List<PlannedActivity> all = Arrays.asList(pool, study);
+
+        assertEquals(1, ActivityHistorySupport.filter(all, "  POOL ").size());
+        assertEquals("Pool", ActivityHistorySupport.filter(all, "vega").get(0).getId());
+        assertEquals("Study group", ActivityHistorySupport.filter(all, "library").get(0).getId());
+    }
+
+    @Test
+    public void searchNeedsEveryWordAndKeepsEverythingWhenEmpty() {
+        PlannedActivity pool = activity("Pool", "2026-11-20T13:00:00Z",
+                PlannedActivity.STATUS_PROPOSED, false, "la Vega", null, null);
+        PlannedActivity study = activity("Study group", "2026-11-21T13:00:00Z",
+                PlannedActivity.STATUS_CONFIRMED, false, "Library", null, null);
+        List<PlannedActivity> all = Arrays.asList(pool, study);
+
+        assertEquals(1, ActivityHistorySupport.filter(all, "pool vega").size());
+        assertTrue(ActivityHistorySupport.filter(all, "pool library").isEmpty());
+        assertEquals(2, ActivityHistorySupport.filter(all, "").size());
+        assertEquals(2, ActivityHistorySupport.filter(all, null).size());
+        assertEquals(2, ActivityHistorySupport.filter(all, "   ").size());
+    }
+
+    @Test
+    public void searchWithNoMatchGivesAnEmptyList() {
+        PlannedActivity pool = activity("Pool", "2026-11-20T13:00:00Z",
+                PlannedActivity.STATUS_PROPOSED, false, "", null, null);
+
+        assertTrue(ActivityHistorySupport.filter(Arrays.asList(pool), "chess").isEmpty());
+    }
+
     private static PlannedActivity activity(String id, String startsAt, String status,
                                             boolean cancelled, String location,
                                             Double latitude, Double longitude) {

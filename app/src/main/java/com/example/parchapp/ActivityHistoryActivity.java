@@ -5,11 +5,17 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.BaseAdapter;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -53,6 +59,13 @@ public final class ActivityHistoryActivity extends AppCompatActivity {
     private ListView historyList;
     private View retryButton;
     private boolean requestInProgress;
+    // the search: the whole history stays here and the list shows only what matches
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private final Runnable applySearch = this::showFiltered;
+    private List<PlannedActivity> allActivities = new ArrayList<>();
+    private View searchRow;
+    private EditText searchInput;
+    private TextView noMatchText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,16 +84,62 @@ public final class ActivityHistoryActivity extends AppCompatActivity {
         retryButton = findViewById(R.id.history_retry);
         historyList.setAdapter(adapter);
 
+        searchRow = findViewById(R.id.history_search_row);
+        searchInput = findViewById(R.id.history_search_input);
+        noMatchText = findViewById(R.id.history_no_match);
+
         findViewById(R.id.history_back).setOnClickListener(v -> finish());
         findViewById(R.id.history_refresh).setOnClickListener(v -> loadHistory());
         retryButton.setOnClickListener(v -> loadHistory());
+        findViewById(R.id.history_search_toggle).setOnClickListener(v -> toggleSearch());
+        findViewById(R.id.history_search_clear).setOnClickListener(v -> searchInput.setText(""));
+        searchInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            // wait 250 ms after the last key, so typing a word filters once
+            @Override
+            public void afterTextChanged(Editable s) {
+                handler.removeCallbacks(applySearch);
+                handler.postDelayed(applySearch, 250);
+            }
+        });
         loadHistory();
     }
 
     @Override
     protected void onDestroy() {
+        handler.removeCallbacks(applySearch);
         summaryWorker.shutdownNow();
         super.onDestroy();
+    }
+
+    // the magnifier of the top bar opens and closes the search; closing it clears the text
+    private void toggleSearch() {
+        boolean opening = searchRow.getVisibility() != View.VISIBLE;
+        searchRow.setVisibility(opening ? View.VISIBLE : View.GONE);
+        if (opening) {
+            searchInput.requestFocus();
+            InputMethodManager keyboard = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (keyboard != null) keyboard.showSoftInput(searchInput, InputMethodManager.SHOW_IMPLICIT);
+        } else {
+            searchInput.setText("");
+        }
+    }
+
+    // draws the history that matches the search: the summary above always counts the whole history
+    private void showFiltered() {
+        if (isFinishing() || isDestroyed() || allActivities.isEmpty()) return;
+        List<PlannedActivity> shown = ActivityHistorySupport.filter(allActivities, searchInput.getText().toString());
+        adapter.replace(shown);
+        boolean none = shown.isEmpty();
+        noMatchText.setVisibility(none ? View.VISIBLE : View.GONE);
+        historyList.setVisibility(none ? View.GONE : View.VISIBLE);
     }
 
     private void loadHistory() {
@@ -92,6 +151,7 @@ public final class ActivityHistoryActivity extends AppCompatActivity {
         retryButton.setVisibility(View.GONE);
         emptyText.setVisibility(View.GONE);
         historyList.setVisibility(View.GONE);
+        noMatchText.setVisibility(View.GONE);
         summaryText.setText(R.string.history_calculating);
 
         String userId = UserSession.getCurrentUser() == null
@@ -181,13 +241,16 @@ public final class ActivityHistoryActivity extends AppCompatActivity {
         confirmedText.setText(String.valueOf(summary.confirmed));
         thisMonthText.setText(String.valueOf(summary.thisMonth));
         bindSummary(summary);
-        adapter.replace(activities);
+        allActivities = new ArrayList<>(activities);
+        noMatchText.setVisibility(View.GONE);
         if (activities.isEmpty()) {
+            adapter.replace(activities);
             emptyText.setVisibility(View.VISIBLE);
             historyList.setVisibility(View.GONE);
         } else {
             emptyText.setVisibility(View.GONE);
-            historyList.setVisibility(View.VISIBLE);
+            // keeps the search the user already typed when the history is refreshed
+            showFiltered();
         }
     }
 
@@ -214,6 +277,7 @@ public final class ActivityHistoryActivity extends AppCompatActivity {
         errorText.setVisibility(View.VISIBLE);
         retryButton.setVisibility(View.VISIBLE);
         emptyText.setVisibility(View.GONE);
+        noMatchText.setVisibility(View.GONE);
         historyList.setVisibility(View.GONE);
         if (error != null) Log.w(TAG, "Activity history is unavailable", error);
     }

@@ -37,6 +37,12 @@
     <string name="activity_history">Activity history</string>
     <string name="activity_history_subtitle">Your past activities, saved for offline use</string>
     <string name="history_refresh">Refresh activity history</string>
+    <string name="history_search">Search activities</string>
+    <string name="history_search_hint">Search by title or place</string>
+    <string name="history_search_clear">Clear search</string>
+    <string name="history_no_match">No activities match your search.</string>
+    <string name="help_card_title">Help</string>
+    <string name="help_card_subtitle">Questions and answers, also without internet</string>
     <string name="history_retry">Try again</string>
     <string name="history_saved_unknown">an earlier date</string>
     <string name="history_offline_saved">You are offline. This history was saved on this phone on %1$s.</string>

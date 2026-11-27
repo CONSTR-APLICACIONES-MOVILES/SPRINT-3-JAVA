@@ -133,6 +133,27 @@ public final class ActivityHistorySupport {
         return value == null ? "" : value;
     }
 
+    /* The search of the history: a local filter over the activities that are already in memory, so it needs no
+     * network. Every word typed must appear in the title or in the place, in any case. An empty search keeps all. */
+    public static List<PlannedActivity> filter(List<PlannedActivity> activities, String query) {
+        String clean = safe(query).trim().toLowerCase(Locale.ROOT);
+        if (clean.isEmpty()) return activities;
+        String[] words = clean.split("\\s+");
+        List<PlannedActivity> found = new ArrayList<>();
+        for (PlannedActivity activity : activities) {
+            String text = (safe(activity.getTitle()) + " " + safe(activity.getLocation())).toLowerCase(Locale.ROOT);
+            boolean all = true;
+            for (String word : words) {
+                if (!text.contains(word)) {
+                    all = false;
+                    break;
+                }
+            }
+            if (all) found.add(activity);
+        }
+        return found;
+    }
+
     public static final class Summary {
         public final int total;
         public final int confirmed;

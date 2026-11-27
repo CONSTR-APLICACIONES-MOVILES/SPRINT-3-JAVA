@@ -30,6 +30,16 @@
             android:textSize="18sp"
             android:textStyle="bold" />
         <ImageButton
+            android:id="@+id/history_search_toggle"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/history_search"
+            android:padding="8dp"
+            android:src="@drawable/ic_search"
+            android:tint="@color/brand_dark" />
+        <ImageButton
             android:id="@+id/history_refresh"
             android:layout_width="40dp"
             android:layout_height="40dp"
@@ -52,6 +62,49 @@
         android:textColor="@color/brand_primary"
         android:textSize="12sp"
         android:visibility="gone" />
+
+    <!-- the search of the history: it opens with the magnifier of the top bar -->
+    <LinearLayout
+        android:id="@+id/history_search_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+        <EditText
+            android:id="@+id/history_search_input"
+            android:layout_width="0dp"
+            android:layout_height="46dp"
+            android:layout_weight="1"
+            android:autofillHints="none"
+            android:background="@drawable/bg_login_field"
+            android:drawableStart="@drawable/ic_search"
+            android:drawablePadding="10dp"
+            android:drawableTint="@color/brand_slate"
+            android:hint="@string/history_search_hint"
+            android:imeOptions="actionSearch"
+            android:importantForAutofill="no"
+            android:inputType="text"
+            android:maxLines="1"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:textColor="@color/brand_dark"
+            android:textColorHint="@color/brand_slate"
+            android:textSize="14sp" />
+        <ImageButton
+            android:id="@+id/history_search_clear"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/history_search_clear"
+            android:padding="8dp"
+            android:src="@drawable/ic_close"
+            android:tint="@color/brand_dark" />
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -172,6 +225,17 @@
         android:text="@string/history_retry"
         android:textAllCaps="false"
         android:textColor="@color/brand_primary"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/history_no_match"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="24dp"
+        android:gravity="center"
+        android:text="@string/history_no_match"
+        android:textColor="@color/brand_slate"
+        android:textSize="14sp"
         android:visibility="gone" />
 
     <TextView
