@@ -111,7 +111,11 @@ public class OfflineAlertsRepository implements AlertsRepository {
                         .put("reminderStrategy", alert.getReminderStrategy())
                         .put("reminderSequence", alert.getReminderSequence())
                         .put("reminderDelayMinutes", alert.getReminderDelayMinutes())
-                        .put("reminderSentAt", alert.getReminderSentAt()));
+                        .put("reminderSentAt", alert.getReminderSentAt())
+                        .put("chatGroupName", alert.getChatGroupName())
+                        .put("chatFriendId", alert.getChatFriendId())
+                        .put("chatFriendName", alert.getChatFriendName())
+                        .put("chatFriendInitials", alert.getChatFriendInitials()));
             }
             return array.toString();
         } catch (JSONException error) {
@@ -133,7 +137,8 @@ public class OfflineAlertsRepository implements AlertsRepository {
                         raw.optInt("groupSize"), text(raw, "reminderId"), text(raw, "reminderPurpose"),
                         text(raw, "reminderStrategy"), raw.optInt("reminderSequence"),
                         raw.isNull("reminderDelayMinutes") ? null : raw.optInt("reminderDelayMinutes"),
-                        text(raw, "reminderSentAt")));
+                        text(raw, "reminderSentAt"), text(raw, "chatGroupName"), text(raw, "chatFriendId"),
+                        text(raw, "chatFriendName"), text(raw, "chatFriendInitials")));
             }
             return alerts;
         } catch (JSONException error) {

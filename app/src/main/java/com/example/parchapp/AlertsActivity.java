@@ -287,6 +287,8 @@ public class AlertsActivity extends AppCompatActivity {
         bindAlertActions(card, alert);
         card.setOnClickListener(v -> {
             if (!alert.isRead()) markRead(Collections.singletonList(alert.getId()));
+            // a new chat message opens its chat
+            if (alert.isChatMessage()) startActivity(ChatActivity.forAlert(this, alert));
         });
     }
 
@@ -545,6 +547,7 @@ public class AlertsActivity extends AppCompatActivity {
             case "groupInvite": return getString(R.string.alerts_category_group_invite);
             case "reminder": return getString(R.string.alerts_category_reminder);
             case "friendRequest": return getString(R.string.alerts_category_friend);
+            case "chatMessage": return getString(R.string.alerts_category_chat);
             default: return getString(R.string.alerts_category_schedule);
         }
     }
@@ -556,6 +559,7 @@ public class AlertsActivity extends AppCompatActivity {
             case "reminder": return R.drawable.ic_timer;
             case "timeChanged": return R.drawable.ic_schedule_week;
             case "friendRequest": return R.drawable.ic_person_add;
+            case "chatMessage": return R.drawable.ic_chat;
             default: return R.drawable.ic_notifications;
         }
     }

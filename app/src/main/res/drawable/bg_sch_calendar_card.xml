@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Schedule: compact Google Calendar card (blue tint, like the Flutter integrations row) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#EEF5FF" />
+    <corners android:radius="12dp" />
+    <stroke android:width="1dp" android:color="#E5EBF5" />
+</shape>

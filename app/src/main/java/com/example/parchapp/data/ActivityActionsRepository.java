@@ -3,6 +3,7 @@ package com.example.parchapp.data;
 import androidx.annotation.Nullable;
 
 import com.example.parchapp.domain.model.ActivityDetails;
+import com.example.parchapp.domain.model.ActivityParticipants;
 import com.example.parchapp.domain.model.ComparisonEvidence;
 import com.example.parchapp.domain.model.PlannedActivity;
 import com.example.parchapp.util.Callback;
@@ -20,4 +21,19 @@ public interface ActivityActionsRepository {
     void getActivityDetails(String activityId, Callback<ActivityDetails> callback);
 
     void setActivityReminder(String activityId, int minutesBefore, Callback<Void> callback);
+
+    default void getActivityParticipants(String activityId, Callback<ActivityParticipants> callback) {
+        callback.onError(new UnsupportedOperationException("Participants need the backend"));
+    }
+
+    default void changeActivityParticipants(String activityId, String action, @Nullable String userId,
+                                            String expectedVersion, String clientUserId,
+                                            Callback<Void> callback) {
+        callback.onError(new UnsupportedOperationException("Participants need the backend"));
+    }
+
+    default void inviteGroupFriend(String groupId, String userId, String clientUserId,
+                                   Callback<Void> callback) {
+        callback.onError(new UnsupportedOperationException("Group invitations need the backend"));
+    }
 }

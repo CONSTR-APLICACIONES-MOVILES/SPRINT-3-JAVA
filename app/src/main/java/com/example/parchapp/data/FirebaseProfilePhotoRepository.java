@@ -2,10 +2,15 @@ package com.example.parchapp.data;
 
 import android.util.Base64;
 
+import androidx.annotation.Nullable;
+
 import com.example.parchapp.util.Callback;
 import com.example.parchapp.util.MainThread;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.functions.FirebaseFunctions;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageMetadata;
+import com.google.firebase.storage.StorageReference;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,6 +49,16 @@ final class FirebaseProfilePhotoRepository implements ProfilePhotoRepository {
     }
 
     @Override
+    public void loadCurrentPhotoUrl(Callback<String> callback) {
+        functions.getHttpsCallable("getProfile").call(Collections.emptyMap())
+                .addOnSuccessListener(result -> {
+                    Object raw = asMap(result.getData()).get("photoUrl");
+                    MainThread.post(() -> callback.onSuccess(raw == null ? null : raw.toString()));
+                })
+                .addOnFailureListener(error -> MainThread.post(() -> callback.onError(error)));
+    }
+
+    @Override
     public void savePhoto(String userId, byte[] jpeg, Callback<Void> callback) {
         if (auth.getCurrentUser() == null || userId == null || userId.trim().isEmpty()
                 || !userId.equals(auth.getCurrentUser().getUid())) {
@@ -57,8 +72,22 @@ final class FirebaseProfilePhotoRepository implements ProfilePhotoRepository {
             return;
         }
 
+        StorageReference reference = FirebaseStorage.getInstance()
+                .getReference().child("profile_photos/" + userId + ".jpg");
+        StorageMetadata metadata = new StorageMetadata.Builder()
+                .setContentType("image/jpeg").build();
+        reference.putBytes(jpeg, metadata)
+                .addOnSuccessListener(task -> reference.getDownloadUrl()
+                        .addOnSuccessListener(uri -> saveFields(userId, jpeg, uri.toString(), callback))
+                        .addOnFailureListener(error -> saveFields(userId, jpeg, null, callback)))
+                .addOnFailureListener(error -> saveFields(userId, jpeg, null, callback));
+    }
+
+    private void saveFields(String userId, byte[] jpeg, @Nullable String photoUrl,
+                            Callback<Void> callback) {
         Map<String, Object> fields = new HashMap<>();
         fields.put("photoData", DATA_PREFIX + Base64.encodeToString(jpeg, Base64.NO_WRAP));
+        if (photoUrl != null) fields.put("photoUrl", photoUrl);
         Map<String, Object> input = new HashMap<>();
         input.put("clientUserId", userId);
         input.put("fields", fields);

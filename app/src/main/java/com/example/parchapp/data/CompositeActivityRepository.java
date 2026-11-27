@@ -3,6 +3,7 @@ package com.example.parchapp.data;
 import androidx.annotation.Nullable;
 
 import com.example.parchapp.domain.model.ActivityDetails;
+import com.example.parchapp.domain.model.ActivityParticipants;
 import com.example.parchapp.domain.model.ComparisonEvidence;
 import com.example.parchapp.domain.model.PlannedActivity;
 import com.example.parchapp.util.Callback;
@@ -48,6 +49,24 @@ final class CompositeActivityRepository implements ActivityRepository {
     @Override
     public void setActivityReminder(String activityId, int minutesBefore, Callback<Void> callback) {
         backend.setActivityReminder(activityId, minutesBefore, callback);
+    }
+
+    @Override
+    public void getActivityParticipants(String activityId, Callback<ActivityParticipants> callback) {
+        backend.getActivityParticipants(activityId, callback);
+    }
+
+    @Override
+    public void changeActivityParticipants(String activityId, String action, @Nullable String userId,
+                                           String expectedVersion, String clientUserId,
+                                           Callback<Void> callback) {
+        backend.changeActivityParticipants(activityId, action, userId, expectedVersion, clientUserId, callback);
+    }
+
+    @Override
+    public void inviteGroupFriend(String groupId, String userId, String clientUserId,
+                                  Callback<Void> callback) {
+        backend.inviteGroupFriend(groupId, userId, clientUserId, callback);
     }
 
     @Nullable

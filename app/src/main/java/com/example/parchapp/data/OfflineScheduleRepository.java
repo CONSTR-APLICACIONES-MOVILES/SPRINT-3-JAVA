@@ -12,7 +12,9 @@ import com.example.parchapp.UserSession;
 import com.example.parchapp.domain.model.DaySchedule;
 import com.example.parchapp.domain.model.ScheduleFriend;
 import com.example.parchapp.domain.model.TimeBlock;
+import com.example.parchapp.util.BackgroundThreads;
 import com.example.parchapp.util.Callback;
+import com.example.parchapp.util.MainThread;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -21,27 +23,41 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
 
 /* Eventual connectivity for Schedule, the same idea as the Flutter OfflineMobileApi: every answer of getScheduleFriends and getScheduleDay is saved per user, and when the network fails the saved answer is shown instead of an error. Writes (validate, import) always need the backend. Only free/busy minutes are saved, never event details.
  * A day is read in three layers: memory (ScheduleDayCache, caching #46), then the network, then the copy on the
- * phone (SharedPreferences, local storage). The copy keeps at most MAX_SAVED_DAYS per user, the oldest go first. */
+ * phone. Local storage uses two stores, each for what it fits: the days go to the Room table schedule_days
+ * (many rows, a limit by date, a delete by query) and the friends list is one small value in SharedPreferences. */
 public class OfflineScheduleRepository implements ScheduleRepository {
     private static final String TAG = "OfflineSchedule";
     private static final String PREFS = "parchapp_schedule_offline";
     private static final String PERF = "ParchPerf";
-    private static final String SAVED_AT = ".savedAt";
-    // local storage: about a month of days per user; SharedPreferences is read whole, so it must not grow forever
+    // local storage: about a month of days per user, older ones are deleted by ScheduleDayDao.keepNewest
     static final int MAX_SAVED_DAYS = 30;
+    // multithreading: room is disk i/o and does not run on the main thread; one serial queue, so a read made
+    // after a save always sees it, and the main thread only gets the answer (thread parch-schedule-db-1)
+    private static final ExecutorService DB_QUEUE = BackgroundThreads.serial("parch-schedule-db");
 
     private final ScheduleRepository remote;
     private final SharedPreferences prefs;
+    private final ScheduleDayDao days;
     private volatile boolean lastFromSaved;
     private volatile long lastSavedAt;
     private final ScheduleDayCache<List<DaySchedule>> memory = new ScheduleDayCache<>(SystemClock::elapsedRealtime);
+    // when each day in memory came from the backend (System.currentTimeMillis), for the "Last updated" banner
+    private final java.util.Map<String, Long> fetchedAt = new java.util.concurrent.ConcurrentHashMap<>();
 
     OfflineScheduleRepository(Context context, ScheduleRepository remote) {
         this.remote = remote;
         this.prefs = context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        this.days = ParchDatabase.get(context).scheduleDays();
+        DB_QUEUE.execute(this::forgetDaysSavedInPreferences);
+    }
+
+    /* my busy time changed somewhere else (an Andes Event was added or removed): the days in memory are old */
+    public void forgetDaysInMemory() {
+        memory.clear();
     }
 
     /* true when the last friends or day answer came from the phone because the backend was not reachable */
@@ -49,7 +65,8 @@ public class OfflineScheduleRepository implements ScheduleRepository {
         return lastFromSaved;
     }
 
-    /* when the copy on screen was saved (System.currentTimeMillis), 0 when unknown */
+    /* when the day on screen came from the backend (System.currentTimeMillis): now for a fresh answer, the time it
+     * was fetched for a day from memory, the time it was saved for a copy from the phone; 0 when unknown */
     public long getShownSavedAt() {
         return lastSavedAt;
     }
@@ -82,12 +99,16 @@ public class OfflineScheduleRepository implements ScheduleRepository {
     public void getDay(String date, List<String> friendIds, Callback<List<DaySchedule>> callback) {
         List<String> sorted = new ArrayList<>(friendIds);
         java.util.Collections.sort(sorted);
-        String key = key("day." + date + "." + String.join(",", sorted));
+        String owner = owner();
+        String dayKey = date + "." + String.join(",", sorted);
+        String key = owner + ".day." + dayKey;
         long started = SystemClock.elapsedRealtime();
         // 1. memory: a day seen in the last minutes answers at once, without calling the backend
         List<DaySchedule> cached = memory.get(key);
         if (cached != null) {
             lastFromSaved = false;
+            Long fetched = fetchedAt.get(key);
+            lastSavedAt = fetched == null ? 0 : fetched;
             Log.d(PERF, String.format(Locale.US, "Schedule %s from memory in %d ms", date, SystemClock.elapsedRealtime() - started));
             callback.onSuccess(cached);
             return;
@@ -97,23 +118,38 @@ public class OfflineScheduleRepository implements ScheduleRepository {
             @Override
             public void onSuccess(List<DaySchedule> schedules) {
                 lastFromSaved = false;
+                lastSavedAt = System.currentTimeMillis();
+                fetchedAt.put(key, lastSavedAt);
                 memory.put(key, schedules);
-                saveDay(key, daysToJson(schedules));
+                saveDay(owner, dayKey, daysToJson(schedules));
                 Log.d(PERF, String.format(Locale.US, "Schedule %s from network in %d ms", date, SystemClock.elapsedRealtime() - started));
                 callback.onSuccess(schedules);
             }
 
             // 3. phone: the saved copy instead of an error; it is not put in memory, so the network is tried again next time
+            // the row is read on the db queue and the answer goes back to the main thread
             @Override
             public void onError(Exception error) {
-                String saved = prefs.getString(key, null);
-                if (saved == null) {
-                    callback.onError(error);
-                    return;
-                }
-                lastFromSaved = true;
-                lastSavedAt = prefs.getLong(key + SAVED_AT, 0L);
-                callback.onSuccess(daysFromJson(saved));
+                DB_QUEUE.execute(() -> {
+                    ScheduleDayEntity saved = readDay(owner, dayKey);
+                    // offline Schedule only asks for my own day; when that exact copy is missing, my blocks are
+                    // taken from a copy of the same date that was saved together with friends
+                    boolean mineOnly = saved == null && friendIds.isEmpty();
+                    if (mineOnly) {
+                        saved = readNewestOfDate(owner, date);
+                    }
+                    ScheduleDayEntity found = saved;
+                    MainThread.post(() -> {
+                        if (found == null) {
+                            callback.onError(error);
+                            return;
+                        }
+                        lastFromSaved = true;
+                        lastSavedAt = found.savedAt;
+                        List<DaySchedule> schedules = daysFromJson(found.json);
+                        callback.onSuccess(mineOnly ? onlyOwner(schedules, owner) : schedules);
+                    });
+                });
             }
         });
     }
@@ -148,61 +184,83 @@ public class OfflineScheduleRepository implements ScheduleRepository {
     }
 
     // one saved copy per signed-in user, so another account on the phone never sees it
-    private String key(String request) {
+    private static String owner() {
         UserProfile user = UserSession.getCurrentUser();
-        return (user == null ? "anonymous" : user.getId()) + "." + request;
+        return user == null ? "anonymous" : user.getId();
     }
 
+    private String key(String request) {
+        return owner() + "." + request;
+    }
+
+    // key-value: the friends list is one small value read whole by its key, SharedPreferences is enough
     private void save(String key, String json) {
         if (json != null) {
             prefs.edit().putString(key, json).apply();
         }
     }
 
-    /* local storage: saves the day with the time it was saved, and forgets the oldest days of this user
-     * when there are more than MAX_SAVED_DAYS (an index in save order lives next to them) */
-    private void saveDay(String key, @Nullable String json) {
+    /* relational: the day goes to its row with the time it was saved, and in the same transaction the days of
+     * this user beyond the MAX_SAVED_DAYS newest are deleted. An error of the phone storage loses one save,
+     * it never closes the app; the screen already has the data from the network. */
+    private void saveDay(String owner, String dayKey, @Nullable String json) {
         if (json == null) {
             return;
         }
-        String indexKey = key("days.index");
-        List<String> index = readIndex(prefs.getString(indexKey, null));
-        List<String> removed = trimIndex(index, key, MAX_SAVED_DAYS);
-        SharedPreferences.Editor editor = prefs.edit()
-                .putString(key, json)
-                .putLong(key + SAVED_AT, System.currentTimeMillis())
-                .putString(indexKey, new JSONArray(index).toString());
-        for (String old : removed) {
-            editor.remove(old).remove(old + SAVED_AT);
-        }
-        editor.apply();
-    }
-
-    /* moves key to the end (newest) and returns the oldest keys that no longer fit; index is changed in place */
-    static List<String> trimIndex(List<String> index, String key, int max) {
-        index.remove(key);
-        index.add(key);
-        List<String> removed = new ArrayList<>();
-        while (index.size() > max) {
-            removed.add(index.remove(0));
-        }
-        return removed;
-    }
-
-    private static List<String> readIndex(@Nullable String json) {
-        List<String> index = new ArrayList<>();
-        if (json == null) {
-            return index;
-        }
-        try {
-            JSONArray array = new JSONArray(json);
-            for (int i = 0; i < array.length(); i++) {
-                index.add(array.getString(i));
+        ScheduleDayEntity day = ScheduleDayEntity.of(owner, dayKey, json, System.currentTimeMillis());
+        DB_QUEUE.execute(() -> {
+            try {
+                days.save(day, MAX_SAVED_DAYS);
+            } catch (RuntimeException error) {
+                Log.w(TAG, "Could not save the Schedule day", error);
             }
-        } catch (JSONException error) {
-            Log.w(TAG, "Could not read the saved days index", error);
+        });
+    }
+
+    @Nullable
+    private ScheduleDayEntity readDay(String owner, String dayKey) {
+        try {
+            return days.day(owner, dayKey);
+        } catch (RuntimeException error) {
+            Log.w(TAG, "Could not read the saved Schedule day", error);
+            return null;
         }
-        return index;
+    }
+
+    @Nullable
+    private ScheduleDayEntity readNewestOfDate(String owner, String date) {
+        try {
+            return days.newestOfDate(owner, date);
+        } catch (RuntimeException error) {
+            Log.w(TAG, "Could not read the saved Schedule day", error);
+            return null;
+        }
+    }
+
+    /* the schedules of one person from a saved day; the friends in that copy are dropped */
+    static List<DaySchedule> onlyOwner(List<DaySchedule> schedules, String owner) {
+        List<DaySchedule> mine = new ArrayList<>();
+        for (DaySchedule schedule : schedules) {
+            if (owner.equals(schedule.getOwnerId())) {
+                mine.add(schedule);
+            }
+        }
+        return mine;
+    }
+
+    /* before version 2 the days were saved in SharedPreferences; they now live in room, so the old copies
+     * are removed once, otherwise they would stay loaded in memory with the preferences for nothing */
+    private void forgetDaysSavedInPreferences() {
+        SharedPreferences.Editor editor = null;
+        for (String key : prefs.getAll().keySet()) {
+            if (key.contains(".day.") || key.endsWith(".days.index")) {
+                editor = editor == null ? prefs.edit() : editor;
+                editor.remove(key);
+            }
+        }
+        if (editor != null) {
+            editor.apply();
+        }
     }
 
     private static String friendsToJson(List<ScheduleFriend> friends) {

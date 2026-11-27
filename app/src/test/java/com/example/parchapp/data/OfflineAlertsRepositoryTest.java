@@ -34,4 +34,24 @@ public class OfflineAlertsRepositoryTest {
         assertEquals(2, back.get(1).getReminderSequence());
     }
 
+
+    @Test
+    public void keepsTheChatOfAChatAlertWhenSavedOffline() {
+        AlertItem direct = new AlertItem("chat_1", "chatMessage", "Bob sent you a message", "Hola",
+                "2026-11-25T15:00:00.000Z", false, null, null, "group-1", 0, null, null, null, 0, null, null,
+                "Study Group", "bob", "Bob Example", "BE");
+        AlertItem house = new AlertItem("chat_2", "chatMessage", "New message in Study Group", "Ana: hola",
+                "2026-11-25T15:01:00.000Z", true, null, null, "group-1", 0, null, null, null, 0, null, null,
+                "Study Group", null, null, null);
+
+        List<AlertItem> back = OfflineAlertsRepository.fromJson(OfflineAlertsRepository.toJson(Arrays.asList(direct, house)));
+
+        assertTrue(back.get(0).isChatMessage());
+        assertEquals("Study Group", back.get(0).getChatGroupName());
+        assertEquals("bob", back.get(0).getChatFriendId());
+        assertEquals("Bob Example", back.get(0).getChatFriendName());
+        assertEquals("BE", back.get(0).getChatFriendInitials());
+        assertNull(back.get(1).getChatFriendId());
+        assertTrue(back.get(1).isRead());
+    }
 }
