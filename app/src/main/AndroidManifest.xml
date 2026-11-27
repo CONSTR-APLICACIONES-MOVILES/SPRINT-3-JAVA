@@ -46,6 +46,7 @@
             android:name=".CreateAccountActivity"
             android:windowSoftInputMode="adjustResize" />
         <activity android:name=".AlertsActivity" />
+        <activity android:name=".HelpActivity" />
         <activity android:name=".ProfileActivity" />
         <activity android:name=".ProfilePhotoCameraActivity" android:exported="false" />
         <activity android:name=".PrivacySettingsActivity" />

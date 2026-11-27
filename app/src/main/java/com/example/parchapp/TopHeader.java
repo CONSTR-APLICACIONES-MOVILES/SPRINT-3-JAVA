@@ -24,5 +24,24 @@ public final class TopHeader {
         ImageView photo = activity.findViewById(R.id.header_user_photo);
         photo.setOnClickListener(v -> activity.startActivity(new Intent(activity, ProfileActivity.class)));
         AccountPhoto.load(activity, photo, user);
+        // the ? button opens the help with the questions of this screen first
+        activity.findViewById(R.id.header_help_btn).setOnClickListener(v ->
+                HelpActivity.open(activity, screenName(activity)));
+    }
+
+    // the name the help uses for each main screen, see "screen" in help_faq.json
+    private static String screenName(Activity activity) {
+        String name = activity.getClass().getSimpleName();
+        switch (name) {
+            case "GroupsActivity":
+            case "CreateGroupActivity":
+                return "groups";
+            case "ScheduleActivity":
+                return "schedule";
+            case "DashboardActivity":
+                return "dashboard";
+            default:
+                return "general";
+        }
     }
 }
