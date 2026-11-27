@@ -12,7 +12,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 // strategy 7, local storage: relational database of the app (room over sqlite)
 // one instance for the whole app, opening a database is slow and two instances could fight for the file
 @Database(entities = {GroupDraftEntity.class, DraftInviteEntity.class, ScheduleDayEntity.class,
-        AndesEventEntity.class}, version = 3, exportSchema = false)
+        AndesEventEntity.class, ParticipantCacheEntity.class, ParticipantOutboxEntity.class},
+        version = 4, exportSchema = false)
 public abstract class ParchDatabase extends RoomDatabase {
     private static volatile ParchDatabase instance;
 
@@ -42,11 +43,28 @@ public abstract class ParchDatabase extends RoomDatabase {
         }
     };
 
+    // version 4 adds the participant snapshot cache and the offline participant outbox
+    static final Migration MIGRATION_3_4 = new Migration(3, 4) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `participant_cache` (`activityId` TEXT NOT NULL, "
+                    + "`json` TEXT NOT NULL, `savedAt` INTEGER NOT NULL, PRIMARY KEY(`activityId`))");
+            db.execSQL("CREATE TABLE IF NOT EXISTS `participant_outbox` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "`activityId` TEXT NOT NULL, `action` TEXT NOT NULL, `userId` TEXT, "
+                    + "`expectedVersion` TEXT NOT NULL, `status` TEXT NOT NULL, `error` TEXT, "
+                    + "`createdAt` INTEGER NOT NULL)");
+        }
+    };
+
     public abstract GroupDraftDao groupDrafts();
 
     public abstract AndesEventsDao andesEvents();
 
     public abstract ScheduleDayDao scheduleDays();
+
+    public abstract ParticipantCacheDao participantCache();
+
+    public abstract ParticipantOutboxDao participantOutbox();
 
     public static ParchDatabase get(Context context) {
         if (instance == null) {
@@ -54,7 +72,7 @@ public abstract class ParchDatabase extends RoomDatabase {
                 if (instance == null) {
                     instance = Room.databaseBuilder(context.getApplicationContext(),
                                     ParchDatabase.class, "parchapp.db")
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                             .build();
                 }
             }

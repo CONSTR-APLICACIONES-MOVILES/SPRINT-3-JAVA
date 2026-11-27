@@ -13,6 +13,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreSettings;
 import com.google.firebase.functions.FirebaseFunctions;
 import com.google.firebase.firestore.PersistentCacheSettings;
+import com.google.firebase.storage.FirebaseStorage;
 
 /** App-wide data adapters: Firestore serves group-plan reads; callables handle activity actions/details. */
 public final class Repositories {
@@ -78,6 +79,10 @@ public final class Repositories {
             db.setFirestoreSettings(new FirebaseFirestoreSettings.Builder()
                     .setLocalCacheSettings(PersistentCacheSettings.newBuilder().build())
                     .build());
+            FirebaseStorage storage = FirebaseStorage.getInstance();
+            if (BuildConfig.USE_FIREBASE_EMULATORS) {
+                storage.useEmulator(BuildConfig.FIREBASE_EMULATOR_HOST, 9199);
+            }
             groups = new FirestoreGroupRepository(db, functions);
             recommendationDecisions = new FirebaseRecommendationDecisionRepository(functions);
             activities = new CompositeActivityRepository(

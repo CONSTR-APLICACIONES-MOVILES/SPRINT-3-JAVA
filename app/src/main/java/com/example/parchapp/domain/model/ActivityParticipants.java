@@ -1,5 +1,9 @@
 package com.example.parchapp.domain.model;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -49,6 +53,48 @@ public final class ActivityParticipants {
                 Boolean.TRUE.equals(data.get("canInviteFriends")),
                 Boolean.TRUE.equals(data.get("cancelled")),
                 members);
+    }
+
+    public String toJson() throws JSONException {
+        JSONArray array = new JSONArray();
+        for (ActivityParticipant member : members) array.put(member.toJson());
+        return new JSONObject()
+                .put("activityId", activityId)
+                .put("groupId", groupId)
+                .put("version", version)
+                .put("canManage", canManage)
+                .put("canJoin", canJoin)
+                .put("joined", joined)
+                .put("canInviteFriends", canInviteFriends)
+                .put("cancelled", cancelled)
+                .put("members", array)
+                .toString();
+    }
+
+    public static ActivityParticipants fromJson(String text) {
+        try {
+            JSONObject json = new JSONObject(text);
+            List<ActivityParticipant> members = new ArrayList<>();
+            JSONArray array = json.optJSONArray("members");
+            if (array != null) {
+                for (int i = 0; i < array.length(); i++) {
+                    JSONObject raw = array.optJSONObject(i);
+                    if (raw != null) members.add(ActivityParticipant.fromJson(raw));
+                }
+            }
+            return new ActivityParticipants(
+                    json.optString("activityId", ""),
+                    json.optString("groupId", ""),
+                    json.optString("version", ""),
+                    json.optBoolean("canManage", false),
+                    json.optBoolean("canJoin", false),
+                    json.optBoolean("joined", false),
+                    json.optBoolean("canInviteFriends", false),
+                    json.optBoolean("cancelled", false),
+                    members);
+        } catch (JSONException error) {
+            return null;
+        }
     }
 
     public String getActivityId() { return activityId; }

@@ -68,6 +68,7 @@ dependencies {
     implementation libs.firebase.auth
     implementation libs.firebase.functions
     implementation libs.firebase.firestore
+    implementation libs.firebase.storage
     implementation libs.play.services.auth
 // f1: fused location provider for the campus check
     implementation libs.play.services.location
@@ -84,6 +85,10 @@ dependencies {
 // caching: glide loads the profile photo of the top bar with its own memory and disk caches (ParchGlideModule)
     implementation libs.glide
     annotationProcessor libs.glide.compiler
+// participant avatars: picasso keeps memory and disk caches for the remote user photos
+    implementation libs.picasso
+// offline participant actions: workmanager retries them when the network returns
+    implementation libs.work.runtime
     testImplementation libs.junit
 // f7: real org.json for the unit tests, android only gives an empty version there
     testImplementation libs.json.for.tests

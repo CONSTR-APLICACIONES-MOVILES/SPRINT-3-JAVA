@@ -64,6 +64,15 @@
                 android:textSize="13sp"
                 android:lineSpacingMultiplier="1.4" />
 
+            <TextView
+                android:id="@+id/participants_saved_at"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/brand_slate"
+                android:textSize="10sp"
+                android:visibility="gone" />
+
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/participants_join"
                 android:layout_width="match_parent"
@@ -143,6 +152,25 @@
                     android:layout_marginTop="8dp"
                     android:orientation="vertical" />
             </LinearLayout>
+
+            <TextView
+                android:id="@+id/participants_pending_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="WAITING TO SYNC"
+                android:textColor="@color/brand_slate"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/participants_pending"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="vertical"
+                android:visibility="gone" />
 
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/participants_reload"

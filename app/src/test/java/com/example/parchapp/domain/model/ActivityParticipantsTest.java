@@ -27,6 +27,7 @@ public class ActivityParticipantsTest {
         pending.put("organizer", false);
         pending.put("invited", true);
         pending.put("response", null);
+        pending.put("photoUrl", "https://firebasestorage.googleapis.com/v0/b/demo/o/profile_photos%2Fu2.jpg");
 
         Map<String, Object> data = new HashMap<>();
         data.put("activityId", "a1");
@@ -53,7 +54,24 @@ public class ActivityParticipantsTest {
         assertTrue(participants.getMembers().get(0).isOrganizer());
         assertTrue(participants.getMembers().get(1).isInvited());
         assertNull(participants.getMembers().get(1).getResponse());
+        assertEquals("https://firebasestorage.googleapis.com/v0/b/demo/o/profile_photos%2Fu2.jpg",
+                participants.getMembers().get(1).getPhotoUrl());
         assertTrue(participants.containsMember("u2"));
+    }
+
+    @Test
+    public void roundTripsTheOfflineSnapshotWithPhotoUrls() throws Exception {
+        ActivityParticipants original = new ActivityParticipants("a1", "g1", "v1", true, false,
+                true, true, false, Arrays.asList(
+                new ActivityParticipant("u1", "Alex", true, true, "accepted",
+                        "https://firebasestorage.googleapis.com/v0/b/demo/o/profile_photos%2Fu1.jpg")));
+        ActivityParticipants copy = ActivityParticipants.fromJson(original.toJson());
+        assertTrue(copy != null);
+        assertEquals("a1", copy.getActivityId());
+        assertEquals("v1", copy.getVersion());
+        assertEquals("Alex", copy.getMembers().get(0).getName());
+        assertEquals("https://firebasestorage.googleapis.com/v0/b/demo/o/profile_photos%2Fu1.jpg",
+                copy.getMembers().get(0).getPhotoUrl());
     }
 
     @Test
