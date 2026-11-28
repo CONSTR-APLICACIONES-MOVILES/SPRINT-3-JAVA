@@ -154,6 +154,20 @@ public final class ActivityHistorySupport {
         return found;
     }
 
+    /* The time the offline banner shows. Online, the history was just read, so it is now. Without a network the list
+     * comes from the copy on the phone, so the banner must show when that copy was really saved, never now.
+     * 0 means the copy has no known date. */
+    public static long shownSavedAt(boolean offline, long copySavedAt, long now) {
+        if (!offline) return now;
+        return Math.max(0L, copySavedAt);
+    }
+
+    /* A short date can end with a dot ("p.m."), and the sentence that holds it ends with its own dot. */
+    public static String withoutTrailingDot(String text) {
+        String clean = safe(text).trim();
+        return clean.endsWith(".") ? clean.substring(0, clean.length() - 1).trim() : clean;
+    }
+
     public static final class Summary {
         public final int total;
         public final int confirmed;
