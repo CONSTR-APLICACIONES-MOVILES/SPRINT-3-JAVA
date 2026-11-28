@@ -186,6 +186,13 @@ public final class ActivityHistoryActivity extends AppCompatActivity {
                     // and do not save again, or the date would say "now" for old data
                     ActivityHistoryCache.Snapshot saved =
                             ActivityHistoryCache.read(getApplicationContext(), userId);
+                    if (saved == null && activities.isEmpty()) {
+                        // nothing saved and nothing in the Firestore copy: say it could not load, not "no activities"
+                        runOnUiThread(() -> {
+                            if (!isFinishing() && !isDestroyed()) showFailure(null);
+                        });
+                        return;
+                    }
                     past = saved != null ? saved.activities
                             : ActivityHistorySupport.pastActivities(activities, now);
                     savedAt = ActivityHistorySupport.shownSavedAt(true, saved == null ? 0L : saved.savedAt, now);
