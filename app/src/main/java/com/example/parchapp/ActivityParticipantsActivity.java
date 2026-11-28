@@ -173,6 +173,7 @@ public class ActivityParticipantsActivity extends AppCompatActivity {
     private void render() {
         if (participants == null) return;
         errorBox.setVisibility(View.GONE);
+        feedback.setVisibility(View.GONE);
         intro.setText(participants.canManage()
                 ? "Invite group members or manage existing participants."
                 : "Join this activity to confirm your attendance.");
