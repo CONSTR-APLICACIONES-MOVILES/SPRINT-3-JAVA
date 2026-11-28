@@ -96,7 +96,8 @@ class FirestoreActivityRepository implements ActivityPlanRepository {
         Integer reminder = rawReminder instanceof Number ? ((Number) rawReminder).intValue() : null;
         Object rawLocation = snapshot.get("locationDetails");
         Map<?, ?> location = rawLocation instanceof Map ? (Map<?, ?>) rawLocation : null;
-        Object rawParticipants = snapshot.get("participants");
+        Object rawParticipants = snapshot.get("participantIds");
+        if (!(rawParticipants instanceof List)) rawParticipants = snapshot.get("participants");
         int participantCount = rawParticipants instanceof List
                 ? ((List<?>) rawParticipants).size() : 0;
         return new PlannedActivity(snapshot.getId(),
