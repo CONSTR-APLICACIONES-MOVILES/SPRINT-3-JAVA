@@ -86,7 +86,7 @@ The explorer filters by period (7, 14, 30, 90 days or own dates), group by day o
 |---|---|---|---|
 | Help | 1. Cache, falling back to network: the questions always come from Room. 6. Generic fallback: the copy inside the app the first time | Help is needed most when something fails, including the network | 4 |
 | Help refresh | Downloaded only on Wi-Fi, at most once every 24 h, never with low battery (below 15 percent and not charging), and at most one try every 30 minutes | Respects the data plan and the battery of the user | 4 |
-| Activity history without network | 3. Network, falling back to cache. If the read fails, the last copy saved on the phone. Banner: "You are offline. This history was saved on this phone on (date)." The summary, the list and the search work from the copy. A map tile that cannot load shows a location icon | The user still sees past activities without network | 4 |
+| Activity history without network | 3. Network, falling back to cache. If the read fails, the last copy saved on the phone. Banner: "You are offline. This history was saved on this phone on (date)." The date is the one of the last real save, never the time the screen was opened, and nothing is saved again while offline. The summary, the list and the search work from the copy. A map tile that cannot load shows a location icon | The user still sees past activities without network | 4 |
 | Activity history, refresh fails | The saved copy with "Could not refresh your history. Showing the saved copy." and a Try again button. With no saved copy: "Could not load your history. Try again." | The user knows the data may be old and can retry | 4 |
 | Create Group without network | Network only to create; local draft. The button turns off offline and back on when the network returns | Do not lose what the user wrote; no button that fails without explanation | 3 |
 | Group Details without network | LRU in memory, then Firestore cache, then network. Shows the saved copy with its last sync time | No empty screen; old data is not shown as if it were fresh | 3 |
@@ -134,3 +134,11 @@ Scenarios, with the format of the class (Diagram EventualConnectivity):
 ## Evidence
 
 In `docs/evidence/sprint4/tatiana/`: the two Perfetto traces (`groups-before.pftrace` and `groups-after.pftrace`), the table of numbers (`groups-perfetto-summary.txt`) and the three screenshots of Help (`help-entry.png`, `help.png` and `help-offline.png`).
+
+Screenshots added in this sprint (the two of Activity history were taken on the TECNO phone):
+
+- BQ10 explorer with custom dates: KPIs, chart and the table by category. ![BQ10 explorer](evidence/sprint4/tatiana/evidencia_bq10_con_datos.jpg)
+- BQ7 explorer with data: KPIs, chart and the most abandoned step (ties shown). ![BQ7 explorer](evidence/sprint4/tatiana/evidencia_bq7_con_datos.jpg)
+- BQ7 with reversed dates: clear message, everything cleared and CSV disabled. ![BQ7 reversed dates](evidence/sprint4/tatiana/evidencia_bq7_error_fechas.jpg)
+- Activity history online. ![Activity history online](evidence/sprint4/tatiana/activity-history.png)
+- Activity history offline, with the saved copy banner. ![Activity history offline](evidence/sprint4/tatiana/activity-history-offline.png)
