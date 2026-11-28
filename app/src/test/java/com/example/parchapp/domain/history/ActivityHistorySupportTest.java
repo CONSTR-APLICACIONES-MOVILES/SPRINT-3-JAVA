@@ -106,6 +106,23 @@ public class ActivityHistorySupportTest {
         assertTrue(ActivityHistorySupport.filter(Arrays.asList(pool), "chess").isEmpty());
     }
 
+    @Test
+    public void offlineBannerShowsTheDateOfTheSavedCopyNeverNow() {
+        long now = 2_000_000L;
+        assertEquals(now, ActivityHistorySupport.shownSavedAt(false, 500L, now));
+        assertEquals(500L, ActivityHistorySupport.shownSavedAt(true, 500L, now));
+        // no saved copy: no date, the banner says "an earlier date"
+        assertEquals(0L, ActivityHistorySupport.shownSavedAt(true, 0L, now));
+        assertEquals(0L, ActivityHistorySupport.shownSavedAt(true, -1L, now));
+    }
+
+    @Test
+    public void aDateThatEndsWithADotLosesItBecauseTheSentenceAddsOne() {
+        assertEquals("27/11/2026 10:13 p.m", ActivityHistorySupport.withoutTrailingDot("27/11/2026 10:13 p.m."));
+        assertEquals("27/11/2026 22:13", ActivityHistorySupport.withoutTrailingDot("27/11/2026 22:13"));
+        assertEquals("", ActivityHistorySupport.withoutTrailingDot(null));
+    }
+
     private static PlannedActivity activity(String id, String startsAt, String status,
                                             boolean cancelled, String location,
                                             Double latitude, Double longitude) {

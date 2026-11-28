@@ -51,20 +51,32 @@ Help opens from a ? button in the shared top bar. It knows which screen it was o
 
 ## 5. Features and strategies by sprint (Tatiana)
 
-The rows of Sprint 2 and Sprint 3 are in the page "Sprint 3 Tatiana Extra". Here are the ones of Sprint 4.
+Each table has a Sprint column. The rows of Sprint 2 and Sprint 3 come from the page "Sprint 3 Tatiana Extra".
 
 ### a. Features
 
-| Feature | Sprint 4 |
-|---|---|
-| **Help** (new view) | Questions of the screen you came from first, offline search, refreshed on Wi-Fi |
-| Groups list | Four micro-optimizations (point 3) |
+| Feature | Tatiana's part | Sprint |
+|---|---|---|
+| **Help** (new view) | Questions of the screen you came from first, offline search, refreshed on Wi-Fi | 4 |
+| **Activity history** (new view) | Opens from Profile. Past activities, newest first, without cancelled ones. Summary with total, confirmed, this month, favorite time and place. A map tile per activity and a search by title or place | 4 |
+| Groups list | Four micro-optimizations (point 3) | 4 |
+| Views | Groups screen and shared bottom navigation (#76), Group Details (#75, #90), Create Group with input rules (#90, #102), shared top header, calendar logo and app icon (#98) | 3 |
+| Team dashboard | The app sends its analytics events to Firestore (#105) | 3 |
+| F2. Recommended slot, BQ3 | `slot_selected` event and the BQ3 query; in Sprint 3 the answer is shown inside Compare Availability (#66, #107, #109) | 2, 3 |
+| F1. Automatic *Commuting* status | Campus area check with the Fused Location Provider and the runtime location permission (#63, #64) | 2 |
+| F3. Context-aware plan card | Plan card in Group Details with the travel time and the late warning (#68) | 2 |
+| F4. Best-slot recommender | `PreferenceRanking`, by each member's preferred hours (#70) | 2 |
+| F5. Sign in with Firebase Auth | *Continue as* card that restores the session with `getCurrentUser()` (#71) | 2 |
+| F6. Groups, activities and RSVPs in Firestore | Create Group writes the group and its invitations; Group Details listens in real time (#72, #90) | 2 |
+| F7. Travel time from Google Maps | Travel time in the Group Details plan card with the timeout and fallback (#73) | 2 |
 
 ### b. Business questions
 
-| BQ | Type | Made by | Rationale |
-|---|---|---|---|
-| **BQ10**: Which activity categories, study, sports, social, or other, are selected most and least frequently, and what percentage of activities in each category reach Confirmed status? | Type 3, Feature Analysis | Tatiana | Shows whether the current categories are useful, which ones to prioritize and whether new ones are needed. Answered in the team dashboard with filters by dates, group size and category (BQ10 explorer, callable `getCategoryConfirmation`). |
+| BQ | Type | Made by | Rationale | Sprint |
+|---|---|---|---|---|
+| **BQ10**: Which activity categories, study, sports, social, or other, are selected most and least frequently, and what percentage of activities in each category reach Confirmed status? | Type 3, Feature Analysis | Tatiana | Shows whether the current categories are useful, which ones to prioritize and whether new ones are needed. Answered in the team dashboard with filters by dates, group size and category (BQ10 explorer, callable `getCategoryConfirmation`). | 4 |
+| **BQ7**: At which step do most users abandon the activity creation process: group selection, category selection, date and time selection, location, activity details, or review? | Type 3, Feature Analysis | Tatiana | The creation form has several inputs. Knowing where people leave shows which part is too complex and should be simplified. Answered in the team dashboard with filters by period (7, 14, 30, 90 days or custom dates), day or week and entry point, with the share per step in a table and a chart, ties shown, and CSV export (BQ7 explorer, callable `getCreationFunnel`). | 3 |
+| **BQ3**: What percentage of the time slots suggested by the recommendation engine are accepted by the organizer without being changed? | Type 2, Direct User Experience Improvement | Tatiana | It measures whether the recommender is useful, and the answer changes what the user sees: the most accepted position is marked *Recommended*. | 2 |
 
 The explorer filters by period (7, 14, 30, 90 days or own dates), group by day or week, group size (all, solo, 2-3, 4-6, 7+) and category. It shows the most and least used category, a bar chart by category (activities and percentage confirmed), a table by day or week and a CSV export. The function reads the `activities` collection by creation date and is only available to organization accounts, because it reads every activity. An activity counts as confirmed if its status is `CONFIRMED` now, so recent activities may still be confirmed later.
 
@@ -74,6 +86,10 @@ The explorer filters by period (7, 14, 30, 90 days or own dates), group by day o
 |---|---|---|---|
 | Help | 1. Cache, falling back to network: the questions always come from Room. 6. Generic fallback: the copy inside the app the first time | Help is needed most when something fails, including the network | 4 |
 | Help refresh | Downloaded only on Wi-Fi, at most once every 24 h, never with low battery (below 15 percent and not charging), and at most one try every 30 minutes | Respects the data plan and the battery of the user | 4 |
+| Activity history without network | 3. Network, falling back to cache. If the read fails, the last copy saved on the phone. Banner: "You are offline. This history was saved on this phone on (date)." The summary, the list and the search work from the copy. A map tile that cannot load shows a location icon | The user still sees past activities without network | 4 |
+| Activity history, refresh fails | The saved copy with "Could not refresh your history. Showing the saved copy." and a Try again button. With no saved copy: "Could not load your history. Try again." | The user knows the data may be old and can retry | 4 |
+| Create Group without network | Network only to create; local draft. The button turns off offline and back on when the network returns | Do not lose what the user wrote; no button that fails without explanation | 3 |
+| Group Details without network | LRU in memory, then Firestore cache, then network. Shows the saved copy with its last sync time | No empty screen; old data is not shown as if it were fresh | 3 |
 
 Scenarios, with the format of the class (Diagram EventualConnectivity):
 
@@ -92,18 +108,28 @@ Scenarios, with the format of the class (Diagram EventualConnectivity):
 |---|---|---|---|
 | Help questions | Room FTS4 table `help_faq` in its own database (`HelpDatabase`), searched with MATCH | Indexed full-text search that works offline, and it does not touch the team's database | 4 |
 | Last refresh | SharedPreferences | One small value | 4 |
+| Activity history | SharedPreferences `activity_history` with one JSON snapshot per user (key `snapshot_<userId>`): the past activities and the time it was saved (`ActivityHistoryCache`) | One small document per account, always read whole | 4 |
+| Create Group draft | Room (`ParchDatabase`), two related tables `group_drafts` and `draft_invites`, saved in one transaction | A draft has many invites; they change together or not at all | 3 |
+| Last BQ3 result | JSON file (`SlotAcceptanceFile`), written to a temporary file first | One small document always read whole; it survives when Firestore clears its own cache | 3 |
+| Last sync time of each group | SharedPreferences (`GroupSyncStore`) | Group Details can say how old its data is, even offline | 3 |
 
 ### e. Multithreading
 
 | Where | Strategy | Why | Sprint |
 |---|---|---|---|
 | Help screen | Futures with CompletableFuture: supplyAsync, thenApply, thenCombine, thenAcceptAsync on the main thread; cancelled on destroy | Two independent reads joined in one pipeline, never on the main thread | 4 |
+| Activity history | Single thread executor (`summaryWorker`, `Executors.newSingleThreadExecutor()`): it picks the past activities, saves the snapshot, builds the summary and reads the saved copy. The result goes back with `runOnUiThread`. `shutdownNow()` on destroy | JSON and summary work off the main thread, one job at a time and in order | 4 |
+| Create Group draft | Serial queue `parch-draft` for every draft read and write | Room does not allow database work on the main thread; the last draft always wins | 3 |
+| Opening Group Details | Tasks inside a task (`GroupOpenLoader`): parent `parch-group-open` (one thread), children `parch-group-read` (two threads) | Two independent reads at the same time; a separate pool for the children does not block the parent | 3 |
+| BQ3 file | Its own queue `parch-insight-file` | File work off the main thread | 3 |
 
 ### f. Caching
 
 | Where | Strategy | Why | Sprint |
 |---|---|---|---|
 | Help search | ArrayMap with up to 20 recent searches, cleared when the questions are refreshed | Memory friendly for small collections; a repeated search does not touch the database | 4 |
+| Groups opened last | LRU in memory (`GroupMemoryCache`, Android `LruCache`, 20 groups, key with the account) | Group Details draws at once from memory, with bounded memory; Firestore replaces it when it answers | 3 |
+| BQ3 result | Cache, falling back to network: memory (10 minutes), then the Firestore document, then the file on the phone | The answer is shown even when Firestore has no copy and there is no connection | 3 |
 
 ## Evidence
 

@@ -176,14 +176,26 @@ public final class ActivityHistoryActivity extends AppCompatActivity {
     }
 
     private void prepareSnapshot(List<PlannedActivity> activities, String userId, boolean offline) {
-        long savedAt = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
         summaryWorker.execute(() -> {
             try {
-                List<PlannedActivity> past =
-                        ActivityHistorySupport.pastActivities(activities, savedAt);
-                ActivityHistoryCache.save(getApplicationContext(), userId, past, savedAt);
+                final List<PlannedActivity> past;
+                final long savedAt;
+                if (offline) {
+                    // Firestore answers from its own copy without a network: show our saved copy with its real date,
+                    // and do not save again, or the date would say "now" for old data
+                    ActivityHistoryCache.Snapshot saved =
+                            ActivityHistoryCache.read(getApplicationContext(), userId);
+                    past = saved != null ? saved.activities
+                            : ActivityHistorySupport.pastActivities(activities, now);
+                    savedAt = ActivityHistorySupport.shownSavedAt(true, saved == null ? 0L : saved.savedAt, now);
+                } else {
+                    past = ActivityHistorySupport.pastActivities(activities, now);
+                    ActivityHistoryCache.save(getApplicationContext(), userId, past, now);
+                    savedAt = ActivityHistorySupport.shownSavedAt(false, 0L, now);
+                }
                 ActivityHistorySupport.Summary summary =
-                        ActivityHistorySupport.summarize(past, savedAt);
+                        ActivityHistorySupport.summarize(past, savedAt > 0L ? savedAt : now);
                 runOnUiThread(() -> {
                     if (!isFinishing() && !isDestroyed()) {
                         showSnapshot(past, savedAt, offline, summary, false);
@@ -295,8 +307,8 @@ public final class ActivityHistoryActivity extends AppCompatActivity {
 
     private String formatSavedAt(long savedAt) {
         if (savedAt <= 0L) return getString(R.string.history_saved_unknown);
-        return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-                .format(new Date(savedAt));
+        return ActivityHistorySupport.withoutTrailingDot(DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+                .format(new Date(savedAt)));
     }
 
     private int dp(float value) {
